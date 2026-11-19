@@ -1828,3 +1828,71 @@ input, textarea, [contenteditable="true"] {
   user-select: text;
   -webkit-touch-callout: default;
 }
+/* === Custom Alert (mengikuti tema) === */
+.raja-alert-overlay{
+  position:fixed;inset:0;z-index:99998;
+  display:flex;align-items:center;justify-content:center;
+  padding:20px;background:rgba(0,0,0,.55);
+  animation:rajaAlertFadeIn .2s ease forwards;
+}
+.raja-alert-dialog{
+  width:100%;max-width:380px;
+  padding:24px 22px 20px;
+  border:3px solid var(--ink);border-radius:16px;
+  background:var(--paper,#FFFBEE);color:var(--ink);
+  box-shadow:8px 8px 0 var(--ink);
+  text-align:center;
+  animation:rajaAlertPop .28s cubic-bezier(.2,.9,.3,1.15);
+}
+.raja-alert-icon{
+  display:inline-grid;place-items:center;
+  width:58px;height:58px;margin:0 auto 14px;
+  border:3px solid var(--ink);border-radius:50%;
+  background:var(--warn,#FFE680);
+  font-size:30px;line-height:1;
+}
+.raja-alert-title{
+  margin:0 0 8px;font-size:17px;font-weight:800;
+  text-transform:uppercase;letter-spacing:-.02em;
+}
+.raja-alert-message{
+  margin:0 0 18px;font-size:14px;font-weight:500;
+  line-height:1.55;color:var(--mut,#3d3d3d);
+}
+.raja-alert-actions{display:flex;justify-content:center}
+.raja-alert-btn{
+  min-height:44px;min-width:120px;padding:9px 22px;
+  border:3px solid var(--ink);border-radius:12px;
+  background:var(--ac,#FF8FB1);color:var(--ink);
+  font-family:inherit;font-size:13px;font-weight:800;
+  letter-spacing:.05em;text-transform:uppercase;cursor:pointer;
+  box-shadow:4px 4px 0 var(--ink);
+  transition:transform .1s,box-shadow .1s,background-color .2s;
+}
+.raja-alert-btn:hover{transform:translate(-1px,-1px);box-shadow:5px 5px 0 var(--ink)}
+.raja-alert-btn:active{transform:translate(3px,3px);box-shadow:none}
+.raja-alert-btn:focus-visible{outline:3px solid var(--ac);outline-offset:3px}
+
+/* Mode gelap */
+:root[data-theme="dark"] .raja-alert-dialog{
+  background:#0b0b0b;color:#e5edf3;border-color:#e5edf3;box-shadow:none;
+}
+:root[data-theme="dark"] .raja-alert-icon{
+  background:#7a6422;border-color:#e5edf3;color:#fff;
+}
+:root[data-theme="dark"] .raja-alert-message{color:#b5c2cb}
+:root[data-theme="dark"] .raja-alert-btn{
+  background:#9a5b72;color:#fff;border-color:#e5edf3;box-shadow:none;
+}
+:root[data-theme="dark"] .raja-alert-btn:hover{background:#a56c83;transform:none;box-shadow:none}
+:root[data-theme="dark"] .raja-alert-btn:active{transform:none;box-shadow:none}
+:root[data-theme="dark"] .raja-alert-btn:focus-visible{outline-color:#e5edf3}
+
+@keyframes rajaAlertFadeIn{from{opacity:0}to{opacity:1}}
+@keyframes rajaAlertPop{from{opacity:0;transform:translateY(14px) scale(.94)}to{opacity:1;transform:none}}
+@keyframes rajaAlertFadeOut{to{opacity:0}}
+
+@media(prefers-reduced-motion:reduce){
+  .raja-alert-overlay,.raja-alert-dialog{animation:none!important}
+  .raja-alert-btn{transition:none!important}
+}
