@@ -2316,3 +2316,15 @@ document.addEventListener('keydown', function (e) {
 });
 pulihkanSesi();
 })();
+
+// script.js - Proteksi Dasar
+document.addEventListener('DOMContentLoaded', () => {
+    // 1. Nonaktifkan klik kanan
+    document.addEventListener('contextmenu', e => e.preventDefault());
+
+    // 2. Nonaktifkan seleksi teks
+    document.addEventListener('selectstart', e => e.preventDefault());
+
+    // (Opsional) 3. Nonaktifkan drag pada gambar
+    document.addEventListener('dragstart', e => e.preventDefault());
+});
