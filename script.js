@@ -26,7 +26,8 @@ function showAlert(pesan, opsi) {
 
     var btn = overlay.querySelector('.raja-alert-btn');
     var sudah = false;
-
+    var dibuka = Date.now();
+    
     function tutup() {
       if (sudah) return;
       sudah = true;
@@ -39,7 +40,8 @@ function showAlert(pesan, opsi) {
 
     btn.addEventListener('click', tutup);
     overlay.addEventListener('click', function (e) {
-      if (e.target === overlay) tutup();
+      if (e.target === overlay && Date.now() - dibuka > 500) tutup();
+
     });
     overlay.addEventListener('keydown', function (e) {
       if (e.key === 'Enter' || e.key === ' ' || e.key === 'Escape') {
@@ -2371,70 +2373,99 @@ pulihkanSesi();
 
 /* === Proteksi Interaksi PT Raja Palma === */
 (function () {
-  let lastAlert = 0;
-  const COOLDOWN = 1500; // 1.5 detik, biar alert tidak spam
-
-  function popup(pesan) {
-    const now = Date.now();
-    if (now - lastAlert < COOLDOWN) return; // hindari alert beruntun
-    lastAlert = now;
-    alert(pesan);
-  }
-
-(function () {
-  let lastAlert = 0;
-  const COOLDOWN = 1500;
+  'use strict';
+  var lastAlert = 0, COOLDOWN = 1500, lastTouch = 0;
 
   function popup(pesan, judul) {
-    const now = Date.now();
+    var now = Date.now();
     if (now - lastAlert < COOLDOWN) return;
+    if (document.querySelector('.raja-alert-overlay')) return;
     lastAlert = now;
     showAlert(pesan, { title: judul || 'Perhatian', icon: '⚠️' });
   }
-
-  function isFormField(el) {
-    if (!el) return false;
-    const tag = el.tagName;
-    return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || el.isContentEditable;
+  function elemen(t) { return t && t.nodeType === 3 ? t.parentNode : t; }
+  function isFormField(t) {
+    t = elemen(t);
+    return !!(t && t.closest && t.closest('input, textarea, select, [contenteditable="true"]'));
   }
 
-  // 1. Anti klik kanan
+  // 1. Klik kanan / menu konteks (kolom input tetap boleh, supaya bisa paste)
   document.addEventListener('contextmenu', function (e) {
-    e.preventDefault();
-    popup('Klik kanan dinonaktifkan pada portal ini.', 'Akses Dibatasi');
-  });
-
-  // 2. Anti blok/seleksi teks
-  document.addEventListener('selectstart', function (e) {
     if (isFormField(e.target)) return;
     e.preventDefault();
+    if (Date.now() - lastTouch < 1200) popup('Tekan lama dinonaktifkan pada portal ini.', 'Akses Dibatasi');
+    else popup('Klik kanan dinonaktifkan pada portal ini.', 'Akses Dibatasi');
+  });
+
+  // 2. Blok teks dengan mouse: popup muncul hanya saat benar-benar drag
+  var mouseAwal = null;
+  document.addEventListener('mousedown', function (e) {
+    mouseAwal = null;
+    if (e.button !== 0) return;
+    var t = elemen(e.target);
+    if (!t || !t.closest || t.closest('input, textarea, select, button, a, label, [contenteditable="true"]')) return;
+    // abaikan tarik scrollbar
+    if (t.clientWidth && (e.offsetX > t.clientWidth || e.offsetY > t.clientHeight)) return;
+    mouseAwal = { x: e.clientX, y: e.clientY };
+  });
+  document.addEventListener('mousemove', function (e) {
+    if (!mouseAwal || !(e.buttons & 1)) return;
+    if (Math.abs(e.clientX - mouseAwal.x) + Math.abs(e.clientY - mouseAwal.y) > 8) {
+      mouseAwal = null;
+      popup('Teks tidak boleh diblok atau disalin.', 'Dilarang Menyalin');
+    }
+  });
+  document.addEventListener('mouseup', function () { mouseAwal = null; });
+  document.addEventListener('dblclick', function (e) {
+    var t = elemen(e.target);
+    if (!t || !t.closest || t.closest('input, textarea, select, button, a, label, [contenteditable="true"]')) return;
     popup('Teks tidak boleh diblok atau disalin.', 'Dilarang Menyalin');
   });
 
-  document.addEventListener('copy', function (e) {
-    if (isFormField(e.target)) return;
-    e.preventDefault();
-    popup('Fitur copy dinonaktifkan.', 'Dilarang Menyalin');
+  // 3. Seleksi, copy, cut, dan Ctrl/Cmd + A/C/X (diam-diam dicegah; popup dari langkah 2 & keydown)
+  document.addEventListener('selectstart', function (e) {
+    if (!isFormField(e.target)) e.preventDefault();
+  });
+  ['copy', 'cut'].forEach(function (nama) {
+    document.addEventListener(nama, function (e) {
+      if (isFormField(e.target)) return;
+      e.preventDefault();
+      popup('Fitur copy dinonaktifkan.', 'Dilarang Menyalin');
+    });
+  });
+  document.addEventListener('keydown', function (e) {
+    if (!(e.ctrlKey || e.metaKey) || isFormField(e.target)) return;
+    var k = String(e.key).toLowerCase();
+    if (k === 'a' || k === 'c' || k === 'x') {
+      e.preventDefault();
+      popup('Teks tidak boleh diblok atau disalin.', 'Dilarang Menyalin');
+    }
   });
 
-  // 3. Anti tekan lama
-  let touchTimer = null;
+  // 4. Tekan lama (sentuh): batal kalau jari bergeser/scroll atau dilepas
+  var timer = null, awal = null;
+  function batal() { clearTimeout(timer); timer = null; awal = null; }
   document.addEventListener('touchstart', function (e) {
-    if (isFormField(e.target)) return;
-    touchTimer = setTimeout(function () {
+    lastTouch = Date.now();
+    batal();
+    if (e.touches.length !== 1 || isFormField(e.target)) return;
+    var s = e.touches[0];
+    awal = { x: s.clientX, y: s.clientY };
+    timer = setTimeout(function () {
+      timer = null;
       popup('Tekan lama dinonaktifkan pada portal ini.', 'Akses Dibatasi');
     }, 600);
   }, { passive: true });
-
-  document.addEventListener('touchend', function () {
-    if (touchTimer) { clearTimeout(touchTimer); touchTimer = null; }
+  document.addEventListener('touchmove', function (e) {
+    if (!awal || !e.touches.length) return;
+    var s = e.touches[0];
+    if (Math.abs(s.clientX - awal.x) + Math.abs(s.clientY - awal.y) > 10) batal();
   }, { passive: true });
-  document.addEventListener('touchmove', function () {
-    if (touchTimer) { clearTimeout(touchTimer); touchTimer = null; }
-  }, { passive: true });
+  document.addEventListener('touchend', batal, { passive: true });
+  document.addEventListener('touchcancel', batal, { passive: true });
 
-  // 4. Anti drag gambar
+  // 5. Anti drag gambar
   document.addEventListener('dragstart', function (e) {
-    if (e.target.tagName === 'IMG') e.preventDefault();
+    if (e.target && e.target.tagName === 'IMG') e.preventDefault();
   });
 })();
