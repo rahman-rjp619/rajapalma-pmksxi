@@ -2317,14 +2317,65 @@ document.addEventListener('keydown', function (e) {
 pulihkanSesi();
 })();
 
-// script.js - Proteksi Dasar
-document.addEventListener('DOMContentLoaded', () => {
-    // 1. Nonaktifkan klik kanan
-    document.addEventListener('contextmenu', e => e.preventDefault());
+/* === Proteksi Interaksi PT Raja Palma === */
+(function () {
+  let lastAlert = 0;
+  const COOLDOWN = 1500; // 1.5 detik, biar alert tidak spam
 
-    // 2. Nonaktifkan seleksi teks
-    document.addEventListener('selectstart', e => e.preventDefault());
+  function popup(pesan) {
+    const now = Date.now();
+    if (now - lastAlert < COOLDOWN) return; // hindari alert beruntun
+    lastAlert = now;
+    alert(pesan);
+  }
 
-    // (Opsional) 3. Nonaktifkan drag pada gambar
-    document.addEventListener('dragstart', e => e.preventDefault());
-});
+  // Fungsi bantu: cek apakah elemen adalah input/textarea (yang harus tetap bisa dipakai)
+  function isFormField(el) {
+    if (!el) return false;
+    const tag = el.tagName;
+    return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || el.isContentEditable;
+  }
+
+  /* 1. Anti klik kanan */
+  document.addEventListener('contextmenu', function (e) {
+    e.preventDefault();
+    popup('⚠️ Klik kanan dinonaktifkan!');
+  });
+
+  /* 2. Anti blok/seleksi teks */
+  document.addEventListener('selectstart', function (e) {
+    if (isFormField(e.target)) return; // input/textarea tetap bisa diblok
+    e.preventDefault();
+    popup('⚠️ Teks tidak boleh diblok/di-copy!');
+  });
+
+  /* 2b. Cadangan: blokir copy juga */
+  document.addEventListener('copy', function (e) {
+    if (isFormField(e.target)) return;
+    e.preventDefault();
+    popup('⚠️ Copy teks dinonaktifkan!');
+  });
+
+  /* 3. Anti tekan lama (long-press) di HP */
+  let touchTimer = null;
+
+  document.addEventListener('touchstart', function (e) {
+    if (isFormField(e.target)) return;
+    touchTimer = setTimeout(function () {
+      popup('⚠️ Tekan lama dinonaktifkan!');
+    }, 600); // 600ms dianggap long-press
+  }, { passive: true });
+
+  document.addEventListener('touchend', function () {
+    if (touchTimer) { clearTimeout(touchTimer); touchTimer = null; }
+  }, { passive: true });
+
+  document.addEventListener('touchmove', function () {
+    if (touchTimer) { clearTimeout(touchTimer); touchTimer = null; }
+  }, { passive: true });
+
+  /* 4. Blokir drag gambar (opsional, cegah "save image") */
+  document.addEventListener('dragstart', function (e) {
+    if (e.target.tagName === 'IMG') e.preventDefault();
+  });
+})();
