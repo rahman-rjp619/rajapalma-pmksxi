@@ -2381,52 +2381,59 @@ pulihkanSesi();
     alert(pesan);
   }
 
-  // Fungsi bantu: cek apakah elemen adalah input/textarea (yang harus tetap bisa dipakai)
+(function () {
+  let lastAlert = 0;
+  const COOLDOWN = 1500;
+
+  function popup(pesan, judul) {
+    const now = Date.now();
+    if (now - lastAlert < COOLDOWN) return;
+    lastAlert = now;
+    showAlert(pesan, { title: judul || 'Perhatian', icon: '⚠️' });
+  }
+
   function isFormField(el) {
     if (!el) return false;
     const tag = el.tagName;
     return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || el.isContentEditable;
   }
 
-  /* 1. Anti klik kanan */
+  // 1. Anti klik kanan
   document.addEventListener('contextmenu', function (e) {
     e.preventDefault();
-    popup('⚠️ Klik kanan dinonaktifkan!');
+    popup('Klik kanan dinonaktifkan pada portal ini.', 'Akses Dibatasi');
   });
 
-  /* 2. Anti blok/seleksi teks */
+  // 2. Anti blok/seleksi teks
   document.addEventListener('selectstart', function (e) {
-    if (isFormField(e.target)) return; // input/textarea tetap bisa diblok
+    if (isFormField(e.target)) return;
     e.preventDefault();
-    popup('⚠️ Teks tidak boleh diblok/di-copy!');
+    popup('Teks tidak boleh diblok atau disalin.', 'Dilarang Menyalin');
   });
 
-  /* 2b. Cadangan: blokir copy juga */
   document.addEventListener('copy', function (e) {
     if (isFormField(e.target)) return;
     e.preventDefault();
-    popup('⚠️ Copy teks dinonaktifkan!');
+    popup('Fitur copy dinonaktifkan.', 'Dilarang Menyalin');
   });
 
-  /* 3. Anti tekan lama (long-press) di HP */
+  // 3. Anti tekan lama
   let touchTimer = null;
-
   document.addEventListener('touchstart', function (e) {
     if (isFormField(e.target)) return;
     touchTimer = setTimeout(function () {
-      popup('⚠️ Tekan lama dinonaktifkan!');
-    }, 600); // 600ms dianggap long-press
+      popup('Tekan lama dinonaktifkan pada portal ini.', 'Akses Dibatasi');
+    }, 600);
   }, { passive: true });
 
   document.addEventListener('touchend', function () {
     if (touchTimer) { clearTimeout(touchTimer); touchTimer = null; }
   }, { passive: true });
-
   document.addEventListener('touchmove', function () {
     if (touchTimer) { clearTimeout(touchTimer); touchTimer = null; }
   }, { passive: true });
 
-  /* 4. Blokir drag gambar (opsional, cegah "save image") */
+  // 4. Anti drag gambar
   document.addEventListener('dragstart', function (e) {
     if (e.target.tagName === 'IMG') e.preventDefault();
   });
