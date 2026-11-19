@@ -1,4 +1,56 @@
 /* PT Raja Palma - script */
+/* === Custom Alert dengan tema === */
+function showAlert(pesan, opsi) {
+  opsi = opsi || {};
+  return new Promise(function (resolve) {
+    var lama = document.querySelector('.raja-alert-overlay');
+    if (lama) lama.remove();
+
+    var overlay = document.createElement('div');
+    overlay.className = 'raja-alert-overlay';
+    overlay.setAttribute('role', 'alertdialog');
+    overlay.setAttribute('aria-modal', 'true');
+
+    overlay.innerHTML =
+      '<div class="raja-alert-dialog">' +
+        '<div class="raja-alert-icon">' + (opsi.icon || '⚠️') + '</div>' +
+        '<h3 class="raja-alert-title">' + (opsi.title || 'Perhatian') + '</h3>' +
+        '<p class="raja-alert-message"></p>' +
+        '<div class="raja-alert-actions">' +
+          '<button type="button" class="raja-alert-btn">' + (opsi.okText || 'OK') + '</button>' +
+        '</div>' +
+      '</div>';
+
+    overlay.querySelector('.raja-alert-message').textContent = pesan;
+    document.body.appendChild(overlay);
+
+    var btn = overlay.querySelector('.raja-alert-btn');
+    var sudah = false;
+
+    function tutup() {
+      if (sudah) return;
+      sudah = true;
+      overlay.style.animation = 'rajaAlertFadeOut .15s ease forwards';
+      setTimeout(function () {
+        overlay.remove();
+        resolve();
+      }, 150);
+    }
+
+    btn.addEventListener('click', tutup);
+    overlay.addEventListener('click', function (e) {
+      if (e.target === overlay) tutup();
+    });
+    overlay.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ' ' || e.key === 'Escape') {
+        e.preventDefault();
+        tutup();
+      }
+    });
+
+    btn.focus();
+  });
+}
 (function () {
 'use strict';
 var PORTAL = 'karyawan';
