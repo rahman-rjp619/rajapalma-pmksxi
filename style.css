@@ -1811,3 +1811,20 @@ p{line-height:1.55}
 :root[data-theme="dark"] .lembur-matrix-wrap .tbl.lembur-matrix td.lembur-libur:first-child,
 :root[data-theme="dark"] .lembur-matrix-wrap .tbl.lembur-matrix td.lembur-libur:last-child{background:#321d20!important;color:#ffb0b0!important}
 :root[data-theme="dark"] .lembur-matrix-wrap .tbl.lembur-matrix .lembur-value.lembur-libur{background:#51272b!important;border-color:#ff6b6b!important;color:#ffb0b0!important}
+/* Cegah user-select di seluruh halaman, kecuali input */
+body, body * {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none; /* cegah menu "tekan lama" di iOS */
+}
+
+/* Kecualikan input, textarea, dan area yang perlu diketik */
+input, textarea, [contenteditable="true"] {
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
+}
