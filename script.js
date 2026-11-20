@@ -8,6 +8,8 @@ var KT = 'hrd_token_' + PORTAL;
 var S = { token: null, peran: null, karyawan: null, hak: [], profilPromise: null };
 var NS = 'http://www.w3.org/2000/svg';
 var menuCloseTimer = null;
+var portalAnalyticsTimer = null;
+var portalAnalyticsSedangKirim = false;
 
 var IKON = {
   beranda: '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
@@ -315,6 +317,28 @@ async function api(aksi, param) {
   return res;
 }
 
+function kirimHeartbeatPortal() {
+  if (PORTAL !== 'karyawan' || !S.token || portalAnalyticsSedangKirim) return;
+  portalAnalyticsSedangKirim = true;
+  panggil('portalAnalyticsPing').catch(function () {}).finally(function () {
+    portalAnalyticsSedangKirim = false;
+  });
+}
+function mulaiHeartbeatPortal() {
+  if (PORTAL !== 'karyawan' || !S.token) return;
+  clearInterval(portalAnalyticsTimer);
+  kirimHeartbeatPortal();
+  portalAnalyticsTimer = setInterval(kirimHeartbeatPortal, 60000);
+}
+function hentikanHeartbeatPortal() {
+  clearInterval(portalAnalyticsTimer);
+  portalAnalyticsTimer = null;
+  portalAnalyticsSedangKirim = false;
+}
+document.addEventListener('visibilitychange', function () {
+  if (!document.hidden) kirimHeartbeatPortal();
+});
+
 function peranCocok(p) { return PORTAL === 'admin' ? p === 'admin' : p !== 'admin'; }
 function cabutToken(t) {
   if (t) fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ aksi: 'keluar', token: t, param: {} }) }).catch(function () {});
@@ -338,6 +362,7 @@ async function masuk() {
     simpanToken(S.token);
     bersihLogin();
     bukaAplikasi();
+    mulaiHeartbeatPortal();
   } catch (e) {
     tampilPesan(pesanError(e));
   } finally {
@@ -351,7 +376,7 @@ function bersihkanTampilan() {
   var ts = $('toastStack'); if (ts) ts.innerHTML = '';
   $('app').classList.add('hidden'); $('login').classList.remove('hidden');
 }
-function resetSesi() { S.profilPromise = null; S.token = null; S.peran = null; S.karyawan = null; S.hak = []; simpanToken(null); }
+function resetSesi() { hentikanHeartbeatPortal(); S.profilPromise = null; S.token = null; S.peran = null; S.karyawan = null; S.hak = []; simpanToken(null); }
 function sesiHabis() { resetSesi(); bersihkanTampilan(); tampilPesan('Sesi habis. Silakan login lagi.'); }
 function keluar() { var t = S.token; resetSesi(); bersihkanTampilan(); tampilPesan(''); cabutToken(t); }
 
@@ -394,11 +419,7 @@ function bukaAplikasi() {
   });
   $('app').classList.remove('nav-open');
   aturMenu(false);
-  var menuAwal = halamanAwal(daftar);
-  // Entri dasar agar Back pertama tetap berada di portal; menu awal dicatat
-  // sebagai entri berikutnya dan menu-menu selanjutnya membentuk riwayat normal.
-  simpanRiwayatMenu(menuAwal, true);
-  pilih(menuAwal);
+  pilih(halamanAwal(daftar));
 }
 
 function sel(v, key) { return String(v == null ? '' : v); }
@@ -976,6 +997,7 @@ function pulihkanSesi() {
     if (!peranCocok(r.peran)) { var t = S.token; resetSesi(); cabutToken(t); tampilPesan('Sesi tidak sesuai dengan portal ini. Silakan login lagi.'); return; }
     S.peran = r.peran; S.karyawan = r.karyawan || null; S.hak = r.hakAkses || [];
     bukaAplikasi();
+    mulaiHeartbeatPortal();
   }).catch(function (e) {
     if (pesanError(e) !== 'SESI_HABIS') { resetSesi(); tampilPesan('Tidak dapat memeriksa sesi: ' + pesanError(e)); }
   });
@@ -1145,28 +1167,9 @@ function halamanAwal(daftar) {
   if (S.karyawan && S.karyawan.wajibGantiPassword) return 'password';
   return 'beranda';
 }
-/* ===== NAVIGASI RIWAYAT MENU (Chrome Android Back/Forward) =====
-   Menghubungkan menu portal ke riwayat browser agar gesture tepi layar
-   Android/Chrome dapat berpindah antar-menu tanpa gesture touch buatan.
-*/
-var portalHistoryKey = '__rajaPalmaPortalNav';
-function simpanRiwayatMenu(id, ganti) {
-  try {
-    var state = (history.state && typeof history.state === 'object') ? history.state : {};
-    var next = Object.assign({}, state);
-    next[portalHistoryKey] = { menu: id, portal: true };
-    if (ganti) history.replaceState(next, '', location.href);
-    else history.pushState(next, '', location.href);
-  } catch (e) {
-    // Navigasi menu tetap berfungsi walau browser membatasi History API.
-  }
-}
-function pilih(id, opsi) {
+function pilih(id) {
   if (S.karyawan && S.karyawan.wajibGantiPassword && id !== 'password') { toast('Ganti password terlebih dahulu.'); return; }
   if (id !== 'beranda' && id !== 'password' && id !== 'profil' && !hakDari(id).lihat) { toast('Menu ini tidak diizinkan untuk akun Anda.'); return; }
-  if (!(opsi && opsi.dariRiwayat) && $('app') && !$('app').classList.contains('hidden') && $('login').classList.contains('hidden')) {
-    simpanRiwayatMenu(id, false);
-  }
   $('app').classList.toggle('home-active', id === 'beranda');
   // Beranda wajib selalu tanpa navbar; reset juga status dan aria tombol menu.
   if (id === 'beranda') aturMenu(false);
@@ -1183,14 +1186,6 @@ function pilih(id, opsi) {
   if (fn) fn(id);
   window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
 }
-window.addEventListener('popstate', function (event) {
-  var state = event.state;
-  var nav = state && state[portalHistoryKey];
-  if (!nav || !nav.portal || !nav.menu) return;
-  if (!$('app') || $('app').classList.contains('hidden') || !$('login').classList.contains('hidden')) return;
-  pilih(nav.menu, { dariRiwayat: true });
-});
-
 function ambilLogin() {
   var u = $('employeeUsername').value.trim(), pw = $('employeePassword').value;
   if (!u || !pw) { tampilPesan('Isi nomor absen dan password.'); return null; }
@@ -2359,7 +2354,5 @@ document.addEventListener('keydown', function (e) {
   });
   if (action) action.click();
 });
-
-
 pulihkanSesi();
 })();
