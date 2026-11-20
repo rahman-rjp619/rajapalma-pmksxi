@@ -1,58 +1,4 @@
 /* PT Raja Palma - script */
-/* === Custom Alert dengan tema === */
-function showAlert(pesan, opsi) {
-  opsi = opsi || {};
-  return new Promise(function (resolve) {
-    var lama = document.querySelector('.raja-alert-overlay');
-    if (lama) lama.remove();
-
-    var overlay = document.createElement('div');
-    overlay.className = 'raja-alert-overlay';
-    overlay.setAttribute('role', 'alertdialog');
-    overlay.setAttribute('aria-modal', 'true');
-
-    overlay.innerHTML =
-      '<div class="raja-alert-dialog">' +
-        '<div class="raja-alert-icon">' + (opsi.icon || '⚠️') + '</div>' +
-        '<h3 class="raja-alert-title">' + (opsi.title || 'Perhatian') + '</h3>' +
-        '<p class="raja-alert-message"></p>' +
-        '<div class="raja-alert-actions">' +
-          '<button type="button" class="raja-alert-btn">' + (opsi.okText || 'OK') + '</button>' +
-        '</div>' +
-      '</div>';
-
-    overlay.querySelector('.raja-alert-message').textContent = pesan;
-    document.body.appendChild(overlay);
-
-    var btn = overlay.querySelector('.raja-alert-btn');
-    var sudah = false;
-    var dibuka = Date.now();
-    
-    function tutup() {
-      if (sudah) return;
-      sudah = true;
-      overlay.style.animation = 'rajaAlertFadeOut .15s ease forwards';
-      setTimeout(function () {
-        overlay.remove();
-        resolve();
-      }, 150);
-    }
-
-    btn.addEventListener('click', tutup);
-    overlay.addEventListener('click', function (e) {
-      if (e.target === overlay && Date.now() - dibuka > 500) tutup();
-
-    });
-    overlay.addEventListener('keydown', function (e) {
-      if (e.key === 'Enter' || e.key === ' ' || e.key === 'Escape') {
-        e.preventDefault();
-        tutup();
-      }
-    });
-
-    btn.focus();
-  });
-}
 (function () {
 'use strict';
 var PORTAL = 'karyawan';
@@ -1190,7 +1136,7 @@ function bolehEdit(id) { return boleh(id, 'edit'); }
 function bolehHapus(id) { return boleh(id, 'hapus'); }
 function bolehTambah(id) { return boleh(id, 'tambah'); }
 function labelPeran() { return 'Karyawan · ' + ((S.karyawan && S.karyawan.nama) || ''); }
-function daftarMenu() { return MENU_KARYAWAN.filter(function (m) { if (m.id === 'beranda') return true; var hak = hakDari(m.id); return m.id !== 'profil' && m.id !== 'password' && hak.lihat && !(m.id === 'karyawan' && hak.cakupan === 'sendiri'); }); }
+function daftarMenu() { return MENU_KARYAWAN.filter(function (m) { if (m.id === 'beranda') return true; var hak = hakDari(m.id); return m.id !== 'profil' && m.id !== 'password' && hak.lihat; }); }
 function halamanAwal(daftar) {
   if (S.karyawan && S.karyawan.wajibGantiPassword) return 'password';
   return 'beranda';
@@ -1384,7 +1330,7 @@ function renderBeranda() {
   ];
   itemBeranda.forEach(function (m) {
     var h = hakDari(m.id);
-    if (!h || !h.lihat || (m.id === 'karyawan' && h.cakupan === 'sendiri')) return;
+    if (!h || !h.lihat) return;
     var tombol = el('button', { type: 'button', class: 'beranda-menu-card', 'data-menu-id': m.id, style: '--menu-accent:' + m.c });
     tombol.appendChild(el('span', { class: 'beranda-menu-icon' }, [ikon(IKON[m.id] || IKON.profil)]));
     tombol.appendChild(el('span', { class: 'beranda-menu-copy' }, [el('strong', { text: m.n }), el('span', { text: m.k })]));
@@ -1449,7 +1395,7 @@ function renderDirektori() {
   var isi = halaman('Data Karyawan', 'Direktori karyawan sesuai hak akses akun Anda (' + infoCakupan + ').');
   var daftar = [];
   var bisaEdit = bolehEdit('karyawan');
-  var cari = semua ? el('input', { type: 'search', placeholder: 'Cari nama, divisi, atau NIP', 'aria-label': 'Cari data karyawan' }) : null;
+  var cari = (semua || lihatDivisi) ? el('input', { type: 'search', placeholder: 'Cari nama, divisi, NIP, atau kategori', 'aria-label': 'Cari data karyawan' }) : null;
   var count = el('p', { class: 'hitung loading', text: 'Memuat direktori' }), kotak = el('div');
   isi.appendChild(el('div', { class: 'toolbar' }, [cari, btn('Muat ulang', '', muat)]));
   isi.appendChild(count); isi.appendChild(kotak);
@@ -1466,7 +1412,7 @@ function renderDirektori() {
     tombolAksi('Detail', 'aksi-detail', '<circle cx="11" cy="11" r="7"/><path d="m20 20-4-4M11 8v.01M11 11v4"/>', function () { bukaDetailDirektoriAman(r); });
     tombolAksi('Cetak', 'aksi-cetak', '<path d="M7 8V3h10v5M7 17H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2"/><path d="M7 14h10v7H7zM17 11h.01"/>', function () { cetakProfil(r); });
     if (bisaEdit) {
-      var bisaEditIni = semua || lihatDivisi || (S.karyawan && S.karyawan.id === r.id);
+      var bisaEditIni = r.sumber !== 'penugasan' && (semua || lihatDivisi || (S.karyawan && S.karyawan.id === r.id));
       if (bisaEditIni) tombolAksi('Edit', 'aksi-edit', '<path d="m15 5 4 4M4 20l4-.8L19 8a2.8 2.8 0 0 0-4-4L4 15z"/>', function () { editDirektori(r); });
     }
     return aksi;
@@ -1486,7 +1432,7 @@ function renderDirektori() {
     else avatar.textContent = String(r.nama || 'K').trim().charAt(0).toUpperCase() || 'K';
     var teks = el('div', { class: 'direktori-name-text' }, [
       el('strong', { text: r.nama || 'Nama belum tersedia' }),
-      el('span', { class: 'sub2', text: r.divisi || 'Tanpa divisi' })
+      el('span', { class: 'sub2', text: (r.divisi || 'Tanpa divisi') + (r.kategori ? ' · ' + r.kategori : '') })
     ]);
     kotakNama.appendChild(avatar);
     kotakNama.appendChild(teks);
@@ -1495,8 +1441,8 @@ function renderDirektori() {
   function gambar() {
     count.classList.remove('loading');
     var q = cari ? cari.value.trim().toLowerCase() : '';
-    var rows = daftar.filter(function (r) { return !q || ['nama', 'divisi', 'nip', 'status'].some(function (k) { return String(r[k] || '').toLowerCase().indexOf(q) >= 0; }); });
-    count.textContent = 'Menampilkan ' + rows.length + ' dari ' + daftar.length + ' karyawan' + (bisaEdit ? ' · perubahan perlu persetujuan admin' : '');
+    var rows = daftar.filter(function (r) { return !q || ['nama', 'divisi', 'nip', 'status', 'kategori'].some(function (k) { return String(r[k] || '').toLowerCase().indexOf(q) >= 0; }); });
+    count.textContent = 'Menampilkan ' + rows.length + ' dari ' + daftar.length + ' orang' + (bisaEdit ? ' · perubahan perlu persetujuan admin' : '');
     kotak.innerHTML = ''; kotak.className = '';
     if (!rows.length) { kotak.className = 'kosong'; kotak.textContent = daftar.length ? 'Tidak ada data yang cocok dengan pencarian.' : 'Tidak ada data yang dapat ditampilkan.'; return; }
     kotak.appendChild(tabel(['Nama karyawan', 'NIP', 'Status', 'Tindakan'], rows.map(function (r) {
@@ -1615,7 +1561,7 @@ function bukaZoomFotoDirektori(src, nama) {
 // Empat field terbatas hanya terlihat jika akun memiliki hak edit menu Data Karyawan
 // dan karyawan yang dibuka masih berstatus aktif.
 function bolehLihatFieldTerbatasDirektori(r) {
-  return bolehEdit('karyawan') && !karyawanNonaktifPabrik(r || {});
+  return !!r && r.sumber !== 'penugasan' && bolehEdit('karyawan') && !karyawanNonaktifPabrik(r);
 }
 function detailDirektori(r) {
   var tampilkanFieldTerbatas = bolehLihatFieldTerbatasDirektori(r);
@@ -1645,6 +1591,13 @@ function detailDirektori(r) {
     ['Jenis kelamin', r.jk === 'L' ? 'Laki-laki' : (r.jk === 'P' ? 'Perempuan' : r.jk)], ['Status kerja', r.status],
     ['Status di pabrik', karyawanNonaktifPabrik(r) ? 'Nonaktif' : 'Aktif'], ['Tanggal masuk', r.tglMasuk ? dmy(r.tglMasuk) : ''],
     ['Lama kerja', lamaKerja(r.tglMasuk, karyawanNonaktifPabrik(r) ? r.tglNonaktif : '')], ['Keterangan', r.keterangan]];
+  if (r.sumber === 'penugasan') {
+    fieldsDetail = fieldsDetail.filter(function (f) { return f[0] !== 'Tanggal masuk' && f[0] !== 'Lama kerja'; });
+    fieldsDetail.splice(0, 0, ['Kategori tenaga', r.kategori]);
+    fieldsDetail.splice(6, 0,
+      ['Tanggal mulai penugasan', r.tglMulai ? dmy(r.tglMulai) : ''],
+      ['Tanggal selesai penugasan', r.tglSelesai ? dmy(r.tglSelesai) : '']);
+  }
   if (tampilkanFieldTerbatas) {
     fieldsDetail.splice(1, 0, ['Nomor absen', r.noAbsen]);
     fieldsDetail.splice(fieldsDetail.length - 1, 0,
@@ -1688,6 +1641,13 @@ function cetakProfil(r) {
     ['Jenis kelamin', r.jk === 'L' ? 'Laki-laki' : (r.jk === 'P' ? 'Perempuan' : r.jk)], ['Status kerja', r.status],
     ['Status di pabrik', karyawanNonaktifPabrik(r) ? 'Nonaktif' : 'Aktif'], ['Tanggal masuk', r.tglMasuk ? dmy(r.tglMasuk) : ''],
     ['Lama kerja', lamaKerja(r.tglMasuk, karyawanNonaktifPabrik(r) ? r.tglNonaktif : '')], ['Keterangan', r.keterangan]];
+  if (r.sumber === 'penugasan') {
+    fields = fields.filter(function (f) { return f[0] !== 'Tanggal masuk' && f[0] !== 'Lama kerja'; });
+    fields.splice(1, 0, ['Kategori tenaga', r.kategori]);
+    fields.splice(7, 0,
+      ['Tanggal mulai penugasan', r.tglMulai ? dmy(r.tglMulai) : ''],
+      ['Tanggal selesai penugasan', r.tglSelesai ? dmy(r.tglSelesai) : '']);
+  }
   if (tampilkanFieldTerbatas) {
     fields.splice(2, 0, ['Nomor absen', r.noAbsen]);
     fields.splice(fields.length - 1, 0,
@@ -2369,103 +2329,4 @@ document.addEventListener('keydown', function (e) {
   if (action) action.click();
 });
 pulihkanSesi();
-})();
-
-/* === Proteksi Interaksi PT Raja Palma === */
-(function () {
-  'use strict';
-  var lastAlert = 0, COOLDOWN = 1500, lastTouch = 0;
-
-  function popup(pesan, judul) {
-    var now = Date.now();
-    if (now - lastAlert < COOLDOWN) return;
-    if (document.querySelector('.raja-alert-overlay')) return;
-    lastAlert = now;
-    showAlert(pesan, { title: judul || 'Perhatian', icon: '⚠️' });
-  }
-  function elemen(t) { return t && t.nodeType === 3 ? t.parentNode : t; }
-  function isFormField(t) {
-    t = elemen(t);
-    return !!(t && t.closest && t.closest('input, textarea, select, [contenteditable="true"]'));
-  }
-
-  // 1. Klik kanan / menu konteks (kolom input tetap boleh, supaya bisa paste)
-  document.addEventListener('contextmenu', function (e) {
-    if (isFormField(e.target)) return;
-    e.preventDefault();
-    if (Date.now() - lastTouch < 1200) popup('Tekan lama dinonaktifkan pada portal ini.', 'Akses Dibatasi');
-    else popup('Klik kanan dinonaktifkan pada portal ini.', 'Akses Dibatasi');
-  });
-
-  // 2. Blok teks dengan mouse: popup muncul hanya saat benar-benar drag
-  var mouseAwal = null;
-  document.addEventListener('mousedown', function (e) {
-    mouseAwal = null;
-    if (e.button !== 0) return;
-    var t = elemen(e.target);
-    if (!t || !t.closest || t.closest('input, textarea, select, button, a, label, [contenteditable="true"]')) return;
-    // abaikan tarik scrollbar
-    if (t.clientWidth && (e.offsetX > t.clientWidth || e.offsetY > t.clientHeight)) return;
-    mouseAwal = { x: e.clientX, y: e.clientY };
-  });
-  document.addEventListener('mousemove', function (e) {
-    if (!mouseAwal || !(e.buttons & 1)) return;
-    if (Math.abs(e.clientX - mouseAwal.x) + Math.abs(e.clientY - mouseAwal.y) > 8) {
-      mouseAwal = null;
-      popup('Teks tidak boleh diblok atau disalin.', 'Dilarang Menyalin');
-    }
-  });
-  document.addEventListener('mouseup', function () { mouseAwal = null; });
-  document.addEventListener('dblclick', function (e) {
-    var t = elemen(e.target);
-    if (!t || !t.closest || t.closest('input, textarea, select, button, a, label, [contenteditable="true"]')) return;
-    popup('Teks tidak boleh diblok atau disalin.', 'Dilarang Menyalin');
-  });
-
-  // 3. Seleksi, copy, cut, dan Ctrl/Cmd + A/C/X (diam-diam dicegah; popup dari langkah 2 & keydown)
-  document.addEventListener('selectstart', function (e) {
-    if (!isFormField(e.target)) e.preventDefault();
-  });
-  ['copy', 'cut'].forEach(function (nama) {
-    document.addEventListener(nama, function (e) {
-      if (isFormField(e.target)) return;
-      e.preventDefault();
-      popup('Fitur copy dinonaktifkan.', 'Dilarang Menyalin');
-    });
-  });
-  document.addEventListener('keydown', function (e) {
-    if (!(e.ctrlKey || e.metaKey) || isFormField(e.target)) return;
-    var k = String(e.key).toLowerCase();
-    if (k === 'a' || k === 'c' || k === 'x') {
-      e.preventDefault();
-      popup('Teks tidak boleh diblok atau disalin.', 'Dilarang Menyalin');
-    }
-  });
-
-  // 4. Tekan lama (sentuh): batal kalau jari bergeser/scroll atau dilepas
-  var timer = null, awal = null;
-  function batal() { clearTimeout(timer); timer = null; awal = null; }
-  document.addEventListener('touchstart', function (e) {
-    lastTouch = Date.now();
-    batal();
-    if (e.touches.length !== 1 || isFormField(e.target)) return;
-    var s = e.touches[0];
-    awal = { x: s.clientX, y: s.clientY };
-    timer = setTimeout(function () {
-      timer = null;
-      popup('Tekan lama dinonaktifkan pada portal ini.', 'Akses Dibatasi');
-    }, 600);
-  }, { passive: true });
-  document.addEventListener('touchmove', function (e) {
-    if (!awal || !e.touches.length) return;
-    var s = e.touches[0];
-    if (Math.abs(s.clientX - awal.x) + Math.abs(s.clientY - awal.y) > 10) batal();
-  }, { passive: true });
-  document.addEventListener('touchend', batal, { passive: true });
-  document.addEventListener('touchcancel', batal, { passive: true });
-
-  // 5. Anti drag gambar
-  document.addEventListener('dragstart', function (e) {
-    if (e.target && e.target.tagName === 'IMG') e.preventDefault();
-  });
 })();
