@@ -2356,3 +2356,23 @@ document.addEventListener('keydown', function (e) {
 });
 pulihkanSesi();
 })();
+
+/* RAJA PALMA SPLASH SCREEN */
+(function () {
+  const splash = document.getElementById('rpSplashScreen');
+  if (!splash) return;
+
+  const key = 'rp_splash_visited';
+
+  if (sessionStorage.getItem(key)) {
+    splash.remove();
+    return;
+  }
+
+  sessionStorage.setItem(key, '1');
+
+  setTimeout(() => {
+    splash.classList.add('rp-hidden');
+    setTimeout(() => splash.remove(), 550);
+  }, 1800);
+})();
