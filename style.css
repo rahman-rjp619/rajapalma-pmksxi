@@ -1811,3 +1811,145 @@ p{line-height:1.55}
 :root[data-theme="dark"] .lembur-matrix-wrap .tbl.lembur-matrix td.lembur-libur:first-child,
 :root[data-theme="dark"] .lembur-matrix-wrap .tbl.lembur-matrix td.lembur-libur:last-child{background:#321d20!important;color:#ffb0b0!important}
 :root[data-theme="dark"] .lembur-matrix-wrap .tbl.lembur-matrix .lembur-value.lembur-libur{background:#51272b!important;border-color:#ff6b6b!important;color:#ffb0b0!important}
+
+
+/* RAJA PALMA SPLASH SCREEN */
+#rpSplashScreen {
+  position: fixed;
+  inset: 0;
+  z-index: 999999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #dff2ff;
+  transition: opacity .5s ease, visibility .5s ease;
+}
+
+#rpSplashScreen.rp-hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.rp-css-logo {
+  width: 160px;
+  aspect-ratio: 6 / 5;
+  padding: 3px;
+  border: 3px solid #d00000;
+  box-sizing: border-box;
+  background: white;
+  animation: rpEnter .8s ease both;
+}
+
+.rp-symbol {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: white;
+}
+
+.rp-left,.rp-right {
+  position: absolute;
+  top: 5%;
+  width: 19%;
+  height: 88%;
+  background: #d00000;
+}
+
+.rp-left {
+  left: 3%;
+  border-radius: 0 0 0 35%;
+}
+
+.rp-right {
+  right: 3%;
+  border-radius: 0 0 0 55%;
+}
+
+.rp-circle-top,.rp-circle-bottom {
+  position: absolute;
+  left: 22%;
+  width: 37%;
+  background: #d00000;
+  border-radius: 50%;
+}
+
+.rp-circle-top {
+  top: 5%;
+  height: 44%;
+}
+
+.rp-circle-bottom {
+  top: 46%;
+  height: 46%;
+}
+
+.rp-cut-top,.rp-cut-bottom {
+  position: absolute;
+  z-index: 2;
+  background: white;
+}
+
+.rp-cut-top {
+  left: 20%;
+  top: 45%;
+  width: 17%;
+  height: 17%;
+  clip-path: polygon(0 0,100% 50%,0 100%);
+}
+
+.rp-cut-bottom {
+  left: 19%;
+  bottom: 3%;
+  width: 19%;
+  height: 15%;
+  clip-path: polygon(0 0,100% 100%,0 100%);
+}
+
+.rp-arch {
+  position: absolute;
+  z-index: 3;
+  left: 55%;
+  top: 11%;
+  width: 17%;
+  height: 81%;
+  border: 7px solid #d00000;
+  border-bottom: 0;
+  border-radius: 40px 40px 0 0;
+  box-sizing: border-box;
+}
+
+.rp-loader {
+  position: absolute;
+  bottom: 12%;
+  width: 34px;
+  height: 3px;
+  background: #b5d5e9;
+  overflow: hidden;
+}
+
+.rp-loader::after {
+  content: "";
+  display: block;
+  width: 50%;
+  height: 100%;
+  background: #1876b9;
+  animation: rpLoad .8s infinite alternate;
+}
+
+@keyframes rpEnter {
+  from { opacity: 0; transform: scale(.85); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes rpLoad {
+  to { transform: translateX(100%); }
+}
+
+@media(prefers-reduced-motion:reduce) {
+  #rpSplashScreen,.rp-css-logo,.rp-loader::after {
+    animation: none;
+    transition: none;
+  }
+}
