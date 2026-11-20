@@ -2374,5 +2374,5 @@ pulihkanSesi();
   setTimeout(() => {
     splash.classList.add('rp-hidden');
     setTimeout(() => splash.remove(), 550);
-  }, 1800);
+  }, 2500);
 })();
