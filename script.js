@@ -394,7 +394,11 @@ function bukaAplikasi() {
   });
   $('app').classList.remove('nav-open');
   aturMenu(false);
-  pilih(halamanAwal(daftar));
+  var menuAwal = halamanAwal(daftar);
+  // Entri dasar agar Back pertama tetap berada di portal; menu awal dicatat
+  // sebagai entri berikutnya dan menu-menu selanjutnya membentuk riwayat normal.
+  simpanRiwayatMenu(menuAwal, true);
+  pilih(menuAwal);
 }
 
 function sel(v, key) { return String(v == null ? '' : v); }
@@ -1141,9 +1145,28 @@ function halamanAwal(daftar) {
   if (S.karyawan && S.karyawan.wajibGantiPassword) return 'password';
   return 'beranda';
 }
-function pilih(id) {
+/* ===== NAVIGASI RIWAYAT MENU (Chrome Android Back/Forward) =====
+   Menghubungkan menu portal ke riwayat browser agar gesture tepi layar
+   Android/Chrome dapat berpindah antar-menu tanpa gesture touch buatan.
+*/
+var portalHistoryKey = '__rajaPalmaPortalNav';
+function simpanRiwayatMenu(id, ganti) {
+  try {
+    var state = (history.state && typeof history.state === 'object') ? history.state : {};
+    var next = Object.assign({}, state);
+    next[portalHistoryKey] = { menu: id, portal: true };
+    if (ganti) history.replaceState(next, '', location.href);
+    else history.pushState(next, '', location.href);
+  } catch (e) {
+    // Navigasi menu tetap berfungsi walau browser membatasi History API.
+  }
+}
+function pilih(id, opsi) {
   if (S.karyawan && S.karyawan.wajibGantiPassword && id !== 'password') { toast('Ganti password terlebih dahulu.'); return; }
   if (id !== 'beranda' && id !== 'password' && id !== 'profil' && !hakDari(id).lihat) { toast('Menu ini tidak diizinkan untuk akun Anda.'); return; }
+  if (!(opsi && opsi.dariRiwayat) && $('app') && !$('app').classList.contains('hidden') && $('login').classList.contains('hidden')) {
+    simpanRiwayatMenu(id, false);
+  }
   $('app').classList.toggle('home-active', id === 'beranda');
   // Beranda wajib selalu tanpa navbar; reset juga status dan aria tombol menu.
   if (id === 'beranda') aturMenu(false);
@@ -1160,6 +1183,14 @@ function pilih(id) {
   if (fn) fn(id);
   window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
 }
+window.addEventListener('popstate', function (event) {
+  var state = event.state;
+  var nav = state && state[portalHistoryKey];
+  if (!nav || !nav.portal || !nav.menu) return;
+  if (!$('app') || $('app').classList.contains('hidden') || !$('login').classList.contains('hidden')) return;
+  pilih(nav.menu, { dariRiwayat: true });
+});
+
 function ambilLogin() {
   var u = $('employeeUsername').value.trim(), pw = $('employeePassword').value;
   if (!u || !pw) { tampilPesan('Isi nomor absen dan password.'); return null; }
@@ -2329,49 +2360,6 @@ document.addEventListener('keydown', function (e) {
   if (action) action.click();
 });
 
-/* ===== NAVIGASI GESTUR SWIPE (ponsel/tablet) =====
-   Swipe kanan: menu sebelumnya | Swipe kiri: menu berikutnya.
-   Hanya aktif di area konten aplikasi, setelah login.
-   ===== */
-(function pasangNavigasiSwipe() {
-  var mulaiX = 0, mulaiY = 0, mulaiWaktu = 0;
-  var ambang = 65, batasDurasi = 700;
-  var area = $('isi');
-  if (!area) return;
-
-  function targetInteraktif(target) {
-    return !!(target && target.closest('input, textarea, select, button, a, [contenteditable="true"], .tabelbungkus, .lembur-matrix-wrap, .menu-pop, .overlay'));
-  }
-
-  area.addEventListener('touchstart', function(e) {
-    if (!e.touches || e.touches.length !== 1 || targetInteraktif(e.target)) return;
-    mulaiX = e.touches[0].clientX;
-    mulaiY = e.touches[0].clientY;
-    mulaiWaktu = Date.now();
-  }, { passive: true });
-
-  area.addEventListener('touchend', function(e) {
-    if (!mulaiWaktu || !e.changedTouches || !e.changedTouches.length) return;
-    var durasi = Date.now() - mulaiWaktu;
-    var akhirX = e.changedTouches[0].clientX;
-    var akhirY = e.changedTouches[0].clientY;
-    var dx = akhirX - mulaiX, dy = akhirY - mulaiY;
-    mulaiWaktu = 0;
-    if (durasi > batasDurasi || Math.abs(dx) < ambang || Math.abs(dx) <= Math.abs(dy) * 1.25) return;
-    if ($('app').classList.contains('hidden') || !$('login').classList.contains('hidden')) return;
-
-    var menu = daftarMenu();
-    var aktif = document.querySelector('.nav[aria-current="page"]');
-    var idAktif = aktif ? aktif.dataset.id : 'beranda';
-    var indeks = menu.findIndex(function(m) { return m.id === idAktif; });
-    if (indeks < 0) return;
-    var tujuan = dx > 0 ? indeks - 1 : indeks + 1;
-    if (tujuan < 0 || tujuan >= menu.length) return;
-    pilih(menu[tujuan].id);
-  }, { passive: true });
-
-  area.addEventListener('touchcancel', function() { mulaiWaktu = 0; }, { passive: true });
-})();
 
 pulihkanSesi();
 })();
