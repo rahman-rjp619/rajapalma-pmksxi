@@ -1825,6 +1825,7 @@ input,textarea,select,[contenteditable="true"],[contenteditable=""]{-webkit-user
   position: fixed;
   inset: 0;
   z-index: 999999;
+  pointer-events: none;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1940,4 +1941,34 @@ input,textarea,select,[contenteditable="true"],[contenteditable=""]{-webkit-user
   background: #202b34;
   border-color: #4f7a93;
   color: #e5edf3;
+}
+
+/* Matriks lembur: hari berada tepat di atas tanggal pada semua ukuran layar. */
+.lembur-matrix-wrap .tbl.lembur-matrix th:not(:first-child):not(:last-child)::after {
+  content: none !important;
+  display: none !important;
+}
+.lembur-matrix-wrap .tbl.lembur-matrix th .lembur-day-name,
+.lembur-matrix-wrap .tbl.lembur-matrix th .lembur-date-number {
+  display: block !important;
+  text-align: center !important;
+  white-space: nowrap !important;
+  line-height: 1.25 !important;
+}
+.lembur-matrix-wrap .tbl.lembur-matrix th .lembur-day-name {
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  opacity: .85;
+}
+.lembur-matrix-wrap .tbl.lembur-matrix th .lembur-date-number {
+  font-size: 12px !important;
+  font-weight: 800 !important;
+}
+@media (max-width: 640px) {
+  .lembur-matrix-wrap .tbl.lembur-matrix th .lembur-day-name {
+    font-size: 9px !important;
+  }
+  .lembur-matrix-wrap .tbl.lembur-matrix th .lembur-date-number {
+    font-size: 10px !important;
+  }
 }
