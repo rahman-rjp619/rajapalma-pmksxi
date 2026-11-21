@@ -1,1940 +1,2510 @@
-/* PT Raja Palma - stylesheet */
-/* Portal PT Raja Palma: stylesheet gabungan, satu aturan per baris */
-:root{--ink:#000;--bg:#FFF4D6;--paper:#FFFBEE;--side:#FFD93D;--hd:#FFD93D;--ac:#FF8FB1;--ac2:#7BD3EA;--bad:#FF9B9B;--ok:#B8F2A8;--warn:#FFE680;--mut:#3d3d3d;--line:#000;--rd:12px;--sh:6px 6px 0 var(--ink)}
-*{box-sizing:border-box}
-html{-webkit-text-size-adjust:100%;overflow-x:hidden;scroll-behavior:smooth}
-body{margin:0;min-width:320px;overflow-x:hidden;background:var(--bg);color:var(--ink);font:500 16px/1.45 system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
-h1,h2,h3,h4{margin:0;line-height:1.15}
-p{margin:0}
-.hidden{display:none!important}
-button,input,select,textarea{font:inherit;color:inherit}
-:focus-visible{outline:3px solid var(--ac);outline-offset:2px}
-svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;display:block;flex:none}
-label{font-weight:800;font-size:12px;letter-spacing:.04em}
-input,select,textarea{width:100%;min-width:0;min-height:44px;padding:10px 12px;border:2px solid var(--ink);border-radius:11px;background:#fff}
-input:not([type=checkbox]):not([type=radio]),select,textarea{font-size:16px;font-weight:500;letter-spacing:normal}
-input[type=checkbox],input[type=radio]{width:18px;height:18px;min-height:0;padding:0;accent-color:var(--ink)}
-textarea{resize:vertical;font-family:inherit}
-a{color:#245f8f}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:42px;padding:9px 14px;border:2px solid var(--ink);border-radius:var(--rd);background:#fff;font-size:12px;letter-spacing:.04em;text-transform:uppercase;cursor:pointer;touch-action:manipulation}
-.btn:hover{background:var(--hd)}
-.btn.primary{background:var(--ac)}
-.btn.bahaya{background:var(--bad)}
-.btn.kecil{min-height:36px;padding:5px 10px;font-size:11px}
-.btn:disabled{opacity:.55;cursor:wait;box-shadow:none}
-.chip,.status,.tag{display:inline-block;border:2px solid var(--ink);border-radius:999px;padding:2px 9px;background:var(--ac2)}
-.status.ok,.chip.ok{background:var(--ok)}
-.status.gagal,.chip.bad{background:var(--bad)}
-.chip.warn{background:var(--warn)}
-.tag{border-radius:6px;margin-left:8px;padding:0 6px;font-size:10px;text-transform:uppercase;background:var(--bad)}
-.dot{display:inline-block;width:9px;height:9px;margin-right:6px;border-radius:50%;background:#23834b;border:1px solid rgba(0,0,0,.25)}
-.dot.off{background:#c83f3f}
-.info{padding:14px 16px;border:2px solid var(--ink);border-radius:var(--rd);background:#fff;line-height:1.6}
-.sub{margin-bottom:18px;color:var(--mut);max-width:760px}
-.sub2{display:block;margin-top:2px;color:var(--mut);font-size:12px;font-weight:500}
-.kosong{padding:26px;text-align:center;font-weight:700;color:var(--mut)}
-.loading{display:flex;align-items:center;gap:10px}
-.loading:before{content:"";width:18px;height:18px;flex:none;border:3px solid currentColor;border-right-color:transparent;border-radius:50%;animation:loadingSpin .75s linear infinite}
-.loading:after{content:"";width:18px;height:8px;flex:none;background:radial-gradient(circle,currentColor 1.5px,transparent 2px) 0 50%/6px 6px repeat-x;animation:loadingDots .9s steps(3,end) infinite}
-@keyframes loadingSpin{to{transform:rotate(360deg)}}
-@keyframes loadingDots{to{background-position:6px 50%}}
-@media(prefers-reduced-motion:reduce){
-  .loading:before,.loading:after{animation:none}
+/* PT Raja Palma - script */
+(function () {
+'use strict';
+var PORTAL = 'karyawan';
+
+var GAS_URL = "https://script.google.com/macros/s/AKfycbwfq5F4ysYs7H0fUxNrJ3A2fpwX0gTK87qa_HS9WMssTV0umNiLwr4zyXzC0gp-gpbG6Q/exec";
+var KT = 'hrd_token_' + PORTAL;
+var S = { token: null, peran: null, karyawan: null, hak: [], profilPromise: null };
+var NS = 'http://www.w3.org/2000/svg';
+var menuCloseTimer = null;
+var portalAnalyticsTimer = null;
+var portalAnalyticsSedangKirim = false;
+var pengendaliHalaman = null;
+var riwayatMenuSiap = false;
+var riwayatMenu = [];
+var indeksRiwayatMenu = -1;
+var batalkanTekanLamaAktif = function () {};
+
+var IKON = {
+  beranda: '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
+  karyawan: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"/><circle cx="17" cy="9" r="2.5"/><path d="M17.5 14c2.6.3 4.5 2.2 4.5 5"/>',
+  absensi: '<rect x="3" y="4.5" width="18" height="16" rx="2"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4M8.5 15l2.5 2.5 4.5-4.5"/>',
+  administrasi: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 4v5m8-5v5M7 13h4m2 0h4M7 16h4m2 0h4"/>',
+  disiplin: '<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M12 8v5M12 16.5v.01"/>',
+  sop: '<rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1M9 10h6M9 14h6M9 18h3"/>',
+  lembur: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  profil: '<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.2 3.3-7 8-7s8 2.8 8 7"/>',
+  rekapan: '<path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/><path d="M8 7h8M8 11h8"/>',
+  akses: '<path d="M12 3 20 6v5c0 5-3.5 8-8 10-4.5-2-8-5-8-10V6z"/><path d="m8.5 12 2.3 2.3 4.8-5"/>',
+  password: '<rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 018 0v3M12 14v3"/>',
+  opsi: '<path d="M4 6h10M4 11h10M4 16h7M16 13l3 3 3-3"/>',
+  garis: '<path d="M4 6h16M4 12h16M4 18h16"/>',
+  kamera: '<path d="M14 4h-4L8 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-4z"/><circle cx="12" cy="13" r="3.5"/>'
+};
+
+var JUDUL_MODUL = { disiplin: 'Disiplin', sop: 'SOP', lembur: 'Lembur', rekapan: 'Rekapan' };
+var AKSI_MODUL = { disiplin: 'karyawanDisiplin', sop: 'karyawanSOP', lembur: 'karyawanLembur', rekapan: 'karyawanRekapan' };
+var TAB_MODUL = { disiplin: 'disiplin_karyawan', sop: 'sop_karyawan', lembur: 'lembur_karyawan', rekapan: 'rekapan_karyawan' };
+
+function $(id) { return document.getElementById(id); }
+function el(tag, props, kids) {
+  var e = document.createElement(tag);
+  if (props) Object.keys(props).forEach(function (k) {
+    var v = props[k];
+    if (v == null || v === false) return;
+    if (k === 'text') e.textContent = v;
+    else if (k === 'class') e.className = v;
+    else if (k === 'value') e.value = v;
+    else if (k === 'checked') e.checked = true;
+    else if (k === 'on') Object.keys(v).forEach(function (ev) { e.addEventListener(ev, v[ev]); });
+    else e.setAttribute(k, v === true ? '' : v);
+  });
+  (kids || []).forEach(function (c) {
+    if (c == null) return;
+    e.appendChild(typeof c === 'string' ? document.createTextNode(c) : c);
+  });
+  return e;
 }
-.login{position:relative;min-height:100vh;min-height:100svh;display:grid;place-items:center;padding:96px 20px 56px;overflow:hidden;background:var(--bg)}
-.login-header{position:absolute;top:0;left:0;right:0;z-index:5;display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:64px;padding:10px max(20px,env(safe-area-inset-right)) 10px max(20px,env(safe-area-inset-left));background:var(--hd);border-bottom:2px solid var(--ink)}
-.login-header-brand{display:flex;align-items:center;gap:10px;min-width:0}
-.login-header-mark{display:grid;place-items:center;width:38px;height:38px;flex:none;border:2px solid var(--ink);border-radius:8px;background:var(--ac);font-size:13px;font-weight:900;box-shadow:2px 2px 0 var(--ink)}
-.login-header-title{min-width:0;font-size:14px;font-weight:900;line-height:1.2;letter-spacing:-.02em}
-.login-header-title small{display:block;margin-top:3px;font-size:10px;font-weight:700;letter-spacing:.08em;color:var(--mut)}
-.login-header .tema-toggle{width:42px;height:42px;min-width:42px;padding:8px;box-shadow:2px 2px 0 var(--ink)}
-.login-forgot{display:block;width:100%;padding:0;border:0;background:transparent;color:var(--ink);font-size:12px;font-weight:800;text-align:right;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
-.forgot-modal{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;padding:18px;background:rgba(0,0,0,.58)}
-.forgot-dialog{width:min(100%,390px);padding:22px;border:2px solid var(--ink);border-radius:16px;background:var(--paper);box-shadow:6px 6px 0 var(--ink)}
-.forgot-dialog h3{font-size:22px}
-.forgot-dialog p{margin-top:10px;color:var(--mut);font-size:14px;line-height:1.55}
-.forgot-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:20px}
-.forgot-actions .btn{width:100%;min-width:0}
-.btn.whatsapp{background:#25D366;color:#062b16}
-@media(max-width:480px){
-  .login{padding:82px 16px 42px;align-content:center}
-  .login-header{min-height:60px;padding:8px 16px}
-  .login-header-mark{width:34px;height:34px}
-  .login-header-title{font-size:13px}
-  .login-header-title small{font-size:9px}
-  .card{max-width:420px;border-radius:16px}
-  .card .top{padding:22px 20px 18px}
-  .card .body{gap:14px;padding:20px}
-  .login-bottom{left:16px;right:16px;bottom:10px;font-size:8px}
-  .forgot-dialog{padding:19px}
-  .forgot-actions{grid-template-columns:1fr}
+function ikon(isi) {
+  var s = document.createElementNS(NS, 'svg');
+  s.setAttribute('viewBox', '0 0 24 24');
+  s.setAttribute('aria-hidden', 'true');
+  s.innerHTML = isi;
+  return s;
 }
-.login-brand{position:absolute;top:24px;left:28px;font-weight:900}
-.login-brand small{display:block;margin-top:3px;font-weight:700;color:var(--mut)}
-.login-bottom{position:absolute;bottom:16px;left:28px;right:28px;display:flex;justify-content:space-between;gap:12px;color:var(--mut);font-weight:800;letter-spacing:.12em}
-.card{width:100%;max-width:470px;border:2px solid var(--ink);border-radius:20px;background:var(--paper);overflow:hidden}
-.card .top{padding:26px 28px 22px;background:#e5edf3;border-bottom:2px solid var(--ink)}
-.card .top h2{font-size:clamp(28px,5vw,38px);letter-spacing:-.035em}
-.card .top p{margin-top:12px;font-size:15px;max-width:34ch}
-.card .top .jam{margin:0 0 14px;font-size:12px;font-weight:800;color:var(--mut)}
-.card .body{display:grid;gap:16px;padding:24px 28px}
-.field{display:grid;gap:6px;min-width:0}
-.field>span{font-size:11px;font-weight:800;letter-spacing:.04em;color:#263440}
-.field-row{display:flex;gap:9px}
-.field-row .btn{flex:none}
-#masuk{width:100%;min-height:48px;background:#dce8f0}
-#masuk:hover{background:var(--ac)}
-#masuk:disabled{gap:10px}
-#masuk:disabled::before{content:"";width:17px;height:17px;flex:none;border:3px solid currentColor;border-right-color:transparent;border-radius:50%;animation:loginCheckingSpin .75s linear infinite}
-@keyframes loginCheckingSpin{to{transform:rotate(360deg)}}
-@media(prefers-reduced-motion:reduce){
-  #masuk:disabled::before{animation:none}
+function btn(teks, kelas, klik) {
+  var b = el('button', { type: 'button', class: 'btn ' + (kelas || ''), text: teks });
+  if (klik) b.addEventListener('click', klik);
+  return b;
 }
-.login-note{font-size:10px;font-weight:700;color:var(--mut);text-align:center}
-.bar{position:sticky;top:0;z-index:30;display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:62px;padding:8px max(20px,env(safe-area-inset-right)) 8px max(20px,env(safe-area-inset-left));background:var(--hd);border-bottom:2px solid var(--ink)}
-.bar h1{font-size:clamp(14px,1.8vw,19px);letter-spacing:-.02em;text-transform:uppercase}
-.profile-wrap{position:relative}
-.profile-toggle{display:flex;align-items:center;gap:9px;max-width:min(42vw,320px);min-height:42px;padding:4px 11px 4px 5px;border:2px solid var(--ink);border-radius:999px;background:#fff;font-weight:800;cursor:pointer;box-shadow:2px 2px 0 var(--ink)}
-.profile-avatar{width:30px;height:30px;display:grid;place-items:center;border:1px solid var(--ink);border-radius:50%;background:var(--ac);flex:none}
-.profile-avatar svg{width:18px;height:18px}
-.profile-label{font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.profile-menu{position:absolute;right:0;top:calc(100% + 8px);z-index:40;border:2px solid var(--ink);background:#fff;box-shadow:var(--sh)}
-.profile-menu button{width:100%;border:0;background:transparent;font-size:13px;font-weight:800;text-align:left;cursor:pointer}
-.shell{display:grid;grid-template-columns:200px minmax(0,1fr);align-items:start;min-height:calc(100vh - 62px)}
-#app.rail .shell{grid-template-columns:76px minmax(0,1fr)}
-nav{position:sticky;top:62px;display:flex;flex-direction:column;gap:8px;height:calc(100vh - 62px);overflow-y:auto;padding:12px 9px;background:var(--side)}
-.brand{display:flex;align-items:center;gap:10px;padding:6px 6px 14px;border-bottom:1px solid #68716b;color:#fff;min-width:0}
-.brand b{display:grid;place-items:center;width:38px;height:38px;flex:none;border:2px solid #f4efe6;border-radius:8px;background:var(--ac);color:var(--ink);font-size:14px;box-shadow:3px 3px 0 #111}
-.brand span{font-size:11px;font-weight:900;line-height:1.25;letter-spacing:.05em;text-transform:uppercase}
-.brand small{display:block;margin-top:3px;font-size:9px;font-weight:600;color:#c6ccc6}
-#app.rail .brand span{display:none}
-#app.rail .brand{justify-content:center}
-.navtoggle,.nav{display:flex;align-items:center;gap:10px;width:100%;padding:9px;border:2px solid #5d655f;border-radius:10px;background:transparent;color:#e8e6df;font-weight:800;font-size:12px;text-align:left;cursor:pointer}
-.navtoggle{justify-content:center}
-.navtoggle svg{width:16px;height:16px}
-#app.rail .navtoggle svg{transform:rotate(180deg)}
-.nav .ik{display:grid;place-items:center;width:28px;height:28px;flex:none}
-.nav .ik svg{width:20px;height:20px}
-.nav small{display:block;margin-top:2px;font-size:10px;font-weight:500;color:#b9bdb8}
-.nav[aria-current=page]{background:var(--ac);border-color:var(--ac);color:var(--ink);box-shadow:3px 3px 0 #111}
-.nav[aria-current=page] small{color:#4b5650}
-#app.rail .nav .tk{display:none}
-@media(min-width:801px){
-  #app.rail nav{z-index:35;overflow-x:visible;transition:width .16s ease}
-  #app.rail nav:hover{width:200px;overflow-y:auto;box-shadow:6px 0 0 rgba(32,45,56,.12)}
-  #app.rail nav:hover .brand{justify-content:flex-start}
-  #app.rail nav:hover .brand span{display:block}
-  #app.rail nav:hover .nav .tk{display:block}
-  #app.rail nav:not(:hover) .nav{justify-content:center;gap:0;padding:9px 0}
-  #app.rail nav:not(:hover) .nav .ik{margin-inline:auto}
-  #app.rail nav:hover .nav{width:100%;justify-content:flex-start;gap:10px;padding:9px}
+function fieldEl(label, input, bantuan) {
+  return el('label', { class: 'field' }, [el('span', { text: label }), input, bantuan ? el('small', { class: 'sub2', text: bantuan }) : null]);
 }
-main{width:100%;max-width:1360px;min-width:0;margin-inline:auto;padding:clamp(18px,3vw,34px) clamp(14px,3vw,34px) max(34px,env(safe-area-inset-bottom))}
-main h2{margin-bottom:8px;font-size:clamp(24px,3vw,32px);text-transform:uppercase}
-#app.emp main>h2{display:flex;align-items:center;gap:12px;padding-bottom:12px;border-bottom:2px solid var(--ink)}
-#app.emp main>h2:before{content:"";width:9px;height:28px;flex:none;border:2px solid var(--ink);background:var(--ac);box-shadow:2px 2px 0 var(--ink)}
-#app.emp main>.sub{margin-top:10px}
-.panel{margin-bottom:22px;border:2px solid var(--ink);border-radius:var(--rd);background:#fff;box-shadow:var(--sh);overflow:hidden}
-.panel .head{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;padding:13px 18px;background:var(--hd);border-bottom:2px solid var(--ink)}
-.panel .head h3{font-size:15px;text-transform:uppercase}
-.panel .pad{padding:16px 18px}
-.aksi{display:flex;flex-wrap:wrap;gap:10px;padding:14px 18px}
-.pad .aksi{padding:12px 0 0}
-dl.dl{margin:0;padding:4px 18px 12px}
-dl.dl div{display:flex;justify-content:space-between;gap:16px;padding:10px 0;border-bottom:1px solid #d6d1c6}
-dl.dl div:last-child{border-bottom:0}
-dl.dl dt{font-size:13px;color:var(--mut)}
-dl.dl dd{margin:0;font-size:13px;font-weight:800;text-align:right;overflow-wrap:anywhere}
-.toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:14px}
-.toolbar input[type=search]{flex:1;min-width:200px}
-.toolbar select{width:auto;min-width:160px}
-.chk{display:flex;align-items:center;gap:8px;min-height:44px;padding:0 12px;border:2px solid var(--ink);border-radius:var(--rd);background:#fff;font-size:12px;cursor:pointer}
-.hitung{margin:0 0 10px;font-size:12px;font-weight:700}
-.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
-.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:0 0 16px}
-.stat{padding:12px 14px;border:2px solid var(--ink);border-radius:var(--rd);background:#fff}
-.stat span{display:block;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--mut)}
-.stat strong{display:block;margin-top:3px;font-size:24px;font-variant-numeric:tabular-nums}
-.tabs{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px}
-.sec{margin-bottom:8px;font-size:16px;text-transform:uppercase}
-.abs-home-grid{display:grid;grid-template-columns:1fr}
-.abs-home-card{display:grid;grid-template-columns:52px minmax(0,1fr);min-width:0;border:2px solid var(--ink);border-radius:var(--rd);background:#fff;text-align:left;cursor:pointer;transition:transform .12s,box-shadow .12s,background .12s}
-.abs-home-card:hover{background:var(--ac2);transform:translate(-1px,-1px)}
-.abs-home-card:active{transform:translate(4px,4px);box-shadow:1px 1px 0 var(--ink)}
-.abs-home-card .abs-home-icon{grid-column:1;display:grid;place-items:center;border:2px solid var(--ink);border-radius:10px;background:var(--ac)}
-.abs-home-card .abs-home-icon svg{width:28px;height:28px}
-.abs-home-card.input .abs-home-icon{background:#d8e2ed}
-.abs-home-card strong{grid-column:2;grid-row:1;display:block;font-size:clamp(16px,2vw,20px);font-weight:800;text-transform:uppercase;letter-spacing:-.02em}
-.abs-home-card .abs-home-desc{grid-column:2;grid-row:2;display:block;color:var(--mut);font-size:13px;font-weight:500}
-.abs-home-card .abs-home-cta{grid-column:1/-1;grid-row:3;display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase}
-.abs-home-card .abs-home-cta svg{width:17px;height:17px}
-@media(max-width:480px){
-  .abs-home-card{grid-template-columns:42px minmax(0,1fr)}
-  .abs-home-card .abs-home-icon svg{width:23px;height:23px}
+function halaman(judul, sub) {
+  var isi = $('isi');
+  isi.innerHTML = '';
+  isi.appendChild(el('h2', { text: judul }));
+  if (sub) isi.appendChild(el('p', { class: 'sub', text: sub }));
+  return isi;
 }
-.abs-filter{display:grid;grid-template-columns:minmax(145px,1fr) minmax(145px,1fr) minmax(200px,1.5fr) auto auto;align-items:end;gap:10px;padding:0;margin:0 0 14px;border:0;border-radius:0;background:transparent;box-shadow:none}
-.abs-filter .field{min-width:0;gap:5px}
-.abs-filter input{min-height:40px;padding:8px 10px}
-.abs-filter .btn{min-height:40px;white-space:nowrap}
-.tbl button.urut{display:inline-flex;align-items:center;gap:5px;padding:3px 0;border:0;background:none;font:inherit;letter-spacing:inherit;text-transform:inherit;color:inherit;cursor:pointer;white-space:nowrap}
- .tbl button.urut:after{content:" ↕";font-size:13px;opacity:.75}
-.tbl button.urut[data-arah="1"]:after{content:" ↑"}
-.tbl button.urut[data-arah="-1"]:after{content:" ↓"}
-@media(max-width:800px){
-  .abs-filter{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .abs-filter input[type=search]{grid-column:1/-1}
+function panelEl(judul, kanan, kids) {
+  var head = el('div', { class: 'head' }, [el('h3', { text: judul })]);
+  if (kanan) head.appendChild(kanan);
+  var p = el('section', { class: 'panel' }, [head]);
+  (kids || []).forEach(function (k) { if (k) p.appendChild(k); });
+  return p;
 }
-@media(max-width:480px){
-  .abs-filter{grid-template-columns:1fr}
-  .abs-filter input[type=search]{grid-column:auto}
-  .abs-filter .btn{width:100%}
+function tabel(headers, rows) {
+  var thead = el('thead', null, [el('tr', null, headers.map(function (h) { return el('th', { text: h }); }))]);
+  var tb = el('tbody');
+  rows.forEach(function (r) {
+    var tr = el('tr');
+    r.forEach(function (c, i) {
+      var td = el('td', { 'data-label': headers[i] || '' });
+      if (c && c.nodeType) td.appendChild(c);
+      else td.textContent = (c === '' || c == null) ? '—' : String(c);
+      tr.appendChild(td);
+    });
+    tb.appendChild(tr);
+  });
+  return el('div', { class: 'tabelbungkus' }, [el('table', { class: 'tbl' }, [thead, tb])]);
 }
-.tabelbungkus{overflow-x:auto;border:2px solid var(--ink);border-radius:var(--rd);background:#fff;overscroll-behavior-x:contain}
-.panel .tabelbungkus{border:0;border-radius:0}
-table.tbl{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
-.tbl th{padding:12px 14px;border-bottom:2px solid var(--ink);background:var(--hd);text-align:left;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
-.tbl td{padding:11px 14px;border-top:1px solid #d6d1c6;vertical-align:middle;overflow-wrap:anywhere}
-.tbl tbody tr:first-child td{border-top:0}
-.tbl tbody tr:nth-child(even){background:#faf8f3}
-.tbl tbody tr:hover{background:var(--ac2)}
-.tbl tbody tr.karyawan-row{cursor:pointer}
-.baris-aksi{display:flex;flex-wrap:wrap;gap:6px}
-.menu-wrap{display:inline-block}
-.menu-toggle{width:40px;height:40px;padding:6px}
-.menu-toggle svg{width:20px;height:20px}
-.menu-pop{position:fixed;z-index:80;display:flex;flex-direction:column;gap:3px;min-width:190px;padding:6px;border:2px solid var(--ink);border-radius:10px;background:#fff;box-shadow:var(--sh)}
-.menu-pop button{width:100%;min-height:38px;padding:8px 10px;border:0;border-radius:6px;background:transparent;font-size:12px;font-weight:800;text-align:left;cursor:pointer}
-.menu-pop button:hover{background:var(--hd)}
-.menu-pop button.bahaya{color:#8f2a2a}
-.overlay{position:fixed;inset:0;z-index:150;display:flex;padding:16px;overflow:auto;background:rgba(30,30,28,.6)}
-.modal{display:flex;flex-direction:column;width:100%;max-width:580px;max-height:calc(100dvh - 32px);margin:auto;border:2px solid var(--ink);border-radius:var(--rd);background:#fff;box-shadow:var(--sh);overflow:hidden}
-.modal.lebar{max-width:680px}
-.modal .mh{display:flex;align-items:center;justify-content:space-between;gap:12px;flex:none;padding:14px 18px;border-bottom:2px solid var(--ink);background:var(--hd)}
-.modal .mh h3{font-size:19px;text-transform:uppercase}
-.modal .mb{display:grid;gap:12px;flex:1;min-height:0;padding:18px;overflow-y:auto;overscroll-behavior:contain}
-.modal .mf{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:10px;flex:none;padding:12px 18px;border-top:2px solid var(--ink);background:#fff}
-.modal .grup{padding-top:12px;border-top:2px solid var(--ink);font-size:14px;font-weight:800;text-transform:uppercase}
-.modal video{width:100%;max-height:60vh;border-radius:12px;background:#111;object-fit:contain}
-.riw{padding:10px 12px;border:2px solid var(--ink);border-radius:var(--rd)}
-.pf-top{display:flex;align-items:center;gap:16px;padding:14px;border:2px solid var(--ink);border-radius:var(--rd);background:var(--hd)}
-.pf-top h4{margin-bottom:6px;font-size:21px;letter-spacing:-.03em;overflow-wrap:anywhere}
-.avatar{display:grid;place-items:center;width:64px;height:64px;flex:none;border:2px solid var(--ink);border-radius:var(--rd);background:var(--ac2);font-size:24px;font-weight:800;box-shadow:var(--sh)}
-.profile-photo-control{display:grid;justify-items:center;gap:4px;flex:none}
-.profile-photo-button{position:relative;padding:0;overflow:hidden;cursor:pointer}
-.profile-photo-button img,.profile-avatar img{display:block;width:100%;height:100%;object-fit:cover;border-radius:inherit}
- .profile-photo-button:not(.has-photo)::after{content:"";position:absolute;right:1px;bottom:1px;display:block;width:25px;height:25px;border:2px solid var(--ink);border-radius:50%;background-color:var(--ac);-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M14 4h-4L8 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-4z'/%3E%3Ccircle cx='12' cy='13' r='3.5'/%3E%3C/svg%3E") center/16px 16px no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M14 4h-4L8 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-4z'/%3E%3Ccircle cx='12' cy='13' r='3.5'/%3E%3C/svg%3E") center/16px 16px no-repeat}
-:root[data-theme="dark"] .profile-photo-button:not(.has-photo)::after{background:var(--c-orange,#9a6a4a);color:#fff}
-.profile-photo-hint{font-size:9px;font-weight:700;color:var(--mut);white-space:nowrap}
-.pf-identity-name{min-width:0}
-.pf-photo-edit{display:grid;place-items:center;flex:none;width:40px;height:40px;padding:7px;border:2px solid var(--ink);border-radius:9px;background:var(--ac);color:var(--ink);cursor:pointer}
-.pf-photo-edit svg{width:21px;height:21px}
-.pf-photo-edit:hover{filter:brightness(.94)}
-:root[data-theme="dark"] .pf-photo-edit{background:var(--c-orange,#9a6a4a);color:#fff}
-:root[data-theme="dark"] .profile-photo-hint{color:var(--mut)}
-dl.pf{display:grid;grid-template-columns:1fr 1fr;gap:12px 18px;margin:0}
-.pf div{padding:9px 12px;border:1.5px solid #d6d1c6;border-radius:10px;background:#fff;min-width:0}
-.pf dt{font-size:10px;font-weight:800;letter-spacing:.09em;text-transform:uppercase}
-.pf dd{margin:3px 0 0;font-size:14px;overflow-wrap:anywhere}
-.pf .lebar{grid-column:1/-1}
-.drop{display:flex;flex-direction:column;align-items:center;gap:10px;margin:12px 0;padding:22px;border:2px dashed var(--ink);border-radius:14px;background:var(--bg);text-align:center}
-.filepick{display:flex;align-items:center;gap:10px;flex-wrap:wrap;width:100%}
-.drop .filepick{justify-content:center}
-.filebtn{position:relative;display:inline-flex;align-items:center;min-height:42px;padding:9px 15px;border:2px solid var(--ink);border-radius:12px;background:var(--ac2);font-size:12px;font-weight:800;cursor:pointer;box-shadow:3px 3px 0 var(--ink)}
-.filebtn input{position:absolute;width:1px;height:1px;min-height:0;padding:0;opacity:0}
-.filemeta{font-size:12px;font-weight:600;color:var(--mut);overflow-wrap:anywhere}
-.filemeta.err{color:#b42318}
-.bukti{display:grid;gap:8px;margin-top:12px;padding:14px 16px;border:2px solid var(--ink);border-radius:13px;background:var(--bg);font-weight:800;font-size:12px}
-.preview{display:none;width:100%;max-width:420px;max-height:280px;object-fit:contain;border:1px solid var(--line);border-radius:10px;background:#f7f9fc}
-@media(max-width:800px){
-  .bar{min-height:58px}
-  .shell,#app.rail .shell{display:block}
-  nav{position:sticky;top:58px;z-index:25;flex-direction:row;height:auto;overflow-x:auto;overflow-y:hidden;padding:8px 12px;border-bottom:2px solid var(--ink);scrollbar-width:none}
-  nav::-webkit-scrollbar{display:none}
-  .brand,.navtoggle{display:none}
-  .nav,#app.rail .nav{flex:0 0 auto;width:auto;min-width:48px;padding:7px 10px}
-  #app.rail .nav .tk{display:block}
-  .nav:not([aria-current=page]) .tk{display:none}
-  .nav small{display:none}
-  .stats{gap:8px}
-  .stat strong{font-size:20px}
+function pesanError(e) { return String((e && e.message) || e).replace(/^Error:\s*/, ''); }
+function p2(n) { return ('0' + n).slice(-2); }
+function isoHari(d) { d = d || new Date(); return d.getFullYear() + '-' + p2(d.getMonth() + 1) + '-' + p2(d.getDate()); }
+function dmy(iso) { return iso ? String(iso).split('-').reverse().join('/') : ''; }
+function karyawanNonaktifPabrik(r) {
+  r = r || {};
+  var v = r.aktif;
+  if (typeof v === 'boolean') return v === false;
+  if (typeof v === 'number') return v === 0;
+  var n = String(v == null ? '' : v).trim().toLowerCase().replace(/[ _-]+/g, ' ');
+  if (['false', '0', 'nonaktif', 'tidak aktif', 'non active', 'inactive', 'no', 'tidak', 'off'].indexOf(n) >= 0) return true;
+  if (['true', '1', 'aktif', 'active', 'ya', 'yes', 'on'].indexOf(n) >= 0) return false;
+  // Fallback untuk data lama yang belum mengirim kolom aktif, tetapi punya tanggal nonaktif.
+  return !n && !!String(r.tglNonaktif || '').trim();
 }
-@media(max-width:640px){
-  .grid2,dl.pf{grid-template-columns:1fr}
-  .toolbar select,.toolbar .btn{flex:1 1 calc(50% - 5px);width:auto}
-  .toolbar input[type=search],.toolbar .chk{flex:1 1 100%}
-  .tabelbungkus{overflow:visible;border:0;background:transparent}
-  .tbl,.tbl tbody{display:block;width:100%}
-  .tbl thead{display:none}
-  .tbl tr{display:block;margin-bottom:12px;padding:10px 12px;border:2px solid var(--ink);border-radius:12px;background:#fff;box-shadow:3px 3px 0 var(--ink)}
-  .tbl tbody tr:nth-child(even){background:#fff}
-  .tbl td{display:grid;grid-template-columns:minmax(90px,.7fr) minmax(0,1fr);gap:10px;padding:7px 0;border-top:0;border-bottom:1px solid #e3e8ec}
-  .tbl td:last-child{border-bottom:0}
-  .tbl td:before{content:attr(data-label);font-weight:900;letter-spacing:.04em;text-transform:uppercase;color:var(--mut)}
-  .overlay{padding:0;align-items:flex-end}
-  .modal,.modal.lebar{max-width:none;max-height:92dvh;margin:0;border-width:2px 0 0;border-radius:var(--rd) var(--rd) 0 0;box-shadow:none}
-  .modal .mf .btn{flex:1 1 auto}
-  .pf-top{flex-wrap:wrap}
-  .card .top,.card .body{padding-left:20px;padding-right:20px}
-  .login-bottom{font-size:8px}
+function lamaKerja(dari, sampai) {
+  if (!dari) return '';
+  var a = new Date(dari + 'T00:00:00'), b = sampai ? new Date(sampai + 'T00:00:00') : new Date();
+  if (isNaN(a) || b < a) return '';
+  var bln = (b.getFullYear() - a.getFullYear()) * 12 + b.getMonth() - a.getMonth();
+  if (b.getDate() < a.getDate()) bln--;
+  if (bln < 0) bln = 0;
+  var th = Math.floor(bln / 12);
+  return (th ? th + ' tahun ' : '') + (bln % 12) + ' bulan';
 }
-@media(max-width:380px){
-  .profile-avatar{display:none}
-  .stats{grid-template-columns:1fr}
-}
-@media(prefers-reduced-motion:reduce){
-  *,*:before,*:after{transition:none!important;scroll-behavior:auto!important}
-}
-.tema-toggle{width:42px;min-width:42px;padding:8px;background:#fff}
-.tema-toggle svg{width:19px;height:19px}
-/* Ikon tema Sun Medium / Moon Star: animasi singkat dan ringan. */
-.tema-toggle .ikon-tema{transform-origin:50% 50%;animation:temaIkonMasuk .16s ease-out both;will-change:transform,opacity}
-@keyframes temaIkonMasuk{from{opacity:.35;transform:rotate(-35deg) scale(.72)}to{opacity:1;transform:rotate(0) scale(1)}}
-/* Saat tema diganti di ponsel, hentikan transisi dekoratif massal agar repaint lebih ringan. */
-@media(max-width:800px){html.theme-switching *,html.theme-switching *::before,html.theme-switching *::after{transition:none!important;animation-play-state:paused!important}html.theme-switching .tema-toggle .ikon-tema{animation-play-state:running!important}}
-@media(prefers-reduced-motion:reduce){.tema-toggle .ikon-tema{animation:none!important}}
-:root[data-theme="dark"]{color-scheme:dark;--ink:#e5edf3;--ac2:#344955;--bad:#5b383b;--ok:#294b37;--warn:#554a27;--mut:#b5c2cb}
-:root[data-theme="dark"] body{color:var(--ink)}
-:root[data-theme="dark"] .card,:root[data-theme="dark"] .panel,:root[data-theme="dark"] .stat,:root[data-theme="dark"] .info,:root[data-theme="dark"] .tabelbungkus,:root[data-theme="dark"] .riw,:root[data-theme="dark"] .bukti,:root[data-theme="dark"] .drop,:root[data-theme="dark"] .profile-toggle,:root[data-theme="dark"] .profile-menu,:root[data-theme="dark"] .menu-pop,:root[data-theme="dark"] .modal,:root[data-theme="dark"] .modal .mf,:root[data-theme="dark"] .pf div,:root[data-theme="dark"] .abs-home-card,:root[data-theme="dark"] .chk{background:#202b34;color:var(--ink)}
-:root[data-theme="dark"] .card .top,:root[data-theme="dark"] .panel .head,:root[data-theme="dark"] .modal .mh,:root[data-theme="dark"] .pf-top{background:#293944;color:var(--ink)}
-:root[data-theme="dark"] input,:root[data-theme="dark"] select,:root[data-theme="dark"] textarea{color:var(--ink);border-color:var(--ink);color-scheme:dark}
-:root[data-theme="dark"] .btn:not(.primary):not(.bahaya),:root[data-theme="dark"] .tema-toggle{background:#263640;color:var(--ink)}
-:root[data-theme="dark"] .tbl th{background:#293944;color:var(--ink)}
-:root[data-theme="dark"] .tbl td{border-color:#3b4a54}
-:root[data-theme="dark"] .tbl tbody tr:nth-child(even),:root[data-theme="dark"] .tbl tbody tr{background:#1b252d;color:var(--ink)}
-:root[data-theme="dark"] .tbl tbody tr:hover,:root[data-theme="dark"] .btn:hover,:root[data-theme="dark"] .profile-menu button:hover,:root[data-theme="dark"] .menu-pop button:hover{background:#344955}
-:root[data-theme="dark"] .abs-home-card .abs-home-icon,:root[data-theme="dark"] .abs-home-card.input .abs-home-icon{background:var(--ac);color:var(--ink)}
-:root[data-theme="dark"] .abs-home-card .abs-home-cta{border-color:#43535e}
-:root[data-theme="dark"] .filebtn{background:#344955;color:var(--ink)}
-:root[data-theme="dark"] .login{background:var(--bg)}
-:root[data-theme="dark"] .field>span{color:var(--ink)}
-:root[data-theme="dark"] .tag{background:#5b383b}
-:root[data-theme="dark"] input::placeholder,:root[data-theme="dark"] textarea::placeholder{color:#aab8c2}
-@media(max-width:380px){
-  .tema-toggle{width:38px;min-width:38px;padding:7px}
-}
-body{font-family:'Space Grotesk',system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-weight:500}
-input,select,textarea,button,option{font-family:'Space Grotesk',system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
-input::placeholder,textarea::placeholder{font-family:'Space Grotesk',system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
-::selection{background:#FFD93D;color:#000}
-h1,h2,h3,h4{font-weight:700}
-main h2{letter-spacing:-.03em}
-input,select,textarea{border-width:3px}
-input:focus,select:focus,textarea:focus{outline:none;box-shadow:4px 4px 0 var(--ink)}
-.btn{border-width:3px;box-shadow:4px 4px 0 var(--ink);font-weight:700}
-.btn:hover{transform:translate(-1px,-1px);box-shadow:5px 5px 0 var(--ink)}
-.btn:active{transform:translate(4px,4px);box-shadow:none}
-.btn.kecil{box-shadow:3px 3px 0 var(--ink)}
-.btn.kecil:hover{box-shadow:4px 4px 0 var(--ink)}
-.btn.kecil:active{transform:translate(3px,3px);box-shadow:none}
-.panel,.card,.stat,.info,.tabelbungkus,.abs-home-card,.chk,.filebtn,.bukti,.riw,.pf-top,.avatar,.profile-menu,.menu-pop,.toast,.profile-toggle{border-width:3px}
-.panel,.profile-menu,.menu-pop{box-shadow:6px 6px 0 var(--ink)}
-.card{box-shadow:10px 10px 0 var(--ink)}
-.stat{box-shadow:5px 5px 0 var(--ink)}
-.abs-home-card{box-shadow:7px 7px 0 var(--ink)}
-.abs-home-card:hover{box-shadow:9px 9px 0 var(--ink)}
-.bar{border-bottom-width:4px}
-.card .top{border-bottom-width:4px}
-.panel .head,.modal .mh{border-bottom-width:3px}
-.modal .mf{border-top-width:3px}
-.chip,.status,.tag{border-width:2px;font-weight:700}
-@media(min-width:641px){
-  .modal{border-width:3px;box-shadow:8px 8px 0 var(--ink)}
-}
-@media(min-width:801px){
-  :root:not([data-theme="dark"]) nav{border-right:4px solid #000}
-}
-:root:not([data-theme="dark"]) .bar{background:#FFD93D}
-:root:not([data-theme="dark"]) .panel .head{background:#7BD3EA}
-:root:not([data-theme="dark"]) .modal .mh{background:#FFD93D}
-:root:not([data-theme="dark"]) .pf-top{background:#7BD3EA}
-:root:not([data-theme="dark"]) .card .top{background:#FFD93D}
-:root:not([data-theme="dark"]) .card{background:#FFF4D6}
-:root:not([data-theme="dark"]) .login{background:#7BD3EA}
-:root:not([data-theme="dark"]) .btn.primary{background:#FF8FB1}
-:root:not([data-theme="dark"]) .btn.bahaya{background:#FF9B9B}
-:root:not([data-theme="dark"]) #masuk{background:#FF8FB1}
-:root:not([data-theme="dark"]) #masuk:hover{background:#FFD93D}
-:root:not([data-theme="dark"]) .stats .stat:nth-child(1){background:#7BD3EA}
-:root:not([data-theme="dark"]) .stats .stat:nth-child(2){background:#B8F2A8}
-:root:not([data-theme="dark"]) .stats .stat:nth-child(3){background:#FF8FB1}
-:root:not([data-theme="dark"]) .stat span{color:#000}
-:root:not([data-theme="dark"]) nav{background:#FFD93D}
-:root:not([data-theme="dark"]) .brand{color:#000;border-bottom:3px solid #000}
-:root:not([data-theme="dark"]) .brand b{border-color:#000;background:#fff;box-shadow:3px 3px 0 #000}
-:root:not([data-theme="dark"]) .brand small{color:#333}
-:root:not([data-theme="dark"]) .navtoggle,:root:not([data-theme="dark"]) .nav{border:3px solid #000;background:#fff;color:#000}
-:root:not([data-theme="dark"]) .nav:hover,:root:not([data-theme="dark"]) .navtoggle:hover{background:#FFF4D6}
-:root:not([data-theme="dark"]) .nav small{color:#333}
-:root:not([data-theme="dark"]) .nav[aria-current=page]{background:#FF8FB1;border-color:#000;color:#000;box-shadow:4px 4px 0 #000}
-:root:not([data-theme="dark"]) .nav[aria-current=page] small{color:#111}
-:root:not([data-theme="dark"]) .tbl th{background:#000;color:#fff;border-bottom-color:#000}
-:root:not([data-theme="dark"]) .tbl td{border-top:2px solid #000}
-:root:not([data-theme="dark"]) .tbl tbody tr:first-child td{border-top:0}
-:root:not([data-theme="dark"]) .tbl tbody tr:nth-child(even){background:#FFF4D6}
-:root:not([data-theme="dark"]) .tbl tbody tr:hover{background:#FFE680}
-:root:not([data-theme="dark"]) dl.dl div{border-bottom:2px dashed #000}
-:root:not([data-theme="dark"]) .pf div{border-color:#000}
-:root{--shc:#000}
-.alert{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;border:3px solid var(--ink);border-left-width:8px;border-radius:var(--rd);background:var(--bad);font-weight:600;line-height:1.45;box-shadow:4px 4px 0 var(--shc)}
-.alert:before{content:"";flex:none;width:20px;height:20px;margin-top:1px;background:currentColor;-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 7.5v5.5M12 16.5v.01'/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 7.5v5.5M12 16.5v.01'/%3E%3C/svg%3E") center/contain no-repeat}
-:root{--tc-success:#B8F2A8;--tc-error:#FF9B9B;--tc-warning:#FFD93D;--tc-info:#7BD3EA}
-:root[data-theme="dark"]{--tc-success:#2f6b49;--tc-error:#8a3f45;--tc-warning:#7a6422;--tc-info:#2f6482}
-#toastStack{position:fixed;top:calc(16px + env(safe-area-inset-top));right:16px;z-index:9999;display:flex;flex-direction:column;gap:12px;width:min(420px,calc(100vw - 24px));pointer-events:none}
-.toast{position:relative;pointer-events:auto;display:grid;grid-template-columns:56px minmax(0,1fr) auto;align-items:stretch;overflow:hidden;background:var(--paper);color:var(--ink);border:3px solid var(--ink);border-radius:14px;box-shadow:6px 6px 0 var(--shc);animation:toastIn .3s cubic-bezier(.2,.9,.3,1.15)}
-.toast.out{animation:toastOut .22s ease-in forwards}
-.toast-success{--tc:var(--tc-success)}
-.toast-error{--tc:var(--tc-error)}
-.toast-warning{--tc:var(--tc-warning)}
-.toast-info{--tc:var(--tc-info)}
-.toast-ico{display:grid;place-items:center;background:var(--tc);border-right:3px solid var(--ink)}
-.toast-ico svg{width:28px;height:28px;stroke-width:2.6}
-.toast-body{min-width:0;padding:12px 8px 17px 14px}
-.toast-title{display:block;font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase}
-.toast-msg{margin-top:3px;font-size:13.5px;line-height:1.45;font-weight:500;overflow-wrap:anywhere}
-.toast-close{align-self:start;display:grid;place-items:center;width:28px;height:28px;margin:9px 9px 0 0;padding:0;border:2px solid var(--ink);border-radius:8px;background:transparent;color:inherit;cursor:pointer;transition:background .15s}
-.toast-close:hover{background:var(--tc)}
-.toast-close svg{width:14px;height:14px;stroke-width:3}
-.toast-bar{position:absolute;left:0;bottom:0;width:100%;height:6px;background:var(--tc);border-top:2px solid var(--ink);transform-origin:left;animation:toastBar 5s linear forwards}
-.toast:hover .toast-bar{animation-play-state:paused}
-@keyframes toastIn{from{opacity:0;transform:translateX(24px) scale(.96)}to{opacity:1;transform:none}}
-@keyframes toastOut{to{opacity:0;transform:translateX(24px) scale(.96)}}
-@keyframes toastBar{from{transform:scaleX(1)}to{transform:scaleX(0)}}
-@media(max-width:520px){
-  #toastStack{top:calc(10px + env(safe-area-inset-top));right:12px;left:12px;width:auto}
-  .toast{grid-template-columns:48px minmax(0,1fr) auto}
-  .toast-msg{font-size:13px}
-}
-@media(prefers-reduced-motion:reduce){
-  .toast,.toast.out{animation:none}
-}
-:root[data-theme="dark"]{--ac:#4f7a93}
-:root[data-theme="dark"] a{color:#8fd0f0}
-:root[data-theme="dark"] #masuk, :root[data-theme="dark"] .btn.primary{background:#4f7a93;color:#fff}
-:root[data-theme="dark"] #masuk:hover, :root[data-theme="dark"] .btn.primary:hover{background:#5f8ca6}
-:root[data-theme="dark"] .btn.bahaya:hover{background:#7a3b40}
-:root[data-theme="dark"] .nav:hover{background:#1b2a33}
-:root[data-theme="dark"] .nav[aria-current=page]{background:#4f7a93;border-color:#e5edf3;color:#fff}
-:root[data-theme="dark"] .nav[aria-current=page] small{color:#e5edf3}
-:root[data-theme="dark"] dl.dl div{border-color:#3b4a54}
-:root[data-theme="dark"] .pf div{border-color:#43535e}
-:root[data-theme="dark"] .preview{background:#0e171d}
-:root[data-theme="dark"] .alert{background:#5b383b;border-color:#e5edf3;box-shadow:4px 4px 0 var(--shc)}
-.dinas-date-strip{display:flex;align-items:center;gap:12px;border:3px solid var(--ink);color:var(--ink)}
-.dinas-calendar{position:relative;display:block;flex:none;width:24px;height:24px;border:2px solid currentColor;border-radius:5px;font-size:0;line-height:0}
-.dinas-calendar::before{content:"";position:absolute;top:6px;right:2px;left:2px;height:2px;background:currentColor}
-.dinas-calendar::after{content:"";position:absolute;top:-5px;left:5px;width:2px;height:7px;border-radius:2px;background:currentColor;box-shadow:9px 0 currentColor}
-.dinas-date-text{display:grid;gap:2px;min-width:0}
-.dinas-date-label{color:var(--mut);font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase}
-.dinas-date-text strong{font-size:13px;font-weight:800;overflow-wrap:anywhere}
-.dinas-date-strip .live-time{margin-left:auto;font-size:17px;font-weight:800;white-space:nowrap;color:var(--ink)}
-.dinas-type{padding:0;border:0;min-width:0}
-.dinas-type legend{padding:0}
-.dinas-options{display:grid;grid-template-columns:1fr 1fr}
-.dinas-opt{position:relative;cursor:pointer;min-width:0}
-.dinas-opt input{position:absolute;width:1px;height:1px;opacity:0;min-height:0;padding:0}
-.dinas-opt span{display:grid;place-items:center;padding:0 8px;border:3px solid var(--ink);background:#fff;color:var(--ink);font-weight:700;text-align:center;transition:background .15s,transform .12s,box-shadow .12s}
-.dinas-opt input:checked+span{background:var(--ac)}
-.dinas-opt input:focus-visible+span{outline:3px solid var(--ac);outline-offset:3px}
-.dinas-opt:active span{transform:translate(3px,3px);box-shadow:1px 1px 0 var(--ink)}
-.dinas-photo-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:20px}
-.dinas-badge{padding:3px 8px;border:2px solid var(--ink);border-radius:6px;background:var(--warn);color:var(--ink);font-size:10px;font-weight:800;letter-spacing:.04em;text-transform:uppercase}
-.dinas-photo-box{position:relative;display:flex;align-items:center;justify-content:center;max-height:60vh;overflow:hidden;border:3px dashed var(--ink)}
-#dlPhotoPreview{display:block;width:auto;height:auto;max-width:100%;max-height:60vh;object-fit:contain;background:#111}
-.dinas-remove-photo{position:absolute;top:9px;right:9px;display:grid;width:32px;height:32px;place-items:center;padding:0;border:3px solid var(--ink);border-radius:8px;background:var(--bad);color:var(--ink);box-shadow:2px 2px 0 var(--ink);cursor:pointer;font-size:20px;line-height:1}
-.dinas-remove-photo:active{transform:translate(2px,2px);box-shadow:none}
-.dinas-photo-actions{grid-template-columns:1fr 1fr;gap:10px;margin-top:0}
-.dinas-note{margin:9px 0 0;font-size:10px;line-height:1.5;color:var(--mut)}
-.dinas-status{color:#2f5c1f;text-align:center;font-size:12px;font-weight:700}
-.dinas-status.error{color:#a32818}
-:root[data-theme="dark"] .dinas-status{color:#b8f2a8}
-:root[data-theme="dark"] .dinas-status.error{color:#ff9b9b}
-.dinas-photo-box[hidden]{display:none!important}
-.dinas-photo-box{margin-top:14px}
-:root[data-theme="dark"] #app.emp .navtoggle, :root[data-theme="dark"] #app.emp .nav{background:#1b252d;border-color:#43535e;color:#e5edf3}
-:root[data-theme="dark"] #app.emp .nav small{color:#b5c2cb}
-:root[data-theme="dark"] #app.emp .nav:hover, :root[data-theme="dark"] #app.emp .navtoggle:hover{background:#344955;border-color:#607681;color:#fff}
-:root[data-theme="dark"] #app.emp .nav[aria-current=page]{border-color:#e5edf3;box-shadow:3px 3px 0 var(--shc)}
-:root[data-theme="dark"] #app.emp .nav[aria-current=page] small{color:#e5edf3}
-:root[data-theme="dark"] #app.emp .btn:not(.primary):not(.bahaya), :root[data-theme="dark"] #app.emp .tema-toggle{background:#263640;border-color:#43535e;color:#e5edf3}
-:root[data-theme="dark"] #app.emp .btn.primary{border-color:#e5edf3}
-:root[data-theme="dark"] #app.emp .btn.primary:hover{background:#5f8ca6}
-:root[data-theme="dark"] .brand{color:#e5edf3;border-bottom-color:#43535e}
-:root[data-theme="dark"] .brand b{background:#4f7a93;color:#fff;border-color:#e5edf3;box-shadow:3px 3px 0 var(--shc)}
-:root[data-theme="dark"] .brand small{color:#b5c2cb}
-:root[data-theme="dark"] .btn{box-shadow:4px 4px 0 var(--shc)}
-:root[data-theme="dark"] .btn:hover{box-shadow:5px 5px 0 var(--shc)}
-:root[data-theme="dark"] .btn:active, :root[data-theme="dark"] .btn:disabled{box-shadow:none}
-:root[data-theme="dark"] .btn.kecil{box-shadow:3px 3px 0 var(--shc)}
-:root[data-theme="dark"] .btn.kecil:hover{box-shadow:4px 4px 0 var(--shc)}
-:root[data-theme="dark"] .btn.kecil:active{box-shadow:none}
-:root[data-theme="dark"] .panel, :root[data-theme="dark"] .profile-menu, :root[data-theme="dark"] .menu-pop{box-shadow:6px 6px 0 var(--shc)}
-:root[data-theme="dark"] .card{box-shadow:10px 10px 0 var(--shc)}
-:root[data-theme="dark"] .stat{box-shadow:5px 5px 0 var(--shc)}
-:root[data-theme="dark"] .profile-toggle{box-shadow:2px 2px 0 var(--shc)}
-:root[data-theme="dark"] .filebtn{box-shadow:3px 3px 0 var(--shc)}
-:root[data-theme="dark"] .abs-home-card{box-shadow:7px 7px 0 var(--shc)}
-:root[data-theme="dark"] .abs-home-card:hover{background:#2b3c47;box-shadow:9px 9px 0 var(--shc)}
-:root[data-theme="dark"] .abs-home-card:active{box-shadow:1px 1px 0 var(--shc)}
-:root[data-theme="dark"] input:focus, :root[data-theme="dark"] select:focus, :root[data-theme="dark"] textarea:focus{box-shadow:4px 4px 0 var(--shc)}
-@media(min-width:641px){
-  :root[data-theme="dark"] .modal{box-shadow:8px 8px 0 var(--shc)}
-}
-@media(max-width:640px){
-  :root[data-theme="dark"] .tbl tr{box-shadow:3px 3px 0 var(--shc)}
-}
-:root[data-theme="dark"] .dinas-opt span{color:#e5edf3}
-:root[data-theme="dark"] .dinas-opt input:checked+span{background:#4f7a93;color:#fff}
-:root[data-theme="dark"] .dinas-opt:active span{box-shadow:1px 1px 0 var(--shc)}
-:root[data-theme="dark"] .dinas-remove-photo{background:#5b383b;color:#fff;box-shadow:2px 2px 0 var(--shc)}
-:root[data-theme="dark"] .dinas-badge{background:#554a27;color:#e5edf3}
-:root[data-theme="dark"]{--c-pink:#9a5b72;--c-cyan:#3f7388;--c-green:#4a7a62;--c-purple:#6d5f9a;--c-orange:#9a6a4a;--c-yellow:#8a7640;--c-teal:#3e7a78;--c-red:#94505a}
-:root[data-theme="dark"] #app.emp .nav[data-id="profil"]{--nc:#d4a0b3;--nb:var(--c-pink);--nt:#fff}
-:root[data-theme="dark"] #app.emp .nav[data-id="karyawan"]{--nc:#8fb8c9;--nb:var(--c-cyan);--nt:#fff}
-:root[data-theme="dark"] #app.emp .nav[data-id="absensi"]{--nc:#94c0a8;--nb:var(--c-green);--nt:#fff}
-:root[data-theme="dark"] #app.emp .nav[data-id="disiplin"]{--nc:#cfa88a;--nb:var(--c-orange);--nt:#fff}
-:root[data-theme="dark"] #app.emp .nav[data-id="sop"]{--nc:#b5a9d6;--nb:var(--c-purple);--nt:#fff}
-:root[data-theme="dark"] #app.emp .nav[data-id="lembur"]{--nc:#d6c58f;--nb:var(--c-yellow);--nt:#fff}
-:root[data-theme="dark"] #app.emp .nav[data-id="rekapan"]{--nc:#8fc4c0;--nb:var(--c-teal);--nt:#fff}
-:root[data-theme="dark"] #app.emp .nav[data-id="password"]{--nc:#cf9aa1;--nb:var(--c-red);--nt:#fff}
-:root[data-theme="dark"] #app.emp .nav .ik{color:var(--nc,#e5edf3)}
-:root[data-theme="dark"] #app.emp .nav:hover{border-color:var(--nc,#607681)}
-:root[data-theme="dark"] #app.emp .nav[aria-current=page]{background:var(--nb,#4f7a93);color:var(--nt,#fff)}
-:root[data-theme="dark"] #app.emp .nav[aria-current=page] .ik, :root[data-theme="dark"] #app.emp .nav[aria-current=page] small{color:var(--nt,#fff)}
-:root[data-theme="dark"] #app.emp .btn.primary{background:var(--c-pink);color:#fff}
-:root[data-theme="dark"] #app.emp .aksi .btn.primary{background:var(--c-green);color:#fff}
-:root[data-theme="dark"] #app.emp .btn.kecil.primary{background:var(--c-cyan);color:#fff}
-:root[data-theme="dark"] #app.emp .toolbar .btn{background:var(--c-teal);color:#fff}
-:root[data-theme="dark"] #app.emp .btn.bahaya{background:var(--c-red);color:#fff}
-:root[data-theme="dark"] #app.emp .tema-toggle{background:var(--c-yellow);color:#fff}
-:root[data-theme="dark"] #app.emp .dinas-photo-actions .btn{background:var(--c-cyan);color:#fff}
-:root[data-theme="dark"] #app.emp .abs-home-card.cek .abs-home-icon{background:var(--c-cyan);color:#fff}
-:root[data-theme="dark"] #app.emp .abs-home-card.input .abs-home-icon{background:var(--c-orange);color:#fff}
-:root[data-theme="dark"] .dinas-opt:nth-child(1) input:checked+span{background:var(--c-green);color:#fff}
-:root[data-theme="dark"] .dinas-opt:nth-child(2) input:checked+span{background:var(--c-orange);color:#fff}
-:root[data-theme="dark"] #masuk{background:var(--c-pink);color:#fff}
-:root[data-theme="dark"] #masuk:hover{background:var(--c-orange)}
-:root[data-theme="dark"] #lihatEmployee{background:var(--c-yellow);color:#fff}
-:root[data-theme="dark"] .modal .btn.primary{background:var(--c-pink);color:#fff;border-color:#e5edf3}
-:root[data-theme="dark"] .modal .btn.bahaya{background:var(--c-red);color:#fff}
-:root[data-theme="dark"] .btn.primary:hover,:root[data-theme="dark"] #app.emp .btn:hover{filter:brightness(1.08)}
-:root[data-theme="dark"]{--bg:#000;--paper:#0b0b0b;--side:#000;--hd:#111;--line:#3a4046}
-:root[data-theme="dark"] html,:root[data-theme="dark"] body,:root[data-theme="dark"] .login,:root[data-theme="dark"] .bar,:root[data-theme="dark"] nav{background:#000}
-:root[data-theme="dark"] .card,:root[data-theme="dark"] .panel,:root[data-theme="dark"] .stat,:root[data-theme="dark"] .info,:root[data-theme="dark"] .tabelbungkus,:root[data-theme="dark"] .riw,:root[data-theme="dark"] .bukti,:root[data-theme="dark"] .drop,:root[data-theme="dark"] .profile-toggle,:root[data-theme="dark"] .profile-menu,:root[data-theme="dark"] .menu-pop,:root[data-theme="dark"] .modal,:root[data-theme="dark"] .modal .mf,:root[data-theme="dark"] .pf div,:root[data-theme="dark"] .abs-home-card,:root[data-theme="dark"] .chk,:root[data-theme="dark"] .toast{background:#0b0b0b}
-:root[data-theme="dark"] .card .top,:root[data-theme="dark"] .panel .head,:root[data-theme="dark"] .modal .mh,:root[data-theme="dark"] .pf-top,:root[data-theme="dark"] .tbl th{background:#161616}
-:root[data-theme="dark"] input,:root[data-theme="dark"] select,:root[data-theme="dark"] textarea{background:#0b0b0b}
-:root[data-theme="dark"] .tbl tbody tr,:root[data-theme="dark"] .tbl tbody tr:nth-child(even){background:#0b0b0b}
-:root[data-theme="dark"] .tbl tbody tr:hover,:root[data-theme="dark"] .abs-home-card:hover{background:#1a1a1a}
-:root[data-theme="dark"] .overlay{background:rgba(0,0,0,.78)}
-:root[data-theme="dark"] .preview,:root[data-theme="dark"] #dlPhotoPreview{background:#000}
-:root[data-theme="dark"] .dinas-opt span{background:#141414}
-:root[data-theme="dark"] .dinas-photo-box{background:#0b0b0b}
-:root[data-theme="dark"] #app.emp .navtoggle,:root[data-theme="dark"] #app.emp .nav{background:#0b0b0b;border-color:#3a4046}
-:root[data-theme="dark"] #app.emp .btn:not(.primary):not(.bahaya){background:#141414;border-color:#3a4046}
-:root[data-theme="dark"] .modal .btn:not(.primary):not(.bahaya){background:#141414}
-:root[data-theme="dark"] #app.emp .baris-aksi .btn:nth-child(2){background:var(--c-yellow);color:#fff}
-:root[data-theme="dark"] #app.emp .baris-aksi .btn:nth-child(3){background:var(--c-purple);color:#fff}
-:root[data-theme="dark"] #app.emp .toolbar .btn.btn.btn{background:var(--c-teal);color:#fff}
-:root[data-theme="dark"] #app.emp .btn.tema-toggle.btn.btn{background:var(--c-yellow);color:#fff}
-@media(min-width:801px){
-  #app .bar{position:fixed;inset:0 0 auto;z-index:100;height:66px;min-height:66px}
-  #app .shell{min-height:100vh;padding-top:66px}
-  #app nav{position:fixed;top:66px;bottom:0;left:0;width:200px;height:auto;z-index:90;overflow-y:auto}
-  #app.rail nav{width:76px}
-  #app main{grid-column:2;min-width:0}
-}
-@media(max-width:800px){
-  #app .bar{position:fixed;inset:0 0 auto;z-index:100;height:66px;min-height:66px}
-  #app .shell,#app.rail .shell{display:block;min-height:100vh}
-  #app nav{position:fixed;top:66px;left:0;right:0;z-index:90;width:100%;height:58px;min-height:58px;overflow-x:auto;overflow-y:hidden}
-}
-:root[data-theme="dark"]{--sh:none;--shc:transparent}
-:root[data-theme="dark"] *,:root[data-theme="dark"] *::before,:root[data-theme="dark"] *::after{box-shadow:none!important;text-shadow:none!important}
-:root[data-theme="dark"] .btn:hover,:root[data-theme="dark"] .btn:active,:root[data-theme="dark"] .abs-home-card:hover,:root[data-theme="dark"] .abs-home-card:active,:root[data-theme="dark"] .dinas-opt:active span,:root[data-theme="dark"] .dinas-remove-photo:active{transform:none!important}
-:root[data-theme="dark"] input:focus,:root[data-theme="dark"] select:focus,:root[data-theme="dark"] textarea:focus{outline:2px solid currentColor!important;outline-offset:2px}
-:root[data-theme="dark"] #app.emp .btn.absensi-detail{color:#fff;border-color:#e5edf3}
-:root[data-theme="dark"] #app.emp .tbl tbody tr:nth-child(4n+1) .btn.absensi-detail{background:#3f7388}
-:root[data-theme="dark"] #app.emp .tbl tbody tr:nth-child(4n+2) .btn.absensi-detail{background:#6d5f9a}
-:root[data-theme="dark"] #app.emp .tbl tbody tr:nth-child(4n+3) .btn.absensi-detail{background:#4a7a62}
-:root[data-theme="dark"] #app.emp .tbl tbody tr:nth-child(4n) .btn.absensi-detail{background:#9a6a4a}
-#app .info.loading{border-color:var(--ac);background-image:linear-gradient(110deg,transparent 25%,rgba(123,211,234,.18) 50%,transparent 75%);background-size:220% 100%;animation:dataLoadingShimmer 1.6s ease-in-out infinite}
-#app .hitung.loading{color:var(--mut)}
-@keyframes dataLoadingShimmer{to{background-position-x:-220%}}
-@media(prefers-reduced-motion:reduce){
-  #app .info.loading{animation:none}
-}
-@keyframes fadeIn{from{opacity:0}to{opacity:1}}
-@keyframes halamanMasuk{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
-@keyframes barisMasuk{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:none}}
-@keyframes navMasuk{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:none}}
-@keyframes modalMasuk{from{opacity:0;transform:translateY(18px) scale(.97)}to{opacity:1;transform:none}}
-@keyframes sheetMasuk{from{transform:translateY(100%)}to{transform:none}}
-#isi>*{animation:halamanMasuk .38s cubic-bezier(.2,.8,.2,1) backwards}
-#isi>*:nth-child(2){animation-delay:.04s}
-#isi>*:nth-child(3){animation-delay:.08s}
-#isi>*:nth-child(4){animation-delay:.12s}
-#isi>*:nth-child(5){animation-delay:.16s}
-#isi>*:nth-child(6){animation-delay:.2s}
-#isi>*:nth-child(n+7){animation-delay:.24s}
-.tbl tbody tr{animation:barisMasuk .3s ease backwards;transition:background .15s}
-.tbl tbody tr:nth-child(2){animation-delay:.03s}
-.tbl tbody tr:nth-child(3){animation-delay:.06s}
-.tbl tbody tr:nth-child(4){animation-delay:.09s}
-.tbl tbody tr:nth-child(5){animation-delay:.12s}
-.tbl tbody tr:nth-child(6){animation-delay:.15s}
-.tbl tbody tr:nth-child(7){animation-delay:.18s}
-.tbl tbody tr:nth-child(8){animation-delay:.21s}
-.tbl tbody tr:nth-child(n+9){animation-delay:.24s}
-.nav,.navtoggle{transition:background .2s,color .2s,border-color .2s,box-shadow .2s,transform .15s}
-.nav:hover{transform:translateX(2px)}
-.nav[aria-current=page]{transform:none}
-.nav{animation:navMasuk .35s ease backwards}
-.nav .ik svg{transition:transform .2s}
-.nav:hover .ik svg{transform:scale(1.12)}
-.shell{transition:grid-template-columns .25s ease}
-#app nav{transition:width .25s ease}
-#app:not(.hidden){animation:fadeIn .35s ease backwards}
-#login:not(.hidden){animation:fadeIn .3s ease backwards}
-#login .card{animation:halamanMasuk .5s cubic-bezier(.2,.8,.2,1) backwards}
-.profile-menu:not(.hidden){animation:halamanMasuk .18s ease backwards}
-.overlay{animation:fadeIn .2s ease backwards}
-.modal{animation:modalMasuk .28s cubic-bezier(.2,.9,.3,1.1) backwards}
-@media(max-width:640px){
-  .modal,.modal.lebar{animation-name:sheetMasuk;animation-duration:.3s}
-}
-body,.bar,nav,.panel,.card,.stat,.info,.modal,.tabelbungkus,input,select,textarea,.btn{transition:background-color .25s,color .25s,border-color .25s}
-.btn{transition:background-color .25s,color .25s,border-color .25s,transform .1s,box-shadow .1s}
-@media(prefers-reduced-motion:reduce){
-  #isi>*,.tbl tbody tr,.nav,#app,#login,#login .card,.overlay,.modal,.profile-menu{animation:none!important}
-}
-.header-brand{display:flex;align-items:center;min-width:0;font-weight:800;letter-spacing:.02em;text-transform:uppercase}
-.header-brand small{display:block;font-weight:700}
-.header-brand-mark{display:grid;place-items:center;flex:none;border:2px solid var(--ink);background:var(--paper);font-weight:800}
-.menu-toggle-global{width:44px;min-width:44px;height:44px;padding:8px}
-.menu-toggle-global svg{width:23px;height:23px}
-#app .shell,#app.rail .shell{grid-template-columns:minmax(0,1fr)}
-#app main,#app.rail main{grid-column:1;min-width:0}
-#app nav,#app.rail nav{position:fixed;top:66px;bottom:0;left:0;right:auto;z-index:95;display:flex;flex-direction:column;width:240px;height:auto;min-height:0;overflow-x:hidden;overflow-y:auto;padding:12px 9px;visibility:hidden;pointer-events:none;transform:translateX(-105%);transition:transform .28s ease,visibility .28s ease;box-shadow:8px 0 24px rgba(0,0,0,.18)}
-#app.nav-open nav,#app.nav-open.rail nav{visibility:visible;pointer-events:auto;transform:translateX(0)}
-@media(max-width:800px){
-  #app nav,#app.rail nav{min-height:0;border-top:0}
-  #app nav .nav small{display:block}
-}
-@media(max-width:520px){
-  .bar{gap:8px;padding-right:max(12px,env(safe-area-inset-right));padding-left:max(12px,env(safe-area-inset-left))}
-  .header-actions{gap:6px!important}
-  .profile-toggle{max-width:30vw;min-height:38px;padding-right:8px}
-  .tema-toggle{width:38px;min-width:38px;min-height:38px}
-  .menu-toggle-global{width:40px;min-width:40px;height:40px;padding:6px}
-}
-@media(max-width:800px){
-  #app nav,#app.rail nav{top:66px;right:0;bottom:auto;left:0;width:100%;height:62px;max-height:none;flex-direction:row;align-items:center;gap:8px;overflow-x:auto;overflow-y:hidden;padding:8px 12px;border:0;border-bottom:2px solid var(--ink);border-radius:0;transform:translateY(-105%);box-shadow:none;scrollbar-width:none}
-  #app nav::-webkit-scrollbar{display:none}
-  #app.nav-open nav,#app.nav-open.rail nav{transform:translateY(0)}
-  #app nav .brand,#app nav .navtoggle{display:none}
-  #app nav .nav,#app.rail nav .nav{display:flex;flex:0 0 auto;align-items:center;justify-content:center;gap:0;width:48px;min-width:48px;height:44px;padding:7px;border:2px solid var(--ink);border-radius:10px}
-  #app nav .nav .ik,#app.rail nav .nav .ik{margin:0}
-  #app nav .nav .tk,#app.rail nav .nav .tk{display:none}
-  #app nav .nav[aria-current=page],#app.rail nav .nav[aria-current=page]{width:auto;gap:8px;padding-inline:10px}
-  #app nav .nav[aria-current=page] .tk,#app.rail nav .nav[aria-current=page] .tk{display:block}
-  #app nav .nav .tk small{display:none}
-  #app .shell,#app.rail .shell{padding-top:124px}
-}
-@media(prefers-reduced-motion:reduce){
-  #app nav{transition:none}
-}
-@media(min-width:801px){
-  #app nav,#app.rail nav{top:66px;right:auto;bottom:0;left:0;width:72px;height:auto;max-height:none;flex-direction:column;align-items:stretch;overflow-x:hidden;overflow-y:auto;visibility:visible;pointer-events:auto;transform:translateX(0);border:0;border-right:2px solid var(--ink);border-radius:0;transition:width .25s ease,box-shadow .25s ease}
-  #app:not(.nav-open) nav:not(:hover){width:72px}
-  #app:not(.nav-open) nav:not(:hover) .brand{justify-content:center}
-  #app:not(.nav-open) nav:not(:hover) .brand span, #app:not(.nav-open) nav:not(:hover) .nav{display:none}
-  #app nav .brand{flex:none}
-  #app nav:hover .brand span,#app.nav-open nav .brand span{display:block}
-  #app nav:hover .nav,#app.nav-open nav .nav{display:flex}
-  #app nav .nav{flex:none}
-  #app:not(.nav-open) nav:not(:hover) .brand{border-bottom:0}
-  #app main{padding-left:calc(clamp(14px,3vw,34px) + 72px)}
-}
-@media(max-width:520px){
-  #menuToggle{top:13px;right:max(12px,env(safe-area-inset-right))}
-}
-.header-left{display:flex!important;align-items:center;gap:12px;min-width:0}
-.header-brand{appearance:none;border:0;background:transparent;color:inherit;padding:0;box-shadow:none;cursor:default;text-align:left;pointer-events:none}
-.header-brand>span:last-child{overflow:visible;text-overflow:clip;white-space:normal}
-.header-brand:hover{background:transparent;transform:none;box-shadow:none;cursor:default}
-.header-brand-cue{display:grid;place-items:center;width:18px;height:24px;flex:none;font-size:25px;font-weight:700;line-height:1;transition:transform .22s ease}
-.header-brand-cue::before{content:"?"}
-.bar .header-actions{display:flex;align-items:center;gap:16px!important;margin-left:auto;margin-right:0}
-.bar .header-actions #themeToggle, .bar .header-actions #menuToggle{display:grid;place-items:center;width:42px;height:42px;min-width:42px;min-height:42px;padding:8px;border:0!important;border-radius:0;background:transparent!important;box-shadow:none!important;color:inherit}
-.bar .header-actions #themeToggle:hover, .bar .header-actions #menuToggle:hover{background:transparent!important;box-shadow:none!important;transform:scale(1.08)}
-.bar .header-actions #themeToggle:active, .bar .header-actions #menuToggle:active{transform:scale(.94);box-shadow:none!important}
-.bar .header-actions #themeToggle svg, .bar .header-actions #menuToggle svg{width:23px;height:23px}
-.bar .header-actions .profile-toggle{display:grid;place-items:center;width:42px;height:42px;min-height:42px;max-width:none;padding:0;border:0!important;border-radius:0;background:transparent!important;box-shadow:none!important;color:inherit}
-.bar .header-actions .profile-toggle:hover{background:transparent!important;box-shadow:none!important;transform:scale(1.08)}
-.bar .header-actions .profile-avatar{width:26px;height:26px;border:0;background:transparent}
-.bar .header-actions .profile-avatar svg{width:24px;height:24px}
-.bar .header-actions .profile-label{display:none}
-@media(min-width:801px){
-  #app:not(.nav-open):has(nav:hover) .header-brand-cue{transform:rotate(180deg)}
-}
-@media(max-width:800px){
-  .header-left{display:flex!important}
-  .header-actions{margin-left:auto!important;margin-right:0!important}
-  #menuToggle{position:static!important;top:auto!important;right:auto!important;z-index:auto}
-}
-@media(max-width:520px){
-  .bar .header-actions{gap:10px!important}
-  .bar .header-actions #themeToggle,.bar .header-actions #menuToggle,.bar .header-actions .profile-toggle{width:38px;height:38px;min-width:38px;min-height:38px}
-}
-@media(prefers-reduced-motion:reduce){
-  .header-brand-cue{transition:none}
-}
-#app nav, #app.rail nav{background:transparent!important;border:0!important;box-shadow:none!important}
-#app nav .brand, #app nav .navtoggle{display:none!important}
-#app nav .nav, #app.rail nav .nav{display:flex!important;margin:0}
-@media (min-width: 801px){
-  #app nav, #app.rail nav{width:240px!important;visibility:hidden!important;pointer-events:none!important;transform:translateX(-105%)!important;transition:transform .25s ease, visibility .25s ease!important}
-  #app.nav-open nav, #app.nav-open.rail nav{width:240px!important;visibility:visible!important;pointer-events:auto!important;transform:translateX(0)!important;box-shadow:none!important}
-  #app main, #app.rail main{padding-left:clamp(14px, 3vw, 34px)!important}
-}
-@media (max-width: 800px){
-  #app:not(.nav-open) nav{visibility:hidden!important;pointer-events:none!important;transform:translateY(-105%)!important}
-  #app.nav-open nav{visibility:visible!important;pointer-events:auto!important;transform:translateY(0)!important}
-}
-@media (max-width: 800px){
-  #app .shell, #app.rail .shell{grid-template-columns:minmax(0,1fr)!important}
-  #app nav, #app.rail nav{position:fixed!important;top:62px!important;right:0!important;bottom:auto!important;left:0!important;z-index:100!important;display:flex!important;flex-direction:row!important;align-items:center!important;justify-content:flex-start!important;gap:8px!important;width:100%!important;height:58px!important;max-height:58px!important;min-height:58px!important;overflow-x:auto!important;overflow-y:hidden!important;padding:7px 12px!important;margin:0!important;background:transparent!important;border:0!important;border-radius:0!important;box-shadow:none!important;visibility:visible!important;pointer-events:auto!important;transform:none!important;scrollbar-width:none!important}
-  #app nav::-webkit-scrollbar, #app.rail nav::-webkit-scrollbar{display:none!important}
-  #app nav .brand, #app nav .navtoggle{display:none!important}
-  #app nav .nav, #app.rail nav .nav{display:inline-flex!important;flex:0 0 auto!important;align-items:center!important;justify-content:center!important;gap:0!important;width:44px!important;min-width:44px!important;height:42px!important;min-height:42px!important;padding:7px!important;margin:0!important;border:2px solid var(--ink)!important;border-radius:10px!important;box-shadow:2px 2px 0 var(--ink)!important;transform:none!important;white-space:nowrap!important}
-  #app nav .nav .ik, #app.rail nav .nav .ik{display:inline-flex!important;flex:0 0 auto!important;margin:0!important}
-  #app nav .nav .tk, #app.rail nav .nav .tk{display:none!important}
-  #app nav .nav[aria-current="page"], #app.rail nav .nav[aria-current="page"]{width:auto!important;min-width:44px!important;max-width:190px!important;justify-content:flex-start!important;gap:7px!important;padding:7px 10px!important}
-  #app nav .nav[aria-current="page"] .tk, #app.rail nav .nav[aria-current="page"] .tk{display:inline-flex!important;align-items:center!important;min-width:0!important;overflow:hidden!important;text-overflow:ellipsis!important}
-  #app nav .nav .tk small, #app.rail nav .nav .tk small{display:none!important}
-  #app main, #app.rail main{display:block!important;grid-column:auto!important;min-width:0!important;padding:12px max(12px,env(safe-area-inset-right)) 20px max(12px,env(safe-area-inset-left))!important}
-}
-@media (max-width: 800px){
-  #menuToggle.menu-toggle-global{display:inline-flex!important;align-items:center!important;justify-content:center!important;visibility:visible!important;opacity:1!important;pointer-events:auto!important;flex:0 0 40px!important;width:40px!important;min-width:40px!important;height:40px!important;position:relative!important;z-index:120!important}
-  #menuToggle.menu-toggle-global svg{display:block!important;width:23px!important;height:23px!important}
-}
-@media (max-width: 800px){
-  #app .bar{position:sticky!important;top:0!important;z-index:130!important}
-  #app .bar .header-actions #menuToggle.menu-toggle-global{display:inline-flex!important;align-items:center!important;justify-content:center!important;box-sizing:border-box!important;width:40px!important;min-width:40px!important;height:40px!important;min-height:40px!important;padding:0!important;position:relative!important;margin:0!important;line-height:1!important}
-  #app .bar .header-actions #menuToggle.menu-toggle-global svg{display:block!important;width:22px!important;height:22px!important;margin:auto!important;flex:0 0 22px!important;overflow:visible!important}
-  #app .shell, #app.rail .shell{display:flex!important;flex-direction:column!important;grid-template-columns:minmax(0,1fr)!important;padding-top:0!important;margin-top:0!important;min-width:0!important}
-  #app nav#menu, #app.rail nav#menu{inset:auto!important}
-  #app.nav-open nav#menu, #app.nav-open.rail nav#menu{display:flex!important}
-  #app nav#menu .brand, #app nav#menu .navtoggle{display:none!important}
-  #app nav#menu .nav, #app.rail nav#menu .nav{display:inline-flex!important;box-sizing:border-box!important;position:relative!important;flex:0 0 44px!important;align-items:center!important;justify-content:center!important;padding:0!important;margin:0!important;gap:0!important;border:2px solid var(--ink)!important;border-radius:10px!important;white-space:nowrap!important;transform:none!important}
-  #app nav#menu .nav .ik, #app.rail nav#menu .nav .ik{flex:0 0 22px!important}
-  #app nav#menu .nav .tk, #app.rail nav#menu .nav .tk{display:none!important}
-  #app nav#menu .nav[aria-current="page"], #app.rail nav#menu .nav[aria-current="page"]{flex:0 0 auto!important;width:auto!important;min-width:44px!important;justify-content:flex-start!important;gap:7px!important;padding:0 10px!important}
-  #app nav#menu .nav[aria-current="page"] .tk, #app.rail nav#menu .nav[aria-current="page"] .tk{display:inline-flex!important;align-items:center!important;min-width:0!important;overflow:hidden!important;text-overflow:ellipsis!important}
-  #app nav#menu .nav .tk small, #app.rail nav#menu .nav .tk small{display:none!important}
-  #app main#isi, #app.rail main#isi{display:block!important;order:1!important;grid-column:auto!important;min-width:0!important;width:100%!important;box-sizing:border-box!important;padding:12px max(12px,env(safe-area-inset-right)) 20px max(12px,env(safe-area-inset-left))!important}
-}
-@media (max-width: 800px){
-  #app nav#menu, #app.rail nav#menu{display:flex!important;box-sizing:border-box!important;position:relative!important;inset:auto!important;order:0!important;width:100%!important;height:auto!important;min-height:0!important;max-height:0!important;flex:0 0 auto!important;flex-direction:row!important;align-items:center!important;justify-content:flex-start!important;gap:8px!important;padding:0 12px!important;margin:0!important;overflow-x:auto!important;overflow-y:hidden!important;opacity:0!important;visibility:hidden!important;pointer-events:none!important;transform:translateY(-8px)!important;background:transparent!important;border:0!important;border-radius:0!important;box-shadow:none!important;scrollbar-width:none!important;transition:max-height .28s ease, padding-top .28s ease, padding-bottom .28s ease, opacity .18s ease, transform .28s ease, visibility 0s linear .28s!important}
-  #app.nav-open nav#menu, #app.nav-open.rail nav#menu{max-height:64px!important;padding-top:8px!important;padding-bottom:8px!important;opacity:1!important;visibility:visible!important;pointer-events:auto!important;transform:translateY(0)!important;transition:max-height .28s ease, padding-top .28s ease, padding-bottom .28s ease, opacity .2s ease, transform .28s ease, visibility 0s!important}
-  #app nav#menu::-webkit-scrollbar, #app.rail nav#menu::-webkit-scrollbar{display:none!important}
-  #app nav#menu .nav, #app.rail nav#menu .nav{box-shadow:none!important;-webkit-box-shadow:none!important}
-  #app nav#menu .nav .ik, #app.rail nav#menu .nav .ik{display:inline-flex!important;align-items:center!important;justify-content:center!important;margin:0 auto!important}
-  #app nav#menu .nav[aria-current="page"] .ik, #app.rail nav#menu .nav[aria-current="page"] .ik{margin:0!important}
-  @media (prefers-reduced-motion: reduce){
-    #app nav#menu, #app.nav-open nav#menu, #app.rail nav#menu, #app.nav-open.rail nav#menu{transition:none!important}
+function simpanToken(t) { try { if (t) sessionStorage.setItem(KT, t); else sessionStorage.removeItem(KT); } catch (e) {} }
+function bacaToken() { try { return sessionStorage.getItem(KT); } catch (e) { return null; } }
+var timerOptimasiTema = null;
+function aturTema(gelap) {
+  var tema = gelap ? 'dark' : 'light';
+  var root = document.documentElement;
+  var rootStyle = root.style;
+  var diPonsel = window.matchMedia && window.matchMedia('(max-width: 800px)').matches;
+  if (diPonsel) {
+    root.classList.add('theme-switching');
+    clearTimeout(timerOptimasiTema);
+    timerOptimasiTema = setTimeout(function(){ root.classList.remove('theme-switching'); }, 190);
   }
-}
-.header-brand{font-size:19px;gap:12px;line-height:1.2}
-.header-brand small{font-size:13px;letter-spacing:.12em;margin-top:4px}
-.header-brand-mark{width:48px;height:48px;font-size:17px;border-width:2px;border-radius:10px}
-.login-brand{font-size:16px;letter-spacing:.12em}
-.login-brand small{font-size:11px;letter-spacing:.14em}
-@media(max-width:800px){
-  .header-brand{font-size:15px;gap:9px}
-  .header-brand small{font-size:10px;margin-top:3px}
-  .header-brand-mark{width:40px;height:40px;font-size:15px}
-}
-@media(max-width:520px){
-  .header-brand{font-size:14px;gap:8px}
-  .header-brand small{font-size:9px;letter-spacing:.09em}
-  .header-brand-mark{width:38px;height:38px;font-size:14px}
-  .login-brand{font-size:14px}
-  .login-brand small{font-size:10px}
-}
-@media(min-width:801px){
-  #app:not(.nav-open) nav:hover,#app.nav-open nav{width:276px;box-shadow:none!important}
-  #app nav .nav,#app.rail nav .nav{min-height:48px;padding:10px 12px;gap:12px;font-size:14px;box-shadow:none!important}
-  #app nav .nav .ik,#app.rail nav .nav .ik{width:34px;height:34px}
-  #app nav .nav .ik svg,#app.rail nav .nav .ik svg{width:24px;height:24px}
-  #app nav .nav .tk,#app.rail nav .nav .tk{font-size:14px;line-height:1.25}
-  #app nav .nav small,#app.rail nav .nav small{font-size:11px}
-  #app nav .brand b{width:48px;height:48px;font-size:17px}
-  #app nav .brand span{font-size:13px}
-  #app nav .brand small{font-size:10px}
-}
-#app nav .nav,#app nav .nav:hover,#app nav .nav[aria-current="page"],#app.rail nav .nav,#app.rail nav .nav:hover,#app.rail nav .nav[aria-current="page"]{box-shadow:none!important}
-.profile-menu{min-width:214px;padding:8px;border-radius:14px}
-.profile-menu button{display:flex;align-items:center;gap:10px;min-height:42px;padding:10px 12px;border-radius:9px;white-space:nowrap}
-.profile-menu button span{display:inline-grid;place-items:center;width:22px;height:22px;font-size:18px;line-height:1;flex:none}
-.profile-menu button:hover{background:var(--ac);color:var(--ink)}
-.profile-menu #keluar{margin-top:3px}
-.profile-menu-separator{height:1px;margin:5px 4px;background:var(--line,#b8b8b8)}
-:root[data-theme="dark"] .profile-menu-separator{background:#53616a}
-.bar .header-actions .profile-wrap{position:relative}
-.bar .header-actions .profile-menu{left:50%;right:auto;top:calc(100% + 12px);transform:translateX(-50%);z-index:1000}
-@media(max-width:520px){
-  .bar .header-actions .profile-menu{left:50%;right:auto;top:calc(100% + 10px);transform:translateX(-50%)}
-}
-.bar .header-actions .profile-menu button span{width:20px;height:20px;font-size:16px}
-@media(max-width:520px){
-  .bar .header-actions .profile-menu{max-width:calc(100vw - 24px)}
-}
-.bar .header-actions .profile-menu{min-width:208px;padding:5px;border:1px solid #d8dee5;border-radius:12px;background:#fff;color:#17212b;box-shadow:0 12px 28px rgba(20,32,44,.18)}
-.bar .header-actions .profile-menu button{display:flex;align-items:center;gap:8px;width:100%;min-height:38px;padding:7px 8px;border:0;border-radius:8px;background:transparent;color:inherit;font-size:13px;font-weight:600;letter-spacing:0;text-transform:none;text-align:left;transition:background .15s,color .15s}
-.bar .header-actions .profile-menu button>span:first-child{display:grid;place-items:center;width:28px;height:28px;flex:none;border-radius:7px;background:#edf3f7;color:#36566d;font-size:16px}
-.bar .header-actions .profile-menu button>span:first-child svg{width:17px;height:17px;stroke-width:1.8}
-.bar .header-actions .profile-menu button .profile-menu-label{display:block;width:auto;height:auto;font-size:13px;line-height:1.2;font-weight:600}
-.bar .header-actions .profile-menu button:hover{background:#f1f5f8;color:#17212b}
-.bar .header-actions .profile-menu #keluar{margin-top:2px;color:#a33434}
-.bar .header-actions .profile-menu #keluar>span:first-child{background:#fff0f0;color:#a33434}
-.bar .header-actions .profile-menu #keluar:hover{background:#fff0f0;color:#8d2525}
-.bar .header-actions .profile-menu-separator{height:1px;margin:6px 5px;background:#e2e7eb}
-:root[data-theme="dark"] .bar .header-actions .profile-menu{background:#111;color:#e5edf3;border-color:#3a4046}
-:root[data-theme="dark"] .bar .header-actions .profile-menu button:hover{background:#1a252c;color:#fff}
-:root[data-theme="dark"] .bar .header-actions .profile-menu button>span:first-child{background:#1b2b34;color:#a9cddd}
-:root[data-theme="dark"] .bar .header-actions .profile-menu #keluar{color:#ff9b9b}
-:root[data-theme="dark"] .bar .header-actions .profile-menu #keluar>span:first-child, :root[data-theme="dark"] .bar .header-actions .profile-menu #keluar:hover{background:#321d20;color:#ffb0b0}
-:root[data-theme="dark"] .bar .header-actions .profile-menu-separator{background:#343c42}
-@media(max-width:520px){
-  .bar .header-actions .profile-menu{min-width:208px}
-}
-@keyframes profileMenuMasuk{from{opacity:0;transform:translate(-50%,-7px) scale(.97)} to{opacity:1;transform:translate(-50%,0) scale(1)}}
-.bar .header-actions .profile-menu:not(.hidden){animation:profileMenuMasuk .2s cubic-bezier(.2,.8,.2,1) both}
-@media(prefers-reduced-motion:reduce){
-  .bar .header-actions .profile-menu:not(.hidden){animation:none}
-}
-@media (min-width: 801px){
-  #app nav .nav, #app.rail nav .nav{min-height:52px!important;padding:11px 14px!important;gap:13px!important;font-size:15px!important}
-  #app nav .nav .ik, #app.rail nav .nav .ik{width:36px!important;height:36px!important}
-  #app nav .nav .ik svg, #app.rail nav .nav .ik svg{width:26px!important;height:26px!important}
-  #app nav .nav .tk, #app.rail nav .nav .tk{font-size:15px!important}
-  #app nav .nav small, #app.rail nav .nav small{font-size:12px!important}
-}
-@media (max-width: 800px){
-  #app nav#menu .nav, #app.rail nav#menu .nav{flex-basis:48px!important;width:48px!important;min-width:48px!important;max-width:48px!important;height:46px!important;min-height:46px!important}
-  #app nav#menu .nav .ik, #app.rail nav#menu .nav .ik{width:24px!important;height:24px!important;flex-basis:24px!important}
-  #app nav#menu .nav .ik svg, #app.rail nav#menu .nav .ik svg{width:24px!important;height:24px!important}
-  #app nav#menu .nav[aria-current="page"], #app.rail nav#menu .nav[aria-current="page"]{max-width:210px!important;padding-inline:11px!important}
-  #app nav#menu .nav[aria-current="page"] .tk, #app.rail nav#menu .nav[aria-current="page"] .tk{font-size:14px!important}
-}
-.font-size-controls{position:fixed;right:max(16px,env(safe-area-inset-right));bottom:max(16px,env(safe-area-inset-bottom));z-index:1200;display:flex;flex-direction:column;align-items:center;overflow:hidden;color:#111}
-.font-size-controls button{position:absolute;display:grid;place-items:center;padding:0;border:2px solid #111;background:#7BD3EA;color:#111;font-family:inherit;font-weight:700;line-height:1;cursor:pointer;touch-action:manipulation;transition:transform .28s cubic-bezier(.2,.8,.2,1),opacity .2s ease,background-color .2s ease}
-.font-size-controls button:hover{background:#FFD93D;transform:scale(1.06)}
-.font-size-controls button:active{transform:scale(.92)}
-.font-size-controls button:disabled{opacity:.45;cursor:not-allowed}
-#fontDecrease{background:#FFB3C7}
-#fontIncrease{background:#A8E6CF}
-#fontPanelToggle{background:#7BD3EA}
-:root[data-theme="dark"] #fontDecrease{background:#9a5b72}
-:root[data-theme="dark"] #fontIncrease{background:#4a7a62}
-:root[data-theme="dark"] #fontPanelToggle{background:#3f7388}
-#fontDecrease{opacity:0;visibility:hidden;transition:transform .32s cubic-bezier(.2,.8,.2,1),opacity .2s ease,visibility 0s linear .32s,background-color .2s ease}
-.font-size-controls.is-open #fontDecrease{opacity:1;visibility:visible;transform:translateY(0) scale(1);transition:transform .32s cubic-bezier(.2,.8,.2,1),opacity .2s ease,visibility 0s,background-color .2s ease}
-:root[data-theme="dark"] .font-size-controls{background:#111;color:#e5edf3;border-color:#43535e}
-:root[data-theme="dark"] .font-size-controls button{background:#263640;color:#e5edf3;border-color:#43535e}
-:root[data-theme="dark"] .font-size-controls button:hover{background:#344955}
-@media(max-width:520px){
-  .font-size-controls{right:max(12px,env(safe-area-inset-right));bottom:max(12px,env(safe-area-inset-bottom))}
-}
-@media(prefers-reduced-motion:reduce){
-  .font-size-controls,.font-size-controls button,#fontDecrease{transition:none!important}
-}
-#fontPanelToggle{opacity:1;visibility:visible;transform:translateY(0) scale(1);z-index:2}
-#fontDecrease,#fontIncrease{opacity:0;visibility:hidden;pointer-events:none;transition:transform .32s cubic-bezier(.2,.8,.2,1),opacity .2s ease,visibility 0s linear .32s,background-color .2s ease}
-#fontDecrease{bottom:auto;transform:translateY(18px) scale(.55)}
-#fontIncrease{transform:translateY(18px) scale(.55)}
-.font-size-controls.is-open #fontDecrease,.font-size-controls.is-open #fontIncrease{opacity:1;visibility:visible;pointer-events:auto;transform:translateY(0) scale(1);transition:transform .32s cubic-bezier(.2,.8,.2,1),opacity .2s ease,visibility 0s,background-color .2s ease}
-@media(prefers-reduced-motion:reduce){
-  .font-size-controls,#fontPanelToggle,#fontDecrease,#fontIncrease{transition:none!important}
-}
-.font-size-controls{width:42px!important;height:42px!important;padding:0!important;gap:0!important;border:0!important;border-radius:50%!important;background:transparent!important;box-shadow:none!important;transition:width .28s ease,height .32s cubic-bezier(.2,.8,.2,1)!important}
-.font-size-controls.is-open{width:42px!important;height:122px!important;border-radius:22px!important}
-.font-size-controls button{left:6px!important;width:30px!important;height:30px!important;border-radius:9px!important;font-size:14px!important}
-#fontPanelToggle{bottom:4px!important;top:auto!important}
-.font-size-controls:not(.is-open) #fontPanelToggle{background:transparent!important;border-color:transparent!important;box-shadow:none!important}
-.font-size-controls:not(.is-open) #fontPanelToggle:hover, .font-size-controls:not(.is-open) #fontPanelToggle:focus-visible, .font-size-controls.is-open #fontPanelToggle{background:#7BD3EA!important;border-color:#111!important;color:#111!important}
-:root[data-theme="dark"] .font-size-controls:not(.is-open) #fontPanelToggle:hover, :root[data-theme="dark"] .font-size-controls:not(.is-open) #fontPanelToggle:focus-visible, :root[data-theme="dark"] .font-size-controls.is-open #fontPanelToggle{background:#3f7388!important;border-color:#43535e!important;color:#e5edf3!important}
-#fontDecrease{top:4px!important}
-#fontIncrease{top:42px!important;bottom:auto!important}
-@media(prefers-reduced-motion:reduce){
-  .font-size-controls{transition:none!important}
-}
-@media(max-width:640px){
-  .tbl tr.karyawan-row{display:grid!important;grid-template-columns:minmax(0,1fr) 50px!important;align-items:stretch}
-  .tbl tr.karyawan-row>td:nth-child(-n+3){grid-column:1!important;grid-template-columns:minmax(0,1fr)!important;gap:2px!important;padding:6px 0!important}
-  .tbl tr.karyawan-row>td:nth-child(4){grid-column:2!important;grid-row:1/span 3!important;display:flex!important;align-items:center;justify-content:center;padding:6px 0!important;border-bottom:0!important}
-  .tbl tr.karyawan-row>td:nth-child(4):before{display:none}
-  .direktori-actions{flex-direction:column;align-items:center;gap:8px}
-  .direktori-actions .btn{display:grid;place-items:center;width:42px;min-width:42px;height:42px;min-height:42px;padding:7px;border-radius:10px;color:#111}
-  .direktori-actions .btn svg{width:21px;height:21px}
-  .direktori-action-label{display:none}
-  .direktori-actions .aksi-detail{background:#7BD3EA}
-  .direktori-actions .aksi-cetak{background:#B8F2A8}
-  .direktori-actions .aksi-edit{background:#FFB86B}
-  .direktori-actions .aksi-detail:hover{background:#55c3df}
-  .direktori-actions .aksi-cetak:hover{background:#91df78}
-  .direktori-actions .aksi-edit:hover{background:#f39b3d}
-  :root[data-theme="dark"] .direktori-actions .aksi-detail{background:var(--c-cyan);color:#fff}
-  :root[data-theme="dark"] .direktori-actions .aksi-cetak{background:var(--c-green);color:#fff}
-  :root[data-theme="dark"] .direktori-actions .aksi-edit{background:var(--c-orange);color:#fff}
-}
-.avatar.foto-direktori-klik{cursor:zoom-in;position:relative;outline-offset:4px}
-.avatar.foto-direktori-klik:focus-visible{outline:3px solid var(--ac)}
-.avatar.foto-direktori-klik img{cursor:zoom-in}
-.foto-profil-zoom-overlay{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;padding:24px;background:rgba(0,0,0,.86);backdrop-filter:blur(5px)}
-.foto-profil-zoom-dialog{position:relative;display:flex;flex-direction:column;align-items:center;gap:12px;max-width:min(94vw,1000px);max-height:94dvh}
-.foto-profil-zoom-img{display:block;max-width:100%;max-height:82dvh;width:auto;height:auto;object-fit:contain;border-radius:12px;box-shadow:0 12px 48px rgba(0,0,0,.4)}
-.foto-profil-zoom-caption{color:#fff;font-size:14px;font-weight:700;text-align:center;overflow-wrap:anywhere}
-.foto-profil-zoom-close{position:absolute;top:-14px;right:-14px;display:grid;place-items:center;width:42px;height:42px;border:2px solid #fff;border-radius:50%;background:#111;color:#fff;font-size:28px;line-height:1;cursor:pointer;box-shadow:0 3px 12px #0008}
-@media(max-width:640px){
-  .foto-profil-zoom-overlay{padding:14px}
-  .foto-profil-zoom-img{max-height:78dvh}
-  .foto-profil-zoom-close{top:-10px;right:-5px;width:38px;height:38px}
-}
-.tbl td.direktori-action-cell{min-width:160px;border-left:2px solid var(--line);background:#eef8fa}
-.tbl td.direktori-action-cell .direktori-actions{align-items:center}
-@media(max-width:640px){
-  .tbl tr.karyawan-row{grid-template-columns:minmax(0,1fr) 58px!important;column-gap:8px}
-  .tbl tr.karyawan-row>td.direktori-action-cell{min-width:0!important;width:100%;max-width:100%;margin-left:0;padding:8px 4px!important;border:2px solid var(--line)!important;border-radius:10px;background:#eef8fa!important}
-}
-:root[data-theme="dark"] .tbl td.direktori-action-cell, :root[data-theme="dark"] .tbl tr.karyawan-row>td.direktori-action-cell{background:#141d22!important;border-color:#52616a!important}
-.abs-home-grid{max-width:760px;gap:14px;margin-top:18px}
-.abs-home-card{grid-template-columns:54px minmax(0,1fr);grid-template-rows:auto auto auto;align-items:start;column-gap:15px;row-gap:6px;min-height:0;padding:18px 20px}
-.abs-home-card .abs-home-icon{width:50px;height:50px;align-self:center;grid-row:1/span 2;box-shadow:none}
-.abs-home-card strong{align-self:end;line-height:1.25}
-.abs-home-card .abs-home-desc{align-self:start;max-width:58ch;line-height:1.5}
-.abs-home-card .abs-home-cta{margin-top:4px;padding-top:9px;border-top:1px solid var(--line)}
-.abs-home-card:focus-visible{outline-offset:4px}
-@media(max-width:480px){
-  .abs-home-grid{gap:10px;margin-top:14px}
-  .abs-home-card{grid-template-columns:44px minmax(0,1fr);column-gap:12px;row-gap:5px;min-height:0;padding:14px}
-  .abs-home-card .abs-home-icon{width:42px;height:42px}
-  .abs-home-card .abs-home-desc{font-size:12px;line-height:1.45}
-  .abs-home-card .abs-home-cta{margin-top:3px;padding-top:8px}
-}
-#isi .tbl td.direktori-action-cell{min-width:0!important;border:0!important;background:transparent!important;cursor:default!important}
-#isi .tbl td.direktori-action-cell *{cursor:default}
-#isi .tbl td.direktori-action-cell button{cursor:pointer}
-#isi .direktori-actions{justify-content:center;gap:8px}
-#isi .direktori-action-label{display:none!important}
-#isi .tbl tbody tr.karyawan-row.action-hover, #isi .tbl tbody tr.karyawan-row.action-hover:hover{background:#fff!important}
-:root[data-theme="dark"] #isi .tbl tbody tr.karyawan-row.action-hover, :root[data-theme="dark"] #isi .tbl tbody tr.karyawan-row.action-hover:hover{background:#0b0b0b!important}
-@media(max-width:640px){
-  #isi .tbl tr.karyawan-row>td.direktori-action-cell{width:auto!important;max-width:none!important;margin:0!important;padding:6px 0!important;border:0!important;background:transparent!important}
-}
-.direktori-name-cell{display:flex;align-items:center;gap:10px;width:100%;min-width:0}
-.direktori-row-avatar{display:grid;place-items:center;flex:0 0 38px;width:38px;height:38px;overflow:hidden;border:2px solid var(--ink);border-radius:50%;background:var(--ac2);font-size:15px;font-weight:800}
-.direktori-row-avatar img{display:block;width:100%;height:100%;object-fit:cover}
-.direktori-name-text{flex:1;min-width:0;overflow-wrap:anywhere}
-.direktori-name-text strong{display:block}
-.direktori-photo-edit{display:grid;place-items:center;flex:0 0 36px;width:36px;height:36px;margin-left:auto;padding:6px;border:2px solid var(--ink);border-radius:9px;background:var(--ac);color:var(--ink);cursor:pointer}
-.direktori-photo-edit svg{width:19px;height:19px}
-.direktori-photo-edit:hover{filter:brightness(.94)}
-:root[data-theme="dark"] .direktori-row-avatar{background:#141414}
-:root[data-theme="dark"] .direktori-photo-edit{background:var(--c-orange,#9a6a4a);color:#fff}
-@media(max-width:640px){
-  .direktori-name-cell{gap:8px}
-  .direktori-row-avatar{flex-basis:34px;width:34px;height:34px}
-  .direktori-photo-edit{flex-basis:34px;width:34px;height:34px}
-}
-body{zoom:1}
-.dinas-form{display:grid;gap:18px;width:100%;max-width:900px;margin-inline:auto;padding:clamp(16px,3vw,26px)!important}
-.dinas-date-strip{min-height:70px;margin:0;padding:14px 18px;border-radius:12px;background:#eaf7fb;box-shadow:none}
-.dinas-date-strip .live-time{padding:7px 11px;border:2px solid currentColor;border-radius:9px;background:rgba(255,255,255,.65);font-variant-numeric:tabular-nums}
-.dinas-type{margin:0}
-.dinas-type legend{margin-bottom:10px;font-size:12px}
-.dinas-options{gap:12px}
-.dinas-opt span{min-height:54px;border-radius:12px;box-shadow:none;font-size:14px}
-.dinas-opt input:checked+span{outline:2px solid var(--ink);outline-offset:2px}
-.dinas-form>.field{gap:8px}
-.dinas-form>.field>span, .dinas-photo-head .field-label{font-size:12px;letter-spacing:.035em}
-.dinas-form>.field input{min-height:50px;border-radius:12px}
-.dinas-photo-head{margin:0;padding-top:18px;border-top:1px solid var(--line)}
-.dinas-form>.sub2[style]{margin:-10px 0 0!important;line-height:1.5}
-.dinas-photo-actions{display:flex;margin:0;padding:16px;border:2px dashed var(--line);border-radius:12px;background:var(--bg)}
-.dinas-photo-actions .btn{width:100%;min-height:54px;border-radius:10px;background:#dff2f6}
-.dinas-photo-box{min-height:160px;margin:0;border-radius:12px;background:var(--bg)}
-#dlPhotoPreview{max-height:min(55vh,520px)}
-.dinas-form>.dinas-note{margin:-10px 0 0;padding:0 2px;font-size:11px}
-.dinas-form>.aksi{margin:2px 0 0!important;padding:18px 0 0!important;border-top:1px solid var(--line)}
-.dinas-form>.aksi .btn{width:100%;min-height:50px;font-size:13px}
-.dinas-status{margin:0;min-height:0;padding:0 4px}
-:root[data-theme="dark"] .dinas-date-strip{background:#161616;box-shadow:none}
-:root[data-theme="dark"] .dinas-date-strip .live-time{background:#0b0b0b}
-:root[data-theme="dark"] .dinas-photo-actions{background:#101010;border-color:#43535e}
-:root[data-theme="dark"] .dinas-photo-actions .btn{background:#263640}
-:root[data-theme="dark"] .dinas-opt span{box-shadow:none}
-@media(max-width:520px){
-  .dinas-form{gap:16px;padding:14px!important}
-  .dinas-date-strip{min-height:64px;padding:11px 12px;gap:9px}
-  .dinas-date-strip .live-time{padding:6px 8px;font-size:14px}
-  .dinas-options{gap:9px}
-  .dinas-opt span{min-height:50px;padding-inline:5px;font-size:12px}
-  .dinas-photo-actions{padding:11px}
-  .dinas-photo-box{min-height:130px}
-}
-@media(prefers-reduced-motion:reduce){
-  .dinas-opt span{transition:none}
-}
-body{line-height:1.55;letter-spacing:.005em}
-p{line-height:1.55}
-.field>span,.field-label,.dinas-type legend{font-size:13px;line-height:1.35}
-.sub2,.login-note{font-size:12px;line-height:1.5}
-.sub{font-size:15px;line-height:1.6}
-.tbl th{font-size:12px;line-height:1.35}
-.tbl td{font-size:15px;line-height:1.5}
-.chip,.status,.tag{font-size:12px}
-.stat span{font-size:11px;line-height:1.4}
-.dinas-note,.profile-photo-hint{font-size:11px;line-height:1.5}
-.login-bottom{font-size:10px;line-height:1.4}
-.header-brand-mark svg{width:27px;height:27px}
-@media(max-width:640px){
-  .tbl td{font-size:14px;line-height:1.45}
-  .tbl td:before{font-size:11px;line-height:1.35}
-  .field>span,.field-label,.dinas-type legend{font-size:12px}
-  .sub{font-size:14px}
-}
-@media (min-width: 801px){
-  html{scrollbar-gutter:stable}
-  #app .shell, #app.rail .shell{grid-template-columns:minmax(0, 1fr)!important}
-  #app nav#menu, #app.rail nav#menu{position:fixed!important;top:66px!important;right:auto!important;bottom:0!important;left:0!important;z-index:125!important;width:276px!important;height:auto!important;max-height:none!important;margin:0!important;transform:translateX(-105%)!important}
-  #app.nav-open nav#menu, #app.nav-open.rail nav#menu{visibility:visible!important;pointer-events:auto!important;transform:translateX(0)!important}
-  #app:not(.nav-open) nav#menu, #app:not(.nav-open).rail nav#menu{visibility:hidden!important;pointer-events:none!important;transform:translateX(-105%)!important}
-}
-.abs-kal-wrap{display:flex;flex-direction:column;gap:14px;margin-top:14px;min-width:0}
-.abs-kal-toolbar{display:flex;gap:10px;align-items:center}
-.abs-kal-toolbar input{max-width:440px}
- .abs-kal-head{display:grid;grid-template-columns:42px minmax(0,1fr) 42px;align-items:center;gap:10px;padding:12px 14px;background:var(--paper);border:2px solid var(--ink);border-radius:var(--rd);box-shadow:var(--sh)}
-.abs-kal-title{display:flex;align-items:center;justify-content:center;gap:12px;min-width:0}
-.abs-kal-month{text-transform:capitalize;font-size:17px;text-align:center}
-.abs-kal-nav{display:grid;place-items:center;min-width:42px;width:42px;height:42px;padding:0;font-size:26px;line-height:1}
-.abs-kal-stats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:9px}
-.abs-kal-stat{display:flex;flex-direction:column;gap:3px;padding:11px 12px;border:2px solid var(--ink);border-radius:var(--rd);background:var(--paper);box-shadow:3px 3px 0 var(--ink);min-width:0}
-.abs-kal-stat strong{font-size:23px;line-height:1.1}
-.abs-kal-stat span{font-size:11px;font-weight:700;overflow-wrap:anywhere}
- .abs-kal-stat.hadir{background:color-mix(in srgb,var(--ok) 42%,var(--paper))}
-.abs-kal-stat.izin{background:color-mix(in srgb,var(--ac2) 36%,var(--paper))}
-.abs-kal-stat.dinas{background:color-mix(in srgb,var(--warn) 48%,var(--paper))}
-.abs-kal-stat.alpa{background:color-mix(in srgb,var(--bad) 48%,var(--paper))}
-:root:not([data-theme="dark"]) .abs-kal-stat.hadir{background:#b8f2a8}
-:root:not([data-theme="dark"]) .abs-kal-stat.izin{background:#a9e7f4}
-:root:not([data-theme="dark"]) .abs-kal-stat.dinas{background:#ffe680}
-:root:not([data-theme="dark"]) .abs-kal-stat.alpa{background:#ffb0b0}
-:root:not([data-theme="dark"]) .abs-kal-stat.anomali{background:#d9c5f2}
-.abs-kal-week,.abs-kal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:7px}
-.abs-kal-week span{text-align:center;font-size:11px;font-weight:800;padding:4px 0;color:var(--mut)}
-.abs-kal-cell{min-width:0;min-height:76px;padding:8px 5px;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:5px;border:1.5px solid var(--line);border-radius:10px;background:var(--paper);cursor:pointer}
-.abs-kal-cell .abs-kal-day{font-size:14px}
-.abs-kal-cell small{font-size:9px;color:var(--mut);font-weight:700}
- .abs-kal-cell.selected{outline:3px solid var(--ac);outline-offset:1px;background:var(--hd);border-color:var(--ink)}
-.abs-kal-cell.range:not(.range-start):not(.range-end){background:#fff1b8;border-radius:5px}
-.abs-kal-cell.range-start,.abs-kal-cell.range-end{background:#ffd93d;border-width:2px}
-.abs-kal-cell.kosong{visibility:hidden;pointer-events:none}
-.abs-kal-dots{display:flex;align-items:center;justify-content:center;gap:3px;min-height:7px}
-.abs-kal-dots i{display:block;width:7px;height:7px;border-radius:50%;background:var(--mut)}
-.abs-kal-dots i.hadir{background:#398a4b}
-.abs-kal-dots i.izin{background:#278bb5}
-.abs-kal-dots i.dinas{background:#bd8b18}
-.abs-kal-dots i.alpa{background:#c64c55}
-.abs-kal-dots i.anomali{background:#8b65b8}
-.abs-kal-info{padding:0 2px}
-.abs-kal-detail{padding:14px;border:2px solid var(--ink);border-radius:var(--rd);background:var(--paper);box-shadow:var(--sh);display:flex;flex-direction:column;gap:10px}
-.abs-kal-detail-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
-.abs-kal-detail-head h3{font-size:17px;text-transform:capitalize}
-.abs-kal-eyebrow{font-size:9px;letter-spacing:.12em;font-weight:800;color:var(--mut)}
-.abs-kal-count{font-size:11px;font-weight:800;padding:5px 9px;border:1px solid var(--line);border-radius:99px;white-space:nowrap}
-.abs-kal-record{padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);display:flex;flex-direction:column;gap:9px}
-.abs-kal-record-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
-.abs-kal-record-top strong{font-size:13px;overflow-wrap:anywhere}
-.abs-kal-pill{font-size:9px;font-weight:800;padding:4px 7px;border-radius:99px;border:1px solid var(--line);white-space:nowrap}
-.abs-kal-pill.hadir{background:var(--ok)}
-.abs-kal-pill.izin{background:var(--ac2)}
-.abs-kal-pill.dinas{background:var(--warn)}
-.abs-kal-pill.alpa{background:var(--bad)}
-.abs-kal-pill.anomali{background:var(--paper)}
-.abs-kal-meta{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
-.abs-kal-meta>div{display:flex;flex-direction:column;gap:2px}
-.abs-kal-meta span{font-size:10px;color:var(--mut);font-weight:700}
-.abs-kal-meta strong{font-size:13px}
-.abs-kal-note{font-size:11px;overflow-wrap:anywhere}
-.abs-kal-empty{font-size:12px;color:var(--mut);padding:8px 0}
-:root[data-theme="dark"] .abs-kal-stat.hadir{background:#294b37}
-:root[data-theme="dark"] .abs-kal-stat.izin{background:#244653}
-:root[data-theme="dark"] .abs-kal-stat.dinas{background:#554a27}
-:root[data-theme="dark"] .abs-kal-stat.alpa{background:#5b383b}
-:root[data-theme="dark"] .abs-kal-cell{background:#202b34;color:var(--ink)}
-:root[data-theme="dark"] .abs-kal-cell.selected{background:#344955}
-:root[data-theme="dark"] .abs-kal-cell.range:not(.range-start):not(.range-end){background:#26343b}
-:root[data-theme="dark"] .abs-kal-cell.range-start,:root[data-theme="dark"] .abs-kal-cell.range-end{background:#4f7a93;color:#fff;border-color:#e5edf3}
-:root[data-theme="dark"] .abs-kal-record{background:#1b252d}
-:root[data-theme="dark"] .abs-kal-pill{color:var(--ink)}
-@media(max-width:620px){
-  .abs-kal-wrap{gap:11px}
-  .abs-kal-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .abs-kal-stat:first-child{grid-column:span 2}
-  .abs-kal-stat strong{font-size:20px}
-  .abs-kal-head{padding:9px}
-  .abs-kal-month{font-size:14px}
-  .abs-kal-title{gap:6px}
-  .abs-kal-cell{min-height:59px;padding:6px 2px;gap:4px;border-radius:8px}
-  .abs-kal-cell small{font-size:8px}
-  .abs-kal-dots{gap:2px}
-  .abs-kal-dots i{width:6px;height:6px}
-  .abs-kal-week,.abs-kal-grid{gap:4px}
-  .abs-kal-detail{padding:11px}
-  .abs-kal-meta{gap:5px}
-  .abs-kal-meta strong{font-size:12px}
-  .abs-kal-record-top{flex-direction:column}
-  .abs-kal-pill{align-self:flex-start}
-}
-@media(max-width:370px){
-  .abs-kal-cell{min-height:53px}
-  .abs-kal-week span{font-size:10px}
-  .abs-kal-cell .abs-kal-day{font-size:12px}
-}
-.profile-photo-control .profile-photo-button{width:76px;height:76px;font-size:28px;box-shadow:none}
-.profile-footnote{margin:20px 0 0;padding-top:12px;border-top:1px solid var(--line)}
-.abs-kal-week span:first-child,.abs-kal-cell.merah .abs-kal-day{color:#d11a2a}
-.abs-kal-cell.merah{border-color:#d11a2a;background:#fff0f0}
-.abs-kal-cell.merah.selected,.abs-kal-cell.merah.range-start,.abs-kal-cell.merah.range-end{background:#ffd6d6}
-:root[data-theme="dark"] .abs-kal-week span:first-child,:root[data-theme="dark"] .abs-kal-cell.merah .abs-kal-day{color:#ff6b6b}
-:root[data-theme="dark"] .abs-kal-cell.merah{border-color:#ff6b6b;background:#321d20}
-:root[data-theme="dark"] .abs-kal-cell.merah.selected,:root[data-theme="dark"] .abs-kal-cell.merah.range-start,:root[data-theme="dark"] .abs-kal-cell.merah.range-end{background:#51272b}
-.abs-kal-cell.cuti .abs-kal-day{color:var(--ink)}
-.pf-top{flex-wrap:wrap}
-.pf-identity-name{flex:1 1 180px}
-.pf-identity-name .chip{margin:0 4px 4px 0}
-.profile-photo-button:disabled{opacity:.6;cursor:progress}
-@media(max-width:520px){
-  .pf-top{flex-direction:column;align-items:center;text-align:center}
-  .pf-identity-name{flex:none;width:100%}
+  root.setAttribute('data-theme', tema);
+  ['bg', 'paper', 'side', 'hd', 'ac', 'ac2', 'mut'].forEach(function (k) {
+    rootStyle.removeProperty('--' + k);
+  });
+  if (!gelap) {
+    // Terapkan variabel palet langsung; tidak perlu memindai/update seluruh panel UI.
+    var palet = 'cream', latar = '';
+    try {
+      palet = localStorage.getItem('hrd_palett') || 'cream';
+      latar = localStorage.getItem('hrd_latar_custom') || '';
+    } catch (e) {}
+    var warna = (typeof PALET_TEMA !== 'undefined' && PALET_TEMA[palet]) || (typeof PALET_TEMA !== 'undefined' && PALET_TEMA.cream) || null;
+    if (warna) {
+      ['bg', 'paper', 'side', 'hd', 'ac', 'ac2', 'mut'].forEach(function(k){ rootStyle.setProperty('--' + k, warna[k]); });
+      if (latar) rootStyle.setProperty('--bg', latar);
+    }
+  }
+  var label = gelap ? 'Aktifkan mode terang' : 'Aktifkan mode gelap';
+  ['themeToggle', 'loginThemeToggle'].forEach(function(id) {
+    var tombol = $(id);
+    if (!tombol) return;
+    tombol.innerHTML = '';
+    var gambar = ikon(gelap
+      ? '<path d="M20.985 12.486A9 9 0 1 1 11.514 3.015a7 7 0 0 0 9.471 9.471Z"/><path d="m19 2 .7 2.3L22 5l-2.3.7L19 8l-.7-2.3L16 5l2.3-.7L19 2Z"/>'
+      : '<circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/>');
+    gambar.classList.add('ikon-tema');
+    tombol.appendChild(gambar);
+    tombol.setAttribute('aria-label', label);
+    tombol.title = label;
+  });
+  try { localStorage.setItem('hrd_tema', tema); } catch (e) {}
 }
 
-/* Beranda portal karyawan: tanpa navbar modul, menu disajikan sebagai kartu. */
-#app.home-active #menu{display:none!important}
-#app.home-active .shell{display:block!important;grid-template-columns:minmax(0,1fr)!important;min-height:calc(100vh - 62px)}
-#app.home-active main{max-width:1240px;margin-inline:auto;padding-top:clamp(20px,4vw,42px)}
-#app.home-active #menuToggle{display:none!important}
-.beranda-welcome{display:flex;align-items:center;justify-content:space-between;gap:20px;margin:0 0 24px;padding:clamp(20px,3vw,32px);border:2px solid var(--ink);border-radius:var(--rd);background:var(--paper);box-shadow:var(--sh)}
-.beranda-eyebrow{font-size:11px;font-weight:900;letter-spacing:.13em;text-transform:uppercase;color:var(--mut);margin-bottom:8px}
-.beranda-welcome h2{margin:0 0 8px!important;padding:0!important;border:0!important;font-size:clamp(25px,4vw,39px)!important;line-height:1.08;text-transform:none!important}
-.beranda-welcome h2:before{display:none!important}
-.beranda-welcome p{margin:0;color:var(--mut);font-size:14px}
-.beranda-profile{display:flex;align-items:center;gap:14px;min-width:220px;max-width:330px;padding:12px 16px;border:2px solid var(--ink);border-radius:16px;background:#F8DDE5;box-shadow:3px 3px 0 var(--ink);color:#241820;cursor:pointer;text-align:left}
-.beranda-profile-photo{display:grid;place-items:center;width:66px;height:66px;flex:none;overflow:hidden;border:2px solid var(--ink);border-radius:50%;background:#fff;font-size:23px;font-weight:900}
-.beranda-profile-photo img{width:100%;height:100%;object-fit:cover;display:block}
-.beranda-profile-meta{min-width:0}
-.beranda-profile-meta strong{display:block;font-size:14px;overflow-wrap:anywhere}
-.beranda-profile-meta span{display:block;margin-top:4px;font-size:11px;opacity:.78}
-.beranda-section-title{display:flex;align-items:end;justify-content:space-between;gap:12px;margin:26px 0 14px}
-.beranda-section-title h3{font-size:18px;margin:0;text-transform:uppercase;letter-spacing:.02em}
-.beranda-section-title p{font-size:12px;color:var(--mut);margin:0}
-.beranda-menu-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
-.beranda-menu-card{display:flex;align-items:flex-start;gap:14px;min-height:132px;padding:20px;border:2px solid var(--ink);border-radius:16px;background:var(--paper);box-shadow:4px 4px 0 var(--ink);color:var(--ink);text-align:left;cursor:pointer;transition:transform .16s ease,box-shadow .16s ease;min-width:0}
-.beranda-menu-card:hover{transform:translate(-2px,-2px);box-shadow:6px 6px 0 var(--ink)}
-.beranda-menu-card:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink)}
-.beranda-menu-icon{display:grid;place-items:center;width:48px;height:48px;flex:none;border:2px solid var(--ink);border-radius:13px;background:var(--menu-accent,#F8DDE5)}
-.beranda-menu-icon svg{width:24px;height:24px}
-.beranda-menu-copy{min-width:0;flex:1}
-.beranda-menu-copy strong{display:block;font-size:16px;line-height:1.2;margin:2px 0 7px}
-.beranda-menu-copy span{display:block;font-size:12px;line-height:1.45;color:var(--mut)}
-.beranda-menu-arrow{font-size:20px;font-weight:900;align-self:flex-end;margin-left:auto}
-:root[data-theme="dark"] .beranda-welcome,:root[data-theme="dark"] .beranda-menu-card{background:#141414;color:#f2f2f2;border-color:#555}
-:root[data-theme="dark"] .beranda-profile{background:#3b2730;color:#fff;border-color:#777}
-:root[data-theme="dark"] .beranda-menu-card{box-shadow:4px 4px 0 #050505}
-:root[data-theme="dark"] .beranda-menu-icon{border-color:#666}
-@media(max-width:900px){.beranda-menu-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.beranda-welcome{align-items:flex-start;flex-direction:column}.beranda-profile{width:100%;max-width:none}}
-@media(max-width:520px){#app.home-active main{padding:16px 12px 26px!important}.beranda-welcome{padding:19px;border-radius:15px;margin-bottom:18px}.beranda-menu-grid{gap:10px}.beranda-menu-card{min-height:128px;flex-direction:column;gap:11px;padding:14px;border-radius:13px;box-shadow:3px 3px 0 var(--ink)}.beranda-menu-icon{width:42px;height:42px;border-radius:11px}.beranda-menu-copy strong{font-size:14px}.beranda-menu-copy span{font-size:11px}.beranda-menu-arrow{position:absolute;right:14px;bottom:12px}.beranda-menu-card{position:relative;padding-bottom:30px}.beranda-section-title{margin-top:22px}}
-
-
-/* Pengaturan tema: hanya mode terang yang menerima palet pilihan. */
-#fontPanelToggle svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-#fontPanelToggle img{display:block;width:26px;height:26px;object-fit:contain}
-.appearance-panel{position:fixed;right:max(16px,env(safe-area-inset-right));bottom:max(70px,calc(env(safe-area-inset-bottom) + 70px));z-index:1300;width:min(310px,calc(100vw - 24px));padding:16px;border:2px solid var(--ink);border-radius:16px;background:var(--paper);color:var(--ink);box-shadow:6px 6px 0 var(--ink)}
-.appearance-panel.hidden{display:none!important}
-.appearance-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
-.appearance-head strong{font-size:15px}
-.appearance-head button{width:32px;height:32px;border:2px solid var(--ink);border-radius:9px;background:var(--ac);font-size:22px;line-height:1;cursor:pointer}
-.appearance-label{display:block;margin:12px 0 8px;font-size:11px;font-weight:800;letter-spacing:.04em}
-.appearance-swatches{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}
-.appearance-swatches button{display:grid;place-items:center;min-width:0;width:100%;height:42px;padding:3px;border:2px solid transparent;border-radius:10px;background:transparent;cursor:pointer}
-.appearance-swatches button[aria-pressed="true"]{border-color:var(--ink);box-shadow:2px 2px 0 var(--ink)}
-.appearance-swatches span{display:block;width:100%;height:100%;border:1px solid rgba(0,0,0,.4);border-radius:6px;background:linear-gradient(135deg,var(--sw-bg) 0 55%,var(--sw-ac) 55% 100%)}
-.appearance-color-row{display:flex;align-items:center;gap:10px}
-.appearance-color-row input[type="color"]{width:46px;min-width:46px;height:40px;min-height:40px;padding:3px;border:2px solid var(--ink);border-radius:9px;background:var(--paper)}
-.appearance-color-row span{font-size:12px;color:var(--mut)}
-.appearance-actions{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:14px}
-.appearance-actions button{padding:8px 10px;border:2px solid var(--ink);border-radius:9px;background:var(--ac);font-size:11px;font-weight:800;cursor:pointer}
-#appearanceStatus{font-size:10px;color:var(--mut)}
-:root:not([data-theme="dark"]) .card,:root:not([data-theme="dark"]) .panel,:root:not([data-theme="dark"]) .stat,:root:not([data-theme="dark"]) .info,:root:not([data-theme="dark"]) .tabelbungkus,:root:not([data-theme="dark"]) .riw,:root:not([data-theme="dark"]) .bukti,:root:not([data-theme="dark"]) .drop,:root:not([data-theme="dark"]) .beranda-welcome,:root:not([data-theme="dark"]) .beranda-menu-card,:root:not([data-theme="dark"]) .beranda-profile,:root:not([data-theme="dark"]) .modal,:root:not([data-theme="dark"]) .modal .mf,:root:not([data-theme="dark"]) .profile-menu,:root:not([data-theme="dark"]) .menu-pop,:root:not([data-theme="dark"]) .pf div,:root:not([data-theme="dark"]) .abs-home-card,:root:not([data-theme="dark"]) .chk{background:var(--paper)!important;color:var(--ink)}
-:root:not([data-theme="dark"]) .card .top,:root:not([data-theme="dark"]) .panel .head,:root:not([data-theme="dark"]) .modal .mh,:root:not([data-theme="dark"]) .pf-top,:root:not([data-theme="dark"]) .tbl th{background:var(--side)!important;color:var(--ink)!important}
-:root:not([data-theme="dark"]) .btn.primary,:root:not([data-theme="dark"]) .appearance-head button,:root:not([data-theme="dark"]) .appearance-actions button{background:var(--ac)!important;color:var(--ink)}
-:root[data-theme="dark"]{--bg:#FFF4D6;--paper:#FFFBEE;--side:#FFD93D;--hd:#FFD93D;--ac:#FF8FB1;--ac2:#344955;--mut:#b5c2cb}
- :root[data-theme="dark"] .beranda-welcome{background:#202b34!important;color:#f2f5f7!important;border-color:#65727b!important}
-:root[data-theme="dark"] .beranda-welcome p,:root[data-theme="dark"] .beranda-eyebrow{color:#c2cdd4!important}
-:root[data-theme="dark"] .beranda-menu-card{background:#202b34!important;color:#f2f5f7!important;border-color:#65727b!important}
-:root[data-theme="dark"] .beranda-menu-copy span{color:#c2cdd4!important}
-:root[data-theme="dark"] .beranda-menu-icon{background:#344955!important;color:#ffffff!important;border-color:#84939d!important}
-:root[data-theme="dark"] .beranda-menu-icon svg{stroke:#ffffff!important}
-:root[data-theme="dark"] .beranda-profile{background:#3b2730!important;color:#ffffff!important;border-color:#a17b8b!important}
-:root[data-theme="dark"] .beranda-profile-photo{background:#263640!important;color:#ffffff!important;border-color:#b6c3cb!important}
-:root[data-theme="dark"] .appearance-panel{background:#202b34;color:#e5edf3;border-color:#65727b;box-shadow:5px 5px 0 #050505}
-:root[data-theme="dark"] .appearance-head button,:root[data-theme="dark"] .appearance-actions button{background:#344955;color:#fff;border-color:#9aa8b1}
-:root[data-theme="dark"] .appearance-swatches button[aria-pressed="true"]{border-color:#fff;box-shadow:2px 2px 0 #000}
-:root[data-theme="dark"] .appearance-color-row input[type="color"]{background:#263640;border-color:#9aa8b1}
-@media(max-width:520px){.appearance-panel{right:12px;bottom:max(64px,calc(env(safe-area-inset-bottom) + 64px));padding:14px}.appearance-swatches{gap:5px}}
-/* Tombol ukuran huruf membuka panel secara mendatar ke kiri. */
-.font-size-controls{width:42px!important;height:42px!important;padding:0!important;gap:0!important;border:0!important;border-radius:24px!important;background:transparent!important;box-shadow:none!important;transition:width .3s cubic-bezier(.2,.8,.2,1)!important}
-.font-size-controls.is-open{width:154px!important;height:42px!important;border-radius:24px!important}
-.font-size-controls button{top:6px!important;bottom:auto!important;left:auto!important;width:30px!important;height:30px!important;border-radius:9px!important;font-size:14px!important}
-#fontPanelToggle{right:6px!important;top:6px!important;bottom:auto!important;z-index:4}
-#fontDecrease{right:48px!important;top:6px!important;transform:translateX(18px) scale(.55)!important}
-#fontIncrease{right:84px!important;top:6px!important;transform:translateX(18px) scale(.55)!important}
-.font-size-controls.is-open #fontDecrease,.font-size-controls.is-open #fontIncrease{transform:translateX(0) scale(1)!important}
-/* Ikon header bergeser halus mengikuti status navbar. */
-.bar .header-actions #themeToggle,.bar .header-actions #menuToggle,.bar .header-actions .profile-toggle{transition:transform .32s cubic-bezier(.2,.8,.2,1),opacity .25s ease!important}
-#app.nav-open .bar .header-actions #themeToggle{transform:translateX(-5px)}
-#app.nav-open .bar .header-actions .profile-toggle{transform:translateX(-9px)}
-#app.nav-open .bar .header-actions #menuToggle{transform:rotate(90deg)}
-#app.home-active #menuToggle,#app.home-active .menu-toggle-global{display:none!important;visibility:hidden!important;pointer-events:none!important}
-@media(prefers-reduced-motion:reduce){.font-size-controls,.font-size-controls button,.bar .header-actions #themeToggle,.bar .header-actions #menuToggle,.bar .header-actions .profile-toggle{transition:none!important}}
-
-
-/* FIX5 — Sinkronisasi warna header login dan header aplikasi dengan tema */
-:root:not([data-theme="dark"]) .login-header,
-:root:not([data-theme="dark"]) .bar {
-  background: var(--hd) !important;
-  color: var(--ink) !important;
-  border-bottom-color: var(--ink) !important;
+var TOAST_META = {
+  success: { judul: 'Berhasil', ikon: '<path d="M20 6 9 17l-5-5"/>' },
+  error: { judul: 'Gagal', ikon: '<circle cx="12" cy="12" r="9"/><path d="m15 9-6 6M9 9l6 6"/>' },
+  warning: { judul: 'Perhatian', ikon: '<path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9.5v4M12 17v.01"/>' },
+  info: { judul: 'Informasi', ikon: '<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.5v.01"/>' }
+};
+function tutupToast(t) {
+  if (!t || !t.parentNode || t.classList.contains('out')) return;
+  t.classList.add('out');
+  setTimeout(function () { if (t.parentNode) t.remove(); }, 230);
 }
-:root:not([data-theme="dark"]) .login-header-mark {
-  background: var(--ac) !important;
-  color: var(--ink) !important;
-  border-color: var(--ink) !important;
-  box-shadow: 2px 2px 0 var(--ink) !important;
-}
-:root:not([data-theme="dark"]) .login-header-title,
-:root:not([data-theme="dark"]) .login-header-title small {
-  color: var(--ink) !important;
-}
-:root:not([data-theme="dark"]) .login-header .tema-toggle {
-  background: var(--paper) !important;
-  color: var(--ink) !important;
-  border-color: var(--ink) !important;
-  box-shadow: 2px 2px 0 var(--ink) !important;
-}
-/* Halaman login dan judul kartu ikut palet aktif, bukan warna bawaan tetap */
-:root:not([data-theme="dark"]) .login {
-  background: var(--bg) !important;
-}
-:root:not([data-theme="dark"]) .login .card .top {
-  background: var(--side) !important;
-  color: var(--ink) !important;
-}
-:root:not([data-theme="dark"]) .login .card .top .jam,
-:root:not([data-theme="dark"]) .login .card .top p {
-  color: var(--mut) !important;
-}
-/* Mode gelap: header login tidak boleh mewarisi kuning/palet mode terang */
-:root[data-theme="dark"] .login-header,
-:root[data-theme="dark"] .bar {
-  background: #202b34 !important;
-  color: #e5edf3 !important;
-  border-bottom-color: #43535e !important;
-}
-:root[data-theme="dark"] .login-header-mark {
-  background: #4f7a93 !important;
-  color: #ffffff !important;
-  border-color: #e5edf3 !important;
-  box-shadow: 2px 2px 0 #101820 !important;
-}
-:root[data-theme="dark"] .login-header-title,
-:root[data-theme="dark"] .login-header-title small {
-  color: #e5edf3 !important;
-}
-:root[data-theme="dark"] .login-header .tema-toggle {
-  background: #263640 !important;
-  color: #e5edf3 !important;
-  border-color: #43535e !important;
-  box-shadow: 2px 2px 0 #101820 !important;
-}
-:root[data-theme="dark"] .login {
-  background: #141d24 !important;
-}
-:root[data-theme="dark"] .login .card .top {
-  background: #293944 !important;
-  color: #e5edf3 !important;
-  border-bottom-color: #43535e !important;
-}
-:root[data-theme="dark"] .login .card .top .jam,
-:root[data-theme="dark"] .login .card .top p {
-  color: #b5c2cb !important;
-}
-/* Profil dibuka sebagai overlay yang dibatasi ke area viewport. */
-.bar .header-actions .profile-menu {
-  position: fixed !important;
-  left: 0;
-  right: auto;
-  top: 0;
-  width: max-content;
-  max-width: calc(100vw - 24px);
-  max-height: calc(100vh - 24px);
-  overflow-y: auto;
-  transform: none;
-}
-@keyframes profileMenuMasuk {
-  from { opacity: 0; transform: translateY(-7px) scale(.97); }
-  to { opacity: 1; transform: none; }
-}
-@supports (height: 100dvh) {
-  .bar .header-actions .profile-menu { max-height: calc(100dvh - 24px); }
+function toast(teks, jenis) {
+  var pesan = String(teks == null ? '' : teks);
+  if (pesan === 'PERMINTAAN_DIBATALKAN') return;
+  var tipe = jenis || (/gagal|error|tidak dapat|tidak bisa|invalid|exception|bermasalah|ditolak|belum berhasil/i.test(pesan) ? 'error' : (/peringatan|periksa|pastikan|minimal|harus|belum lengkap|tidak ditemukan|kosong|terlebih dahulu|tidak diizinkan|izinkan/i.test(pesan) ? 'warning' : (/berhasil|tersimpan|disimpan|diperbarui|dihapus|selesai|sukses|diimpor|diekspor|terbuat|diaktifkan|dinonaktifkan|terkirim|diubah|diajukan/i.test(pesan) ? 'success' : 'info')));
+  var meta = TOAST_META[tipe];
+  var stack = $('toastStack');
+  if (!stack) { stack = el('div', { id: 'toastStack' }); document.body.appendChild(stack); }
+  while (stack.children.length >= 4) stack.firstChild.remove();
+  var dur = tipe === 'error' ? 8 : 5;
+  var bar = el('div', { class: 'toast-bar', style: 'animation-duration:' + dur + 's' });
+  var tutup = el('button', { type: 'button', class: 'toast-close', 'aria-label': 'Tutup notifikasi' }, [ikon('<path d="M6 6l12 12M18 6 6 18"/>')]);
+  var t = el('div', { class: 'toast toast-' + tipe, role: tipe === 'error' ? 'alert' : 'status' }, [
+    el('div', { class: 'toast-ico', 'aria-hidden': 'true' }, [ikon(meta.ikon)]),
+    el('div', { class: 'toast-body' }, [el('strong', { class: 'toast-title', text: meta.judul }), el('p', { class: 'toast-msg', text: pesan })]),
+    tutup, bar
+  ]);
+  tutup.addEventListener('click', function () { tutupToast(t); });
+  bar.addEventListener('animationend', function () { tutupToast(t); });
+  setTimeout(function () { if (t.parentNode && getComputedStyle(bar).animationName === 'none') tutupToast(t); }, dur * 1000);
+  stack.appendChild(t);
 }
 
-/* Mode gelap memakai palet tetap; pilihan warna terang tidak dapat menimpanya. */
-:root[data-theme="dark"] {
-  --ink: #e5edf3 !important;
-  --bg: #090d10 !important;
-  --paper: #111820 !important;
-  --side: #10171d !important;
-  --hd: #202b34 !important;
-  --ac: #4f7a93 !important;
-  --ac2: #344955 !important;
-  --mut: #b5c2cb !important;
-  --line: #3a4046 !important;
-}
-:root[data-theme="dark"] .beranda-menu-icon { color: #fff !important; }
-:root:not([data-theme="dark"]) #app.home-active .beranda-menu-card[data-menu-id="absensi"] .beranda-menu-icon { background: #b8e3ef !important; }
-:root:not([data-theme="dark"]) #app.home-active .beranda-menu-card[data-menu-id="profil"] .beranda-menu-icon { background: #f2c3d1 !important; }
-:root:not([data-theme="dark"]) #app.home-active .beranda-menu-card[data-menu-id="karyawan"] .beranda-menu-icon { background: #c9dff0 !important; }
-:root:not([data-theme="dark"]) #app.home-active .beranda-menu-card[data-menu-id="disiplin"] .beranda-menu-icon { background: #f1d2b8 !important; }
-:root:not([data-theme="dark"]) #app.home-active .beranda-menu-card[data-menu-id="sop"] .beranda-menu-icon { background: #d8cef0 !important; }
-:root:not([data-theme="dark"]) #app.home-active .beranda-menu-card[data-menu-id="lembur"] .beranda-menu-icon { background: #f0df9c !important; }
-:root:not([data-theme="dark"]) #app.home-active .beranda-menu-card[data-menu-id="rekapan"] .beranda-menu-icon { background: #b9dfd4 !important; }
-:root:not([data-theme="dark"]) #app.home-active .beranda-menu-card[data-menu-id="password"] .beranda-menu-icon { background: #e9c1c5 !important; }
-:root[data-theme="dark"] #app.home-active .beranda-menu-card[data-menu-id="absensi"] .beranda-menu-icon { background: #3f7388 !important; }
-:root[data-theme="dark"] #app.home-active .beranda-menu-card[data-menu-id="profil"] .beranda-menu-icon { background: #9a5b72 !important; }
-:root[data-theme="dark"] #app.home-active .beranda-menu-card[data-menu-id="karyawan"] .beranda-menu-icon { background: #3f7388 !important; }
-:root[data-theme="dark"] #app.home-active .beranda-menu-card[data-menu-id="disiplin"] .beranda-menu-icon { background: #9a6a4a !important; }
-:root[data-theme="dark"] #app.home-active .beranda-menu-card[data-menu-id="sop"] .beranda-menu-icon { background: #6d5f9a !important; }
-:root[data-theme="dark"] #app.home-active .beranda-menu-card[data-menu-id="lembur"] .beranda-menu-icon { background: #8a7640 !important; }
-:root[data-theme="dark"] #app.home-active .beranda-menu-card[data-menu-id="rekapan"] .beranda-menu-icon { background: #3e7a78 !important; }
-:root[data-theme="dark"] #app.home-active .beranda-menu-card[data-menu-id="password"] .beranda-menu-icon { background: #94505a !important; }
+function pasangPerlindunganInteraksi() {
+  var notifikasiTerakhir = 0;
+  var tekanTimer = null;
+  var titikTekan = null;
 
-/* Header tanpa garis pembatas; ikon tema dan profil ikut bergeser lewat animasi layout. */
-.bar{border-bottom:0!important;box-shadow:none!important}
-.bar::after{display:none!important;content:none!important}
-.bar .header-actions{display:flex;align-items:center;justify-content:flex-end;gap:10px;flex:0 0 auto;min-width:0;white-space:nowrap}
-.bar .header-actions #themeToggle{position:relative;flex:0 0 42px;width:42px;min-width:42px;transform:none!important;margin:0;transition:margin .28s cubic-bezier(.22,.61,.36,1)}
-.bar .header-actions .profile-wrap{position:relative;flex:0 1 auto;min-width:0;transform:none!important;transition:none!important}
-.bar .header-actions .profile-toggle{transform:none!important;max-width:min(42vw,320px);transition:max-width .28s cubic-bezier(.22,.61,.36,1)}
-.bar .header-actions #menuToggle{flex:0 0 40px;width:40px;min-width:40px;overflow:hidden;transform:none!important;opacity:1;transition:flex-basis .28s cubic-bezier(.22,.61,.36,1),width .28s cubic-bezier(.22,.61,.36,1),min-width .28s cubic-bezier(.22,.61,.36,1),padding .28s ease,border-width .28s ease,opacity .2s ease}
-@media(prefers-reduced-motion:reduce){.bar .header-actions #themeToggle,.bar .header-actions .profile-wrap,.bar .header-actions .profile-toggle,.bar .header-actions #menuToggle{transition:none!important}}
-#app.home-active #menu{display:none!important;visibility:hidden!important;pointer-events:none!important}
-#app.home-active .shell{display:block!important;grid-template-columns:minmax(0,1fr)!important;min-height:calc(100vh - 62px)}
-#app.home-active #menuToggle{display:flex!important;flex:0 0 0!important;width:0!important;min-width:0!important;padding-left:0!important;padding-right:0!important;border-width:0!important;opacity:0!important;visibility:hidden!important;pointer-events:none!important}
-/* Slot hamburger menyusut/melebar; ikon di sebelah kirinya bergerak mengikuti alur flex. */
-.bar .header-actions{margin-left:auto}
-#app.home-active .bar .header-actions #menuToggle{margin-left:0!important}
-/* Saat hamburger disembunyikan, slotnya menyusut bertahap sehingga ikon tema dan profil ikut bergeser halus. */
-.bar .header-actions #menuToggle{transition:flex-basis .3s cubic-bezier(.22,.61,.36,1),width .3s cubic-bezier(.22,.61,.36,1),min-width .3s cubic-bezier(.22,.61,.36,1),padding .3s ease,border-width .3s ease,opacity .2s ease,visibility 0s linear .3s!important}
-#app:not(.home-active) .bar .header-actions #menuToggle{visibility:visible!important;transition-delay:0s!important}
-:root:not([data-theme="dark"]) .bar,:root[data-theme="dark"] .bar{border-bottom:0!important;box-shadow:none!important}
-@media(max-width:520px){
-  .bar{gap:8px;padding-left:12px;padding-right:12px}
-  .bar .header-actions{gap:7px}
-  .bar .header-brand-title{font-size:12px}
-  .bar .header-brand-title small{font-size:9px}
-  .bar .header-actions .profile-toggle{max-width:38vw;padding-right:8px}
-  .bar .header-actions .profile-label{max-width:22vw;font-size:11px}
-  .bar .header-actions #themeToggle{flex-basis:38px;width:38px;min-width:38px}
-}
-@media(max-width:360px){
-  .bar .header-brand-title small{display:none}
-  .bar .header-actions{gap:5px}
-  .bar .header-actions .profile-toggle{max-width:34vw}
-}
-/* Pastikan slot tombol menu benar-benar menyusut agar ikon tema dan profil ikut bergeser. */
-.bar .header-actions #menuToggle.menu-toggle-global{flex:0 0 40px!important;width:40px!important;min-width:40px!important;padding:0!important;opacity:1!important;visibility:visible!important;transition:flex-basis .3s cubic-bezier(.22,.61,.36,1),width .3s cubic-bezier(.22,.61,.36,1),min-width .3s cubic-bezier(.22,.61,.36,1),padding .3s ease,opacity .2s ease,visibility 0s linear .3s!important}
-#app.home-active .bar .header-actions #menuToggle.menu-toggle-global{display:inline-flex!important;align-items:center!important;justify-content:center!important;flex:0 0 0!important;width:0!important;min-width:0!important;padding-left:0!important;padding-right:0!important;opacity:0!important;visibility:hidden!important;pointer-events:none!important}
-#app:not(.home-active) .bar .header-actions #menuToggle.menu-toggle-global{visibility:visible!important;transition-delay:0s!important}
-@media(prefers-reduced-motion:reduce){.bar .header-actions #menuToggle.menu-toggle-global{transition:none!important}}
+  function bisaDiedit(target) {
+    return !!(target && target.closest && target.closest('input, textarea, select, [contenteditable="true"], [contenteditable=""]'));
+  }
+  function beriPeringatan(pesan) {
+    var sekarang = Date.now();
+    if (sekarang - notifikasiTerakhir < 1200) return;
+    notifikasiTerakhir = sekarang;
+    toast(pesan, 'warning');
+  }
+  function batalkanTekanLama() {
+    clearTimeout(tekanTimer);
+    tekanTimer = null;
+    titikTekan = null;
+  }
+  batalkanTekanLamaAktif = batalkanTekanLama;
 
-/* Setiap item navigasi memiliki warna tersendiri pada mode terang. */
-:root:not([data-theme="dark"]) #app.emp nav#menu .nav[data-id="beranda"]{background:#fff1b8!important}
-:root:not([data-theme="dark"]) #app.emp nav#menu .nav[data-id="absensi"]{background:#d9f1f7!important}
-:root:not([data-theme="dark"]) #app.emp nav#menu .nav[data-id="profil"]{background:#f8dfe7!important}
-:root:not([data-theme="dark"]) #app.emp nav#menu .nav[data-id="karyawan"]{background:#e1edf8!important}
-:root:not([data-theme="dark"]) #app.emp nav#menu .nav[data-id="disiplin"]{background:#f7e6d7!important}
-:root:not([data-theme="dark"]) #app.emp nav#menu .nav[data-id="sop"]{background:#ebe5f8!important}
-:root:not([data-theme="dark"]) #app.emp nav#menu .nav[data-id="lembur"]{background:#f6efcf!important}
-:root:not([data-theme="dark"]) #app.emp nav#menu .nav[data-id="rekapan"]{background:#dcefe9!important}
-:root:not([data-theme="dark"]) #app.emp nav#menu .nav[data-id="password"]{background:#f4e0e2!important}
-:root:not([data-theme="dark"]) #app.emp nav#menu .nav[data-id="beranda"]:hover{background:#ffe680!important}
-:root:not([data-theme="dark"]) #app.emp nav#menu .nav[data-id="absensi"]:hover{background:#bceaf4!important}
-:root:not([data-theme="dark"]) #app.emp nav#menu .nav[data-id="profil"]:hover{background:#f2c3d1!important}
-:root:not([data-theme="dark"]) #app.emp nav#menu .nav[data-id="karyawan"]:hover{background:#c9dff0!important}
-:root:not([data-theme="dark"]) #app.emp nav#menu .nav[data-id="disiplin"]:hover{background:#f1d2b8!important}
-:root:not([data-theme="dark"]) #app.emp nav#menu .nav[data-id="sop"]:hover{background:#d8cef0!important}
-:root:not([data-theme="dark"]) #app.emp nav#menu .nav[data-id="lembur"]:hover{background:#f0df9c!important}
-:root:not([data-theme="dark"]) #app.emp nav#menu .nav[data-id="rekapan"]:hover{background:#b9dfd4!important}
-:root:not([data-theme="dark"]) #app.emp nav#menu .nav[data-id="password"]:hover{background:#e9c1c5!important}
-/* ==== LEMBUR MATRIX (sama gaya dengan portal admin) ==== */
-.lembur-matrix-wrap{
-  display:block!important;width:100%!important;max-width:100%!important;
-  overflow-x:auto!important;overflow-y:hidden!important;-webkit-overflow-scrolling:touch;
-  border:2px solid var(--ink);border-radius:var(--rd);background:#fff;box-shadow:var(--sh)
+  document.addEventListener('contextmenu', function (e) {
+    if (bisaDiedit(e.target)) return;
+    e.preventDefault();
+    beriPeringatan('Klik kanan dinonaktifkan demi menjaga keamanan halaman.');
+  });
+  document.addEventListener('selectstart', function (e) {
+    if (bisaDiedit(e.target)) return;
+    e.preventDefault();
+    beriPeringatan('Teks halaman ini tidak dapat diblok atau disalin.');
+  });
+  document.addEventListener('touchstart', function (e) {
+    if (e.touches.length !== 1 || bisaDiedit(e.target) || (e.target.closest && e.target.closest('button, a'))) {
+      batalkanTekanLama();
+      return;
+    }
+    var sentuhan = e.touches[0];
+    titikTekan = { x: sentuhan.clientX, y: sentuhan.clientY };
+    clearTimeout(tekanTimer);
+    tekanTimer = setTimeout(function () {
+      beriPeringatan('Tekan lama dinonaktifkan pada halaman ini.');
+      batalkanTekanLama();
+    }, 600);
+  }, { passive: true });
+  document.addEventListener('touchmove', function (e) {
+    if (!titikTekan || !e.touches.length) return;
+    var sentuhan = e.touches[0];
+    if (Math.abs(sentuhan.clientX - titikTekan.x) > 12 || Math.abs(sentuhan.clientY - titikTekan.y) > 12) batalkanTekanLama();
+  }, { passive: true });
+  document.addEventListener('touchend', batalkanTekanLama, { passive: true });
+  document.addEventListener('touchcancel', batalkanTekanLama, { passive: true });
 }
-.lembur-matrix-wrap .tbl.lembur-matrix{
-  display:table!important;width:max-content!important;min-width:max-content!important;
-  table-layout:fixed!important;border-collapse:separate!important;border-spacing:0 4px!important;border:0
-}
-.lembur-matrix-wrap .tbl.lembur-matrix thead{display:table-header-group!important}
-.lembur-matrix-wrap .tbl.lembur-matrix tbody{display:table-row-group!important}
-.lembur-matrix-wrap .tbl.lembur-matrix tr{display:table-row!important}
-.lembur-matrix-wrap .tbl.lembur-matrix th,
-.lembur-matrix-wrap .tbl.lembur-matrix td{
-  display:table-cell!important;white-space:nowrap!important;vertical-align:middle!important;
-  border:0!important;padding:7px 6px!important
-}
-.lembur-matrix-wrap .tbl.lembur-matrix th:not(:first-child):not(:last-child),
-.lembur-matrix-wrap .tbl.lembur-matrix td:not(:first-child):not(:last-child){
-  width:58px!important;min-width:58px!important;max-width:58px!important;text-align:center!important
-}
-.lembur-matrix-wrap .tbl.lembur-matrix th:first-child,
-.lembur-matrix-wrap .tbl.lembur-matrix td:first-child{
-  position:sticky!important;left:0!important;z-index:7!important;
-  width:150px!important;min-width:150px!important;max-width:200px!important;
-  background:var(--hd)!important;text-align:left!important;border-right:2px solid var(--ink)!important
-}
-.lembur-matrix-wrap .tbl.lembur-matrix th:last-child,
-.lembur-matrix-wrap .tbl.lembur-matrix td:last-child{
-  position:sticky!important;right:0!important;z-index:7!important;
-  width:80px!important;min-width:80px!important;max-width:80px!important;
-  background:var(--hd)!important;text-align:center!important;border-left:2px solid var(--ink)!important
-}
-.lembur-matrix-wrap .tbl.lembur-matrix th{
-  background:var(--hd)!important;color:var(--ink)!important;font-size:11px!important;font-weight:800!important
-}
-.lembur-matrix-wrap .tbl.lembur-matrix td:before{display:none!important;content:none!important}
-.lembur-matrix-wrap .tbl.lembur-matrix tbody tr:nth-child(even){background:transparent!important}
-.lembur-matrix-wrap .tbl.lembur-matrix tbody tr:hover{background:transparent!important}
-.lembur-card-person{display:grid!important;gap:2px!important;min-width:0!important}
-.lembur-card-person strong{display:block!important;font-size:12px!important;line-height:1.2;white-space:normal!important;overflow-wrap:anywhere}
-.lembur-card-person span{display:block!important;font-size:10px!important;line-height:1.2;color:var(--mut)!important;white-space:normal!important;overflow-wrap:anywhere}
-.lembur-matrix-wrap .lembur-value{
-  display:inline-flex!important;align-items:center!important;justify-content:center!important;
-  min-width:40px!important;min-height:28px!important;padding:3px 4px!important;
-  border:1.5px solid var(--ink)!important;border-radius:6px!important;background:var(--paper)!important;
-  font-size:11px!important;font-weight:800!important;font-variant-numeric:tabular-nums;cursor:default!important
-}
-.lembur-matrix-wrap .lembur-total{
-  display:inline-block!important;font-size:12px!important;font-weight:800!important;
-  white-space:nowrap!important;font-variant-numeric:tabular-nums
-}
-@media(max-width:640px){
-  .lembur-matrix-wrap .tbl.lembur-matrix th:not(:first-child):not(:last-child),
-  .lembur-matrix-wrap .tbl.lembur-matrix td:not(:first-child):not(:last-child){
-    width:48px!important;min-width:48px!important;max-width:48px!important
-  }
-  .lembur-matrix-wrap .tbl.lembur-matrix th:first-child,
-  .lembur-matrix-wrap .tbl.lembur-matrix td:first-child{
-    width:110px!important;min-width:110px!important;max-width:140px!important
-  }
-  .lembur-matrix-wrap .tbl.lembur-matrix th:last-child,
-  .lembur-matrix-wrap .tbl.lembur-matrix td:last-child{
-    width:60px!important;min-width:60px!important;max-width:60px!important
-  }
-  .lembur-matrix-wrap .tbl.lembur-matrix th:not(:first-child):not(:last-child){
-    font-size:0!important;padding:7px 3px!important
-  }
-  .lembur-matrix-wrap .tbl.lembur-matrix th:not(:first-child):not(:last-child)::after{
-    content:attr(data-tanggal-singkat);font-size:10px!important;font-weight:800!important;white-space:pre-line
-  }
-  .lembur-card-person strong{font-size:10px!important}
-  .lembur-card-person span{font-size:9px!important}
-  .lembur-matrix-wrap .lembur-value{min-width:36px!important;font-size:10px!important;padding:2px 3px!important}
-}
-:root[data-theme="dark"] .lembur-matrix-wrap{background:#0b0b0b!important;border-color:#3a4046!important;box-shadow:none!important}
-:root[data-theme="dark"] .tbl.lembur-matrix th,
-:root[data-theme="dark"] .tbl.lembur-matrix td:first-child,
-:root[data-theme="dark"] .tbl.lembur-matrix td:last-child{background:#161616!important;color:#e5edf3!important;border-color:#3a4046!important}
-:root[data-theme="dark"] .lembur-matrix-wrap .lembur-value{background:#141414!important;border-color:#e5edf3!important;color:#e5edf3!important}
-/* Penyempurnaan tampilan modul Absensi: kalender, ringkasan, dan detail responsif. */
-#isi .abs-kal-wrap{gap:18px;margin-top:18px}
-#isi .abs-kal-toolbar{width:100%;padding:14px;border:2px solid var(--ink);border-radius:14px;background:var(--paper)}
-#isi .abs-kal-toolbar input{width:100%;max-width:520px;min-height:46px}
-#isi .abs-kal-head{grid-template-columns:44px minmax(0,1fr) 44px;gap:12px;padding:14px 16px;border-width:2px;background:var(--side);box-shadow:3px 3px 0 var(--ink)}
-#isi .abs-kal-title{gap:14px}
-#isi .abs-kal-month{font-size:clamp(16px,2vw,21px);font-weight:800}
-#isi .abs-kal-nav{width:44px;min-width:44px;height:44px;border-radius:10px;font-size:25px}
-#isi .abs-kal-stats{gap:12px}
-#isi .abs-kal-stat{justify-content:center;min-height:82px;padding:12px 14px;border-width:2px;border-radius:12px;box-shadow:3px 3px 0 var(--ink)}
-#isi .abs-kal-stat strong{font-size:26px}
-#isi .abs-kal-stat span{font-size:11px;line-height:1.3}
-#isi .abs-kal-week,#isi .abs-kal-grid{gap:8px}
-#isi .abs-kal-week{padding:0 2px}
-#isi .abs-kal-week span{padding:7px 0;font-size:12px}
-#isi .abs-kal-cell{min-height:92px;padding:10px 6px;gap:8px;border-width:2px;border-radius:12px;transition:background-color .16s,border-color .16s,transform .16s}
-#isi .abs-kal-cell:not(.kosong):hover{transform:translateY(-2px);border-color:var(--ink);background:var(--ac2)}
-#isi .abs-kal-cell .abs-kal-day{font-size:16px;font-weight:800}
-#isi .abs-kal-cell small{font-size:10px}
-#isi .abs-kal-dots{gap:4px;min-height:8px}
-#isi .abs-kal-dots i{width:8px;height:8px}
-#isi .abs-kal-cell.selected{outline-offset:2px}
-#isi .abs-kal-info{padding:10px 12px;border-left:4px solid var(--ac);border-radius:0 8px 8px 0;background:var(--paper);line-height:1.5}
-#isi .abs-kal-detail{gap:12px;padding:18px;border-width:2px;border-radius:14px;background:var(--paper);box-shadow:3px 3px 0 var(--ink)}
-#isi .abs-kal-detail-head{padding-bottom:10px;border-bottom:1px solid var(--line)}
-#isi .abs-kal-detail-head h3{font-size:clamp(16px,2vw,20px)}
-#isi .abs-kal-count{padding:6px 10px;background:var(--ac2)}
-#isi .abs-kal-record{padding:14px;border-radius:12px;background:var(--bg)}
-#isi .abs-kal-record-top strong{font-size:14px}
-#isi .abs-kal-meta{gap:10px}
-#isi .abs-kal-meta>div{padding:9px 10px;border:1px solid var(--line);border-radius:9px;background:var(--paper)}
-#isi .abs-kal-meta span{font-size:10px;text-transform:uppercase;letter-spacing:.04em}
-#isi .abs-kal-meta strong{font-size:14px}
-#isi .abs-kal-empty{padding:12px;border-radius:9px;background:var(--bg)}
-:root[data-theme="dark"] #isi .abs-kal-head{background:#161616}
-:root[data-theme="dark"] #isi .abs-kal-toolbar,:root[data-theme="dark"] #isi .abs-kal-info,:root[data-theme="dark"] #isi .abs-kal-detail,:root[data-theme="dark"] #isi .abs-kal-meta>div{background:#111820}
-:root[data-theme="dark"] #isi .abs-kal-cell:not(.kosong):hover{background:#26343b}
-:root[data-theme="dark"] #isi .abs-kal-count{background:#263640}
-@media(max-width:800px){
-  #isi .abs-kal-wrap{gap:14px;margin-top:14px}
-  #isi .abs-kal-stats{gap:9px}
-  #isi .abs-kal-stat{min-height:72px;padding:10px}
-  #isi .abs-kal-week,#isi .abs-kal-grid{gap:5px}
-  #isi .abs-kal-cell{min-height:74px;padding:8px 3px}
-  #isi .abs-kal-detail{padding:14px}
-}
-@media(max-width:620px){
-  #isi .abs-kal-toolbar{padding:10px}
-  #isi .abs-kal-toolbar input{max-width:none;min-height:44px}
-  #isi .abs-kal-head{grid-template-columns:38px minmax(0,1fr) 38px;gap:6px;padding:9px}
-  #isi .abs-kal-title{flex-wrap:wrap;gap:6px}
-  #isi .abs-kal-month{font-size:15px}
-  #isi .abs-kal-nav{width:38px;min-width:38px;height:38px}
-  #isi .abs-kal-title .btn{min-height:34px;padding:4px 8px;font-size:10px}
-  #isi .abs-kal-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
-  #isi .abs-kal-stat:first-child{grid-column:span 2}
-  #isi .abs-kal-stat{min-height:64px;padding:9px 11px}
-  #isi .abs-kal-stat strong{font-size:21px}
-  #isi .abs-kal-stat span{font-size:10px}
-  #isi .abs-kal-week,#isi .abs-kal-grid{gap:3px}
-  #isi .abs-kal-week span{font-size:10px;padding:5px 0}
-  #isi .abs-kal-cell{min-height:clamp(48px,14vw,66px);padding:5px 1px;gap:5px;border-radius:8px}
-  #isi .abs-kal-cell .abs-kal-day{font-size:13px}
-  #isi .abs-kal-dots{gap:2px;min-height:6px}
-  #isi .abs-kal-dots i{width:5px;height:5px}
-  #isi .abs-kal-info{font-size:11px}
-  #isi .abs-kal-detail{gap:10px;padding:12px}
-  #isi .abs-kal-detail-head{align-items:flex-start;flex-direction:column}
-  #isi .abs-kal-count{font-size:10px}
-  #isi .abs-kal-record{padding:11px}
-  #isi .abs-kal-record-top{flex-direction:row;align-items:flex-start}
-  #isi .abs-kal-record-top strong{font-size:13px}
-  #isi .abs-kal-pill{font-size:9px}
-  #isi .abs-kal-meta{grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}
-  #isi .abs-kal-meta>div{padding:8px 6px}
-  #isi .abs-kal-meta span{font-size:9px}
-  #isi .abs-kal-meta strong{font-size:12px;overflow-wrap:anywhere}
-}
-@media(max-width:360px){
-  #isi .abs-kal-cell{min-height:46px}
-  #isi .abs-kal-cell .abs-kal-day{font-size:12px}
-  #isi .abs-kal-meta{grid-template-columns:1fr}
-}
-@media(prefers-reduced-motion:reduce){#isi .abs-kal-cell{transition:none}}
-/* Matriks lembur: tujuh tanggal terlihat, tanggal lain digulir; nama dan total tetap. */
-.lembur-filter{align-items:end}
-.lembur-filter .lembur-date-filter{flex:1 1 170px;min-width:145px;gap:5px}
-.lembur-filter input[type="date"]{width:100%;min-width:0}
-.lembur-matrix-wrap .tbl.lembur-matrix th:not(:first-child):not(:last-child),
-.lembur-matrix-wrap .tbl.lembur-matrix td:not(:first-child):not(:last-child){
-  width:clamp(40px,7vw,58px)!important;
-  min-width:clamp(40px,7vw,58px)!important;
-  max-width:clamp(40px,7vw,58px)!important
-}
-.lembur-matrix-wrap .tbl.lembur-matrix th:first-child,
-.lembur-matrix-wrap .tbl.lembur-matrix td:first-child{width:150px!important;min-width:150px!important}
-.lembur-matrix-wrap .tbl.lembur-matrix th:last-child,
-.lembur-matrix-wrap .tbl.lembur-matrix td:last-child{width:80px!important;min-width:80px!important}
-.lembur-matrix-wrap .tbl.lembur-matrix thead th{position:sticky!important;top:0!important;z-index:10!important}
-.lembur-matrix-wrap .tbl.lembur-matrix thead th:first-child,
-.lembur-matrix-wrap .tbl.lembur-matrix thead th:last-child{z-index:12!important}
-@media(max-width:640px){
-  .lembur-matrix-wrap .tbl.lembur-matrix th:not(:first-child):not(:last-child),
-  .lembur-matrix-wrap .tbl.lembur-matrix td:not(:first-child):not(:last-child){
-    width:clamp(26px,8vw,42px)!important;
-    min-width:clamp(26px,8vw,42px)!important;
-    max-width:clamp(26px,8vw,42px)!important
-  }
-  .lembur-matrix-wrap .tbl.lembur-matrix th:first-child,
-  .lembur-matrix-wrap .tbl.lembur-matrix td:first-child{width:66px!important;min-width:66px!important;max-width:66px!important}
-  .lembur-matrix-wrap .tbl.lembur-matrix th:last-child,
-  .lembur-matrix-wrap .tbl.lembur-matrix td:last-child{width:44px!important;min-width:44px!important;max-width:44px!important}
-  .lembur-matrix-wrap .tbl.lembur-matrix th:not(:first-child):not(:last-child){font-size:0!important;padding:6px 1px!important}
-  .lembur-matrix-wrap .tbl.lembur-matrix th:not(:first-child):not(:last-child)::after{content:attr(data-hari)!important;font-size:9px!important;white-space:normal!important}
-  .lembur-matrix-wrap .tbl.lembur-matrix td{padding:5px 1px!important}
-  .lembur-card-person strong{font-size:9px!important;overflow-wrap:anywhere!important}
-  .lembur-card-person span{font-size:8px!important;overflow-wrap:anywhere!important}
-  .lembur-matrix-wrap .lembur-value{min-width:0!important;min-height:24px!important;padding:2px 1px!important;font-size:9px!important;border-radius:4px!important}
-  .lembur-matrix-wrap .lembur-total{font-size:10px!important}
-}
-/* Matriks lembur: empat tanggal tampak di ponsel, nilai tanpa kotak, serta petunjuk geser di kolom tetap. */
-.lembur-matrix-wrap .tbl.lembur-matrix th:first-child,
-.lembur-matrix-wrap .tbl.lembur-matrix th:last-child{position:sticky!important}
-  .lembur-matrix-wrap .tbl.lembur-matrix th:first-child::after,
-.lembur-matrix-wrap .tbl.lembur-matrix th:last-child::after{content:none!important}
-.lembur-matrix-wrap .tbl.lembur-matrix th:first-child{padding-right:25px!important}
-.lembur-matrix-wrap .tbl.lembur-matrix th:last-child{padding-left:25px!important}
-.lembur-scroll-control{position:absolute;top:50%;display:grid;place-items:center;width:22px;height:26px;padding:0;border:1px solid var(--ink);border-radius:5px;background:var(--paper);color:var(--ink);font-family:inherit;font-size:18px;font-weight:700;line-height:1;cursor:pointer;transform:translateY(-50%)}
-.lembur-scroll-control:hover{background:var(--ac2)}
-.lembur-scroll-left{right:2px}
-.lembur-scroll-right{left:2px}
-.lembur-matrix-wrap .tbl.lembur-matrix .lembur-value{min-width:0!important;min-height:0!important;padding:0!important;border:0!important;border-radius:0!important;background:transparent!important;font-size:14px!important;line-height:1.2}
-:root[data-theme="dark"] .lembur-matrix-wrap .lembur-value{background:transparent!important;border:0!important}
-@media(max-width:640px){
-  .lembur-matrix-wrap .tbl.lembur-matrix th:not(:first-child):not(:last-child),
-  .lembur-matrix-wrap .tbl.lembur-matrix td:not(:first-child):not(:last-child){
-    width:clamp(40px,calc(25vw - 39.5px),120px)!important;
-    min-width:clamp(40px,calc(25vw - 39.5px),120px)!important;
-    max-width:clamp(40px,calc(25vw - 39.5px),120px)!important
-  }
-  .lembur-matrix-wrap .tbl.lembur-matrix th:first-child,
-  .lembur-matrix-wrap .tbl.lembur-matrix td:first-child{width:76px!important;min-width:76px!important;max-width:76px!important}
-  .lembur-matrix-wrap .tbl.lembur-matrix th:last-child,
-  .lembur-matrix-wrap .tbl.lembur-matrix td:last-child{width:58px!important;min-width:58px!important;max-width:58px!important}
-  .lembur-matrix-wrap .tbl.lembur-matrix th:first-child,
-  .lembur-matrix-wrap .tbl.lembur-matrix th:last-child{font-size:10px!important;padding:6px 2px!important}
-  .lembur-matrix-wrap .tbl.lembur-matrix th:first-child::after,
-  .lembur-matrix-wrap .tbl.lembur-matrix th:last-child::after{font-size:10px!important}
-  .lembur-matrix-wrap .lembur-matrix .lembur-value{font-size:13px!important;font-weight:900!important}
-}
-/* Matriks lembur: ruang baca lebih lega di desktop dan ponsel. */
-.lembur-matrix-wrap{border-radius:14px!important}
-.lembur-matrix-wrap .tbl.lembur-matrix{border-spacing:0 7px!important}
-.lembur-matrix-wrap .tbl.lembur-matrix th,
-.lembur-matrix-wrap .tbl.lembur-matrix td{padding:10px 8px!important}
-.lembur-matrix-wrap .tbl.lembur-matrix th:not(:first-child):not(:last-child),
-.lembur-matrix-wrap .tbl.lembur-matrix td:not(:first-child):not(:last-child){width:clamp(62px,7vw,76px)!important;min-width:clamp(62px,7vw,76px)!important;max-width:clamp(62px,7vw,76px)!important}
-.lembur-matrix-wrap .tbl.lembur-matrix th:first-child,
-.lembur-matrix-wrap .tbl.lembur-matrix td:first-child{width:180px!important;min-width:180px!important;max-width:220px!important}
-.lembur-matrix-wrap .tbl.lembur-matrix th:last-child,
-.lembur-matrix-wrap .tbl.lembur-matrix td:last-child{width:92px!important;min-width:92px!important;max-width:92px!important}
-.lembur-card-person{gap:4px!important}
-.lembur-card-person strong{font-size:14px!important;line-height:1.3!important}
-.lembur-card-person span{font-size:12px!important;line-height:1.35!important}
-.lembur-matrix-wrap .tbl.lembur-matrix .lembur-value{min-width:42px!important;min-height:34px!important;padding:5px 7px!important;border:1px solid var(--line)!important;border-radius:8px!important;background:var(--paper)!important;font-size:16px!important;font-weight:800!important}
-.lembur-matrix-wrap .lembur-total{font-size:14px!important}
-@media(max-width:640px){
-  .lembur-matrix-wrap .tbl.lembur-matrix{border-spacing:0 5px!important}
-  .lembur-matrix-wrap .tbl.lembur-matrix th,
-  .lembur-matrix-wrap .tbl.lembur-matrix td{padding:8px 4px!important}
-  .lembur-matrix-wrap .tbl.lembur-matrix th:not(:first-child):not(:last-child),
-  .lembur-matrix-wrap .tbl.lembur-matrix td:not(:first-child):not(:last-child){width:clamp(52px,calc(25vw - 30px),72px)!important;min-width:clamp(52px,calc(25vw - 30px),72px)!important;max-width:clamp(52px,calc(25vw - 30px),72px)!important}
-  .lembur-matrix-wrap .tbl.lembur-matrix th:first-child,
-  .lembur-matrix-wrap .tbl.lembur-matrix td:first-child{width:92px!important;min-width:92px!important;max-width:92px!important}
-  .lembur-matrix-wrap .tbl.lembur-matrix th:last-child,
-  .lembur-matrix-wrap .tbl.lembur-matrix td:last-child{width:68px!important;min-width:68px!important;max-width:68px!important}
-  .lembur-card-person strong{font-size:11px!important;line-height:1.25!important}
-  .lembur-card-person span{font-size:9px!important;line-height:1.25!important}
-  .lembur-matrix-wrap .tbl.lembur-matrix .lembur-value{min-width:40px!important;min-height:30px!important;padding:4px 5px!important;font-size:14px!important}
-  .lembur-matrix-wrap .lembur-total{font-size:12px!important}
-}
-@media(max-width:360px){
-  .lembur-matrix-wrap .tbl.lembur-matrix th:first-child,
-  .lembur-matrix-wrap .tbl.lembur-matrix td:first-child{width:82px!important;min-width:82px!important;max-width:82px!important}
-  .lembur-matrix-wrap .tbl.lembur-matrix th:last-child,
-  .lembur-matrix-wrap .tbl.lembur-matrix td:last-child{width:62px!important;min-width:62px!important;max-width:62px!important}
-  .lembur-matrix-wrap .tbl.lembur-matrix th:not(:first-child):not(:last-child),
-  .lembur-matrix-wrap .tbl.lembur-matrix td:not(:first-child):not(:last-child){width:50px!important;min-width:50px!important;max-width:50px!important}
-}
-:root[data-theme="dark"] .lembur-matrix-wrap .tbl.lembur-matrix .lembur-value{background:#141414!important;border-color:#52616a!important}
-/* Penyempurnaan keterbacaan matriks lembur pada layar besar dan kecil. */
-.lembur-matrix-wrap{background:var(--paper)!important;border-color:var(--line)!important}
-.lembur-matrix-wrap .tbl.lembur-matrix{border-spacing:0 6px!important}
-.lembur-matrix-wrap .tbl.lembur-matrix th{padding:12px 9px!important;font-size:12px!important;line-height:1.35!important}
-.lembur-matrix-wrap .tbl.lembur-matrix td{padding:9px 7px!important}
-.lembur-matrix-wrap .tbl.lembur-matrix tbody td{border-top:1px solid var(--line)!important;border-bottom:1px solid var(--line)!important}
-.lembur-matrix-wrap .tbl.lembur-matrix tbody td:first-child{border-left:1px solid var(--line)!important;border-radius:9px 0 0 9px}
-.lembur-matrix-wrap .tbl.lembur-matrix tbody td:last-child{border-right:1px solid var(--line)!important;border-radius:0 9px 9px 0}
-.lembur-matrix-wrap .lembur-card-person strong{font-size:14px!important;line-height:1.35!important}
-.lembur-matrix-wrap .lembur-card-person span{font-size:12px!important;line-height:1.4!important}
-.lembur-matrix-wrap .tbl.lembur-matrix .lembur-value{min-width:44px!important;min-height:36px!important;padding:6px 8px!important;border:1.5px solid var(--line)!important;border-radius:9px!important;background:var(--ac2)!important;font-size:15px!important;line-height:1.2!important;font-weight:800!important}
-.lembur-matrix-wrap .lembur-total{font-size:14px!important;line-height:1.3!important}
-:root[data-theme="dark"] .lembur-matrix-wrap .tbl.lembur-matrix tbody td{border-color:#3a4046!important}
-:root[data-theme="dark"] .lembur-matrix-wrap .tbl.lembur-matrix .lembur-value{background:#263640!important;border-color:#52616a!important}
-@media(max-width:640px){
-  .lembur-matrix-wrap .tbl.lembur-matrix{border-spacing:0 5px!important}
-  .lembur-matrix-wrap .tbl.lembur-matrix th{padding:9px 3px!important;font-size:11px!important}
-  .lembur-matrix-wrap .tbl.lembur-matrix td{padding:7px 3px!important}
-  .lembur-matrix-wrap .tbl.lembur-matrix th:first-child,.lembur-matrix-wrap .tbl.lembur-matrix td:first-child{width:104px!important;min-width:104px!important;max-width:104px!important}
-  .lembur-matrix-wrap .tbl.lembur-matrix th:last-child,.lembur-matrix-wrap .tbl.lembur-matrix td:last-child{width:66px!important;min-width:66px!important;max-width:66px!important}
-  .lembur-matrix-wrap .tbl.lembur-matrix th:not(:first-child):not(:last-child),.lembur-matrix-wrap .tbl.lembur-matrix td:not(:first-child):not(:last-child){width:clamp(48px,14vw,58px)!important;min-width:clamp(48px,14vw,58px)!important;max-width:clamp(48px,14vw,58px)!important}
-  .lembur-matrix-wrap .lembur-card-person{gap:4px!important}
-  .lembur-matrix-wrap .lembur-card-person strong{font-size:12px!important;line-height:1.3!important}
-  .lembur-matrix-wrap .lembur-card-person span{font-size:10px!important;line-height:1.35!important}
-  .lembur-matrix-wrap .tbl.lembur-matrix .lembur-value{min-width:40px!important;min-height:32px!important;padding:5px 4px!important;border-radius:7px!important;font-size:13px!important}
-  .lembur-matrix-wrap .lembur-total{font-size:12px!important}
-}
-@media(max-width:360px){
-  .lembur-matrix-wrap .tbl.lembur-matrix th:first-child,.lembur-matrix-wrap .tbl.lembur-matrix td:first-child{width:94px!important;min-width:94px!important;max-width:94px!important}
-  .lembur-matrix-wrap .tbl.lembur-matrix th:last-child,.lembur-matrix-wrap .tbl.lembur-matrix td:last-child{width:60px!important;min-width:60px!important;max-width:60px!important}
-  .lembur-matrix-wrap .tbl.lembur-matrix .lembur-value{min-width:36px!important;font-size:12px!important}
-}
-/* ===== Rekapan ===== */
-.rekap-stats .stat strong{font-size:20px;overflow-wrap:anywhere}
-.rekap-section{margin-top:22px}
-.rekap-section-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 12px}
-.rekap-section-head h3{font-size:17px;text-transform:uppercase}
-.rekap-wrap{max-height:70vh;overflow:auto;border:3px solid var(--ink);border-radius:var(--rd);background:var(--paper);box-shadow:var(--sh)}
-.rekap-tbl thead th{position:sticky;top:0;z-index:3}
-.rekap-tbl th.rekap-first,.rekap-tbl td.rekap-first{position:sticky;left:0;border-right:2px solid var(--ink)}
-.rekap-tbl th.rekap-first{z-index:4}
-.rekap-tbl td.rekap-first{z-index:2;background:var(--paper);font-weight:800}
-.rekap-tbl td.num{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
-.slip-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
-.slip-card{min-width:0;overflow:hidden;border:3px solid var(--ink);border-radius:var(--rd);background:var(--paper);box-shadow:var(--sh)}
-.slip-head{padding:14px 16px;background:var(--hd);border-bottom:3px solid var(--ink)}
-.slip-eyebrow{display:block;margin-bottom:4px;font-size:10px;font-weight:800;letter-spacing:.1em;color:var(--mut)}
-.slip-head h4{font-size:18px;overflow-wrap:anywhere}
-.slip-list{margin:0;padding:4px 16px 8px}
-.slip-row{display:flex;align-items:baseline;justify-content:space-between;gap:14px;padding:9px 0;border-bottom:1px dashed var(--line)}
-.slip-row dt{font-size:13px;color:var(--mut)}
-.slip-row dd{margin:0;font-size:14px;font-weight:700;text-align:right;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
-.slip-row.total{margin:8px -16px 0;padding:12px 16px;border:0;border-top:3px solid var(--ink);background:var(--ac2)}
-.slip-row.total dt{font-size:12px;font-weight:800;text-transform:uppercase;color:var(--ink)}
-.slip-row.total dd{font-size:18px}
-:root[data-theme="dark"] .rekap-wrap,:root[data-theme="dark"] .slip-card{background:#0b0b0b}
-:root[data-theme="dark"] .rekap-tbl td.rekap-first{background:#0b0b0b}
-:root[data-theme="dark"] .slip-head{background:#161616}
-:root[data-theme="dark"] .slip-row.total{background:#263640}
-@media(max-width:640px){
-  .rekap-wrap{max-height:none;overflow:visible;border:0;border-radius:0;background:transparent;box-shadow:none}
-  .rekap-tbl thead th{position:static}
-  .rekap-tbl td.rekap-first{position:static;display:block;padding:2px 0 10px;border-right:0;border-bottom:2px solid var(--ink);background:transparent;font-size:16px}
-  .rekap-tbl td.rekap-first:before{display:none}
-  .rekap-tbl td.num{text-align:right}
-  .rekap-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .rekap-stats .stat:last-child{grid-column:span 2}
-  .slip-grid{grid-template-columns:1fr;gap:12px}
-  .slip-card{box-shadow:3px 3px 0 var(--ink)}
-}
-/* Di ponsel, tanggal matriks lembur digeser langsung dengan sentuhan, tanpa tombol panah. */
-@media(max-width:640px){
-  .lembur-scroll-control{display:none!important}
-  .lembur-matrix-wrap{touch-action:pan-x pan-y}
-}
-/* Matriks lembur mobile: kolom tetap jelas, nilai mudah dipindai, tanpa tombol geser. */
-@media(max-width:640px){
-  .lembur-matrix-wrap{
-    margin:12px 0 18px!important;
-    border:1px solid var(--line)!important;
-    border-radius:12px!important;
-    background:var(--paper)!important;
-    scrollbar-width:thin;
-    scrollbar-color:var(--ac2) var(--paper)
-  }
-  .lembur-matrix-wrap::-webkit-scrollbar{height:8px}
-  .lembur-matrix-wrap::-webkit-scrollbar-track{background:var(--paper);border-radius:8px}
-  .lembur-matrix-wrap::-webkit-scrollbar-thumb{background:var(--ac2);border:2px solid var(--paper);border-radius:8px}
-  .lembur-matrix-wrap .tbl.lembur-matrix{border-spacing:0 4px!important}
-  .lembur-matrix-wrap .tbl.lembur-matrix th{
-    position:sticky!important;top:0!important;z-index:10!important;
-    height:40px!important;padding:7px 4px!important;
-    background:var(--side)!important;color:var(--ink)!important;
-    border-bottom:2px solid var(--ink)!important;text-align:center!important
-  }
-  .lembur-matrix-wrap .tbl.lembur-matrix th:first-child,
-  .lembur-matrix-wrap .tbl.lembur-matrix td:first-child{
-    z-index:12!important;background:var(--paper)!important;
-    border-right:1px solid var(--line)!important
-  }
-  .lembur-matrix-wrap .tbl.lembur-matrix th:first-child{
-    background:var(--side)!important;text-align:left!important
-  }
-  .lembur-matrix-wrap .tbl.lembur-matrix th:last-child,
-  .lembur-matrix-wrap .tbl.lembur-matrix td:last-child{
-    z-index:12!important;background:var(--paper)!important;
-    border-left:1px solid var(--line)!important
-  }
-  .lembur-matrix-wrap .tbl.lembur-matrix th:last-child{
-    background:var(--side)!important;text-align:center!important
-  }
-  .lembur-matrix-wrap .tbl.lembur-matrix th:not(:first-child):not(:last-child){
-    font-size:0!important;line-height:1.1!important
-  }
-  .lembur-matrix-wrap .tbl.lembur-matrix th:not(:first-child):not(:last-child)::after{
-    content:attr(data-tanggal-singkat)!important;
-    display:block;font-size:9px!important;font-weight:800!important;white-space:nowrap!important
-  }
-  .lembur-matrix-wrap .tbl.lembur-matrix tbody td{
-    height:48px!important;padding:6px 3px!important;
-    border-top:1px solid var(--line)!important;border-bottom:1px solid var(--line)!important
-  }
-  .lembur-matrix-wrap .tbl.lembur-matrix tbody tr:nth-child(even) td{background:#f4f7f7!important}
-  .lembur-matrix-wrap .tbl.lembur-matrix tbody tr:nth-child(even) td:first-child,
-  .lembur-matrix-wrap .tbl.lembur-matrix tbody tr:nth-child(even) td:last-child{background:#f4f7f7!important}
-  .lembur-matrix-wrap .tbl.lembur-matrix .lembur-value{
-    min-width:36px!important;min-height:30px!important;padding:4px 3px!important;
-    border:1px solid var(--line)!important;border-radius:7px!important;
-    background:var(--ac2)!important;font-size:12px!important;font-weight:800!important
-  }
-  .lembur-matrix-wrap .lembur-card-person{gap:3px!important}
-  .lembur-matrix-wrap .lembur-card-person strong{font-size:11px!important;line-height:1.25!important}
-  .lembur-matrix-wrap .lembur-card-person span{font-size:9px!important;line-height:1.25!important}
-  .lembur-matrix-wrap .lembur-total{font-size:11px!important;font-weight:900!important}
-}
-:root[data-theme="dark"] .lembur-matrix-wrap::-webkit-scrollbar-track{background:#111820}
-:root[data-theme="dark"] .lembur-matrix-wrap::-webkit-scrollbar-thumb{background:#344955;border-color:#111820}
-:root[data-theme="dark"] .lembur-matrix-wrap .tbl.lembur-matrix tbody tr:nth-child(even) td,
-:root[data-theme="dark"] .lembur-matrix-wrap .tbl.lembur-matrix tbody tr:nth-child(even) td:first-child,
-:root[data-theme="dark"] .lembur-matrix-wrap .tbl.lembur-matrix tbody tr:nth-child(even) td:last-child{background:#182128!important}
-:root[data-theme="dark"] .lembur-matrix-wrap .tbl.lembur-matrix .lembur-value{background:#263640!important;color:var(--ink)!important}
-/* Tanggal Minggu/libur pada matriks lembur diberi penanda merah. */
-.lembur-matrix-wrap .tbl.lembur-matrix th.lembur-libur{background:#ffdede!important;color:#a51620!important;border-bottom-color:#c62828!important}
-.lembur-matrix-wrap .tbl.lembur-matrix td.lembur-libur,
-.lembur-matrix-wrap .tbl.lembur-matrix td.lembur-libur:first-child,
-.lembur-matrix-wrap .tbl.lembur-matrix td.lembur-libur:last-child{background:#fff0f0!important;color:#a51620!important}
-.lembur-matrix-wrap .tbl.lembur-matrix .lembur-value.lembur-libur{background:#ffe1e1!important;border-color:#c62828!important;color:#a51620!important}
-:root[data-theme="dark"] .lembur-matrix-wrap .tbl.lembur-matrix th.lembur-libur{background:#51272b!important;color:#ffb0b0!important;border-bottom-color:#ff6b6b!important}
-:root[data-theme="dark"] .lembur-matrix-wrap .tbl.lembur-matrix td.lembur-libur,
-:root[data-theme="dark"] .lembur-matrix-wrap .tbl.lembur-matrix td.lembur-libur:first-child,
-:root[data-theme="dark"] .lembur-matrix-wrap .tbl.lembur-matrix td.lembur-libur:last-child{background:#321d20!important;color:#ffb0b0!important}
-:root[data-theme="dark"] .lembur-matrix-wrap .tbl.lembur-matrix .lembur-value.lembur-libur{background:#51272b!important;border-color:#ff6b6b!important;color:#ffb0b0!important}
 
-/* Batasi seleksi teks di halaman, tetapi izinkan pengeditan pada form. */
-body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
-input,textarea,select,[contenteditable="true"],[contenteditable=""]{-webkit-user-select:text;user-select:text;-webkit-touch-callout:default}
+function bukaModal(judul, isi, tombol, onClose) {
+  var overlay = el('div', { class: 'overlay' }), tutup;
+  function esk(e) { if (e.key === 'Escape') tutup(); }
+  tutup = function () {
+    if (!overlay.parentNode) return;
+    overlay.remove();
+    document.removeEventListener('keydown', esk);
+    if (onClose) onClose();
+  };
+  var foot = el('div', { class: 'mf' }), tombolTutup = [];
+  (tombol || []).forEach(function (t) {
+    var b = el('button', { type: 'button', class: 'btn ' + (t.kelas || ''), text: t.teks });
+    b.addEventListener('click', function () { t.klik(tutup, b); });
+    if (String(t.teks || '').trim().toLowerCase() === 'tutup') tombolTutup.push(b);
+    else foot.appendChild(b);
+  });
+  tombolTutup.forEach(function (b) { foot.appendChild(b); });
+  var box = el('div', { class: 'modal', role: 'dialog', 'aria-modal': 'true', 'aria-label': judul }, [
+    el('div', { class: 'mh' }, [el('h3', { text: judul })]),
+    el('div', { class: 'mb' }, isi),
+    foot
+  ]);
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+  document.addEventListener('keydown', esk);
+  var f = box.querySelector('input,select,textarea'); if (f) f.focus();
+  return { tutup: tutup, box: box, foot: foot };
+}
+function konfirmasi(judul, teks, labelYa, bahaya) {
+  return new Promise(function (selesai) {
+    var ya = false;
+    bukaModal(judul, [el('p', { text: teks })], [
+      { teks: 'Batal', klik: function (t) { t(); } },
+      { teks: labelYa, kelas: bahaya ? 'bahaya' : 'primary', klik: function (t) { ya = true; t(); } }
+    ], function () { selesai(ya); });
+  });
+}
+function tutupMenu() {
+  document.querySelectorAll('.menu-pop').forEach(function (m) { m.classList.add('hidden'); });
+  document.querySelectorAll('.menu-toggle').forEach(function (b) { b.setAttribute('aria-expanded', 'false'); });
+}
+function posisikanMenuProfil() {
+  var tombol = $('profilToggle'), menu = $('profilMenu');
+  if (!tombol || !menu || menu.classList.contains('hidden')) return;
+  var batas = 12, rect = tombol.getBoundingClientRect();
+  var lebar = menu.offsetWidth, tinggi = menu.offsetHeight;
+  var vw = document.documentElement.clientWidth, vh = window.innerHeight;
+  var kiri = Math.max(batas, Math.min(vw - lebar - batas, rect.left + (rect.width - lebar) / 2));
+  var atas = rect.bottom + 8;
+  if (atas + tinggi > vh - batas) atas = rect.top - tinggi - 8;
+  atas = Math.max(batas, Math.min(vh - tinggi - batas, atas));
+  menu.style.left = kiri + 'px';
+  menu.style.top = atas + 'px';
+}
 
+function fileGambarValid(file) {
+  if (!file) return false;
+  var ext = String(file.name || '').match(/\.([^.]+)$/), ekstensi = ext && /^(jpe?g|png|webp|gif)$/i.test(ext[1]);
+  var mime = !file.type || /^image\/(jpeg|png|webp|gif)$/i.test(file.type);
+  return !!ekstensi && mime;
+}
+function kompresFoto(file, cap, maks) {
+  return new Promise(function (ok, gagal) {
+    if (!file) { ok(null); return; }
+    var url = URL.createObjectURL(file), img = new Image();
+    img.onerror = function () { URL.revokeObjectURL(url); gagal(new Error('File tidak dapat dibaca sebagai gambar.')); };
+    img.onload = function () {
+      var sk = Math.min(1, (maks || 1400) / Math.max(img.naturalWidth, img.naturalHeight));
+      var cv = document.createElement('canvas');
+      cv.width = Math.max(1, Math.round(img.naturalWidth * sk));
+      cv.height = Math.max(1, Math.round(img.naturalHeight * sk));
+      var cx = cv.getContext('2d');
+      cx.drawImage(img, 0, 0, cv.width, cv.height);
+      if (cap) {
+        var fs = Math.max(14, Math.round(cv.width * .022)), pad = 12;
+        cx.font = 'bold ' + fs + 'px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+        cx.fillStyle = 'rgba(0,0,0,.68)';
+        cx.fillRect(0, cv.height - fs - pad * 1.5, cv.width, fs + pad * 1.5);
+        cx.fillStyle = '#fff';
+        cx.fillText('PT RAJA PALMA | ' + cap, pad, cv.height - pad);
+      }
+      URL.revokeObjectURL(url);
+      ok({ nama: file.name.replace(/\.[^.]+$/, '') + '.jpg', mimeType: 'image/jpeg', data: cv.toDataURL('image/jpeg', .78) });
+    };
+    img.src = url;
+  });
+}
+function kartuPilihanAbsensi(judul, deskripsi, jenis, ikonIsi, aksi) {
+  var kartu = el('button', { type: 'button', class: 'abs-home-card ' + jenis, 'aria-label': judul });
+  kartu.appendChild(el('span', { class: 'abs-home-icon' }, [ikon(ikonIsi)]));
+  kartu.appendChild(el('strong', { text: judul }));
+  kartu.appendChild(el('span', { class: 'abs-home-desc', text: deskripsi }));
+  kartu.appendChild(el('span', { class: 'abs-home-cta' }, [el('span', { text: 'Buka modul' }), ikon('<path d="M5 12h14M13 6l6 6-6 6"/>')]));
+  kartu.addEventListener('click', aksi);
+  return kartu;
+}
+
+async function panggil(aksi, param) {
+  var res, pengendali = pengendaliHalaman;
+  try {
+    var opsi = {
+      method: 'POST',
+      redirect: 'follow',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ aksi: aksi, token: S.token, param: param || {} })
+    };
+    if (pengendali) opsi.signal = pengendali.signal;
+    var r = await fetch(GAS_URL, opsi);
+    res = await r.json();
+    if (pengendali && pengendali.signal.aborted) throw new Error('PERMINTAAN_DIBATALKAN');
+  } catch (e) {
+    if ((pengendali && pengendali.signal.aborted) || (e && e.message === 'PERMINTAAN_DIBATALKAN')) {
+      throw new Error('PERMINTAAN_DIBATALKAN');
+    }
+    throw new Error('Gagal terhubung ke server.');
+  }
+  if (res && res.pesan === 'SESI_HABIS') { sesiHabis(); throw new Error('SESI_HABIS'); }
+  return res;
+}
+async function api(aksi, param) {
+  var res = await panggil(aksi, param);
+  if (!res || !res.ok) throw new Error((res && res.pesan) || 'Permintaan gagal.');
+  return res;
+}
+
+function kirimHeartbeatPortal() {
+  if (PORTAL !== 'karyawan' || !S.token || portalAnalyticsSedangKirim) return;
+  portalAnalyticsSedangKirim = true;
+  panggil('portalAnalyticsPing').catch(function () {}).finally(function () {
+    portalAnalyticsSedangKirim = false;
+  });
+}
+function mulaiHeartbeatPortal() {
+  if (PORTAL !== 'karyawan' || !S.token) return;
+  clearInterval(portalAnalyticsTimer);
+  kirimHeartbeatPortal();
+  portalAnalyticsTimer = setInterval(kirimHeartbeatPortal, 60000);
+}
+function hentikanHeartbeatPortal() {
+  clearInterval(portalAnalyticsTimer);
+  portalAnalyticsTimer = null;
+  portalAnalyticsSedangKirim = false;
+}
+document.addEventListener('visibilitychange', function () {
+  if (!document.hidden) kirimHeartbeatPortal();
+});
+
+function peranCocok(p) { return PORTAL === 'admin' ? p === 'admin' : p !== 'admin'; }
+function cabutToken(t) {
+  if (t) fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ aksi: 'keluar', token: t, param: {} }) }).catch(function () {});
+}
+function tampilPesan(t) { var p = $('pesan'); p.textContent = t || ''; p.classList.toggle('hidden', !t); }
+
+async function masuk() {
+  var req = ambilLogin();
+  if (!req) return;
+  var b = $('masuk');
+  tampilPesan('');
+  b.disabled = true; b.textContent = 'Memeriksa';
+  try {
+    var res = await panggil(req.aksi, req.param);
+    if (!res || !res.ok) throw new Error((res && res.pesan) || 'Login gagal.');
+    if (!peranCocok(res.peran)) {
+      cabutToken(res.token);
+      throw new Error(PORTAL === 'admin' ? 'Akun ini bukan admin. Gunakan Portal Karyawan.' : 'Akun admin tidak dapat masuk di sini. Gunakan Portal Admin.');
+    }
+    S.token = res.token; S.peran = res.peran; S.karyawan = res.karyawan || null; S.hak = res.hakAkses || [];
+    simpanToken(S.token);
+    bersihLogin();
+    bukaAplikasi();
+    mulaiHeartbeatPortal();
+  } catch (e) {
+    tampilPesan(pesanError(e));
+  } finally {
+    b.disabled = false; b.textContent = 'Masuk ke Portal';
+  }
+}
+
+function bersihkanTampilan() {
+  $('isi').innerHTML = ''; $('menu').innerHTML = '';
+  document.querySelectorAll('.overlay').forEach(function (o) { o.remove(); });
+  var ts = $('toastStack'); if (ts) ts.innerHTML = '';
+  $('app').classList.add('hidden'); $('login').classList.remove('hidden');
+}
+function resetSesi() {
+  hentikanHeartbeatPortal();
+  if (pengendaliHalaman) pengendaliHalaman.abort();
+  pengendaliHalaman = null;
+  batalkanTekanLamaAktif();
+  S.profilPromise = null; S.token = null; S.peran = null; S.karyawan = null; S.hak = []; simpanToken(null);
+}
+function sesiHabis() { resetSesi(); bersihkanTampilan(); tampilPesan('Sesi habis. Silakan login lagi.'); }
+function keluar() { var t = S.token; resetSesi(); bersihkanTampilan(); tampilPesan(''); cabutToken(t); }
+
+function jadwalkanTutupMenu() {
+  clearTimeout(menuCloseTimer);
+  if (!$('app').classList.contains('nav-open') || !window.matchMedia('(min-width: 801px)').matches) return;
+  menuCloseTimer = setTimeout(function () {
+    if (window.matchMedia('(min-width: 801px)').matches) aturMenu(false);
+  }, 5000);
+}
+function aturMenu(buka) {
+  clearTimeout(menuCloseTimer);
+  $('app').classList.toggle('nav-open', buka);
+  var tombol = $('menuToggle');
+  if (tombol) {
+    tombol.setAttribute('aria-expanded', String(buka));
+    tombol.setAttribute('aria-label', buka ? 'Tutup menu navigasi' : 'Buka menu navigasi');
+    tombol.title = buka ? 'Tutup menu navigasi' : 'Buka menu navigasi';
+  }
+  if (buka) jadwalkanTutupMenu();
+}
+function bukaAplikasi() {
+  var admin = PORTAL === 'admin';
+  $('login').classList.add('hidden'); $('app').classList.remove('hidden');
+  $('app').classList.toggle('emp', !admin);
+      $('peran').textContent = labelPeran();
+  if (admin) tampilkanFotoProfil('');
+  else muatFotoProfilHeader();
+  var menu = $('menu'); menu.innerHTML = '';
+  var daftar = daftarMenu();
+  daftar.forEach(function (m, i) {
+    var b = el('button', { type: 'button', class: 'nav', 'data-id': m.id, title: m.n });
+    b.style.animationDelay = (80 + i * 45) + 'ms';
+    var ik = el('span', { class: 'ik' });
+    ik.appendChild(ikon(!admin && m.id === 'absensi' ? IKON.kamera : (IKON[m.id] || IKON.administrasi)));
+    b.appendChild(ik);
+    b.appendChild(el('span', { class: 'tk' }, [el('span', { text: m.n }), el('small', { text: m.k })]));
+    b.addEventListener('click', function () { pilih(m.id); });
+    menu.appendChild(b);
+  });
+  $('app').classList.remove('nav-open');
+  aturMenu(false);
+  siapkanRiwayatMenu(halamanAwal(daftar));
+  pilih(halamanAwal(daftar), true);
+}
+
+function sel(v, key) { return String(v == null ? '' : v); }
+function renderModulData(id) {
+  var admin = PORTAL === 'admin';
+  var isi = halaman(JUDUL_MODUL[id], admin
+    ? 'Tampilan lihat-saja. Data diisi HRD langsung pada tab spreadsheet "' + TAB_MODUL[id] + '".'
+    : 'Data yang ditampilkan mengikuti hak akses akun Anda.');
+  var kotak = el('div', { class: 'info loading', text: 'Memuat data' });
+  isi.appendChild(kotak);
+
+  var bisaTambah = !admin && bolehTambah(id);
+  var bisaEdit = !admin && bolehEdit(id);
+  var bisaHapus = !admin && bolehHapus(id);
+  var bisaAksi = bisaEdit || bisaHapus;
+
+  if (bisaTambah) {
+    isi.appendChild(el('div', { class: 'toolbar' }, [
+      btn('+ Tambah data', 'primary', function () { formModul(id, null, muat); })
+    ]));
+  }
+
+  async function muat() {
+    kotak.className = 'info loading'; kotak.textContent = 'Memuat data';
+    try {
+      var r = await api(AKSI_MODUL[id]);
+      kotak.remove();
+      var sendiri = !admin && hakDari(id).cakupan !== 'semua' && id !== 'sop';
+
+      function bangun(rows, judulTabel, tampilkanAksi) {
+        var keys = Object.keys(rows[0]).filter(function (k) {
+          if (k.charAt(0) === '_') return false;
+          if (sendiri && k === 'no_absen') return false;
+          return true;
+        });
+
+        var headers = keys.map(function (k) { return k.replace(/_/g, ' '); });
+        if (tampilkanAksi && bisaAksi) headers.push('Aksi');
+
+        var thead = el('thead', null, [el('tr', null, headers.map(function (h) { return el('th', { text: h }); }))]);
+        var tbody = el('tbody');
+
+        rows.forEach(function (row) {
+          var tr = el('tr');
+          keys.forEach(function (k) {
+            var td = el('td', { 'data-label': k.replace(/_/g, ' ') });
+            var v = row[k];
+            td.textContent = (v === '' || v == null) ? '?' : String(v);
+            tr.appendChild(td);
+          });
+          if (tampilkanAksi && bisaAksi) {
+            var tdAksi = el('td', { 'data-label': 'Aksi' });
+            var wrap = el('div', { class: 'baris-aksi' });
+            if (bisaEdit) {
+              wrap.appendChild(btn('Edit', 'kecil', function () { formModul(id, row, muat); }));
+            }
+            if (bisaHapus) {
+              wrap.appendChild(btn('Hapus', 'kecil bahaya', async function () {
+                var okHapus = await konfirmasi('Hapus data?',
+                  'Data pada baris ini akan dihapus permanen. Lanjutkan?', 'Hapus', true);
+                if (!okHapus) return;
+                try {
+                  var res = await api('karyawanModulHapus', { menu: id, row: row._row });
+                  toast(res.pesan || 'Data dihapus.');
+                  muat();
+                } catch (e) { toast(pesanError(e)); }
+              }));
+            }
+            tdAksi.appendChild(wrap);
+            tr.appendChild(tdAksi);
+          }
+          tbody.appendChild(tr);
+        });
+
+        var tabelEl = el('div', { class: 'tabelbungkus' }, [el('table', { class: 'tbl' }, [thead, tbody])]);
+        if (!judulTabel) return tabelEl;
+        return el('div', null, [el('h3', { class: 'sec', text: judulTabel, style: 'margin-top:18px' }), tabelEl]);
+      }
+
+      var ada = false;
+      if (r.data && r.data.length) {
+        isi.appendChild(bangun(r.data, id === 'rekapan' ? 'Rekap kerja' : '', true));
+        ada = true;
+      }
+      if (id === 'rekapan' && r.slip && r.slip.length) {
+        isi.appendChild(bangun(r.slip, 'Slip gaji', false));
+        ada = true;
+      }
+      if (!ada) {
+        isi.appendChild(el('div', { class: 'info', text: 'Belum ada data yang tersedia untuk modul ini.' }));
+      }
+    } catch (e) {
+      if (pesanError(e) !== 'SESI_HABIS' && pesanError(e) !== 'PERMINTAAN_DIBATALKAN') {
+        kotak.className = 'alert';
+        kotak.textContent = pesanError(e);
+      }
+    }
+  }
+
+  muat();
+}
+/* ============================================================
+   LEMBUR — Matriks read-only (tampilan sama dengan portal admin)
+   Data dari endpoint karyawanLembur (sudah difilter hak akses
+   oleh backend Modul.gs). Frontend hanya merapikan jadi matriks.
+   ============================================================ */
+function renderLemburKaryawan() {
+  var isi = halaman('Lembur', 'Riwayat lembur sesuai hak akses akun Anda.');
+  var kotak = el('div', { class: 'info loading', text: 'Memuat data lembur' });
+  isi.appendChild(kotak);
+  var semuaAkses = hakDari('lembur').cakupan === 'semua';
+
+  api('karyawanLembur').then(function (r) {
+    kotak.remove();
+    var data = (r && r.data) || [];
+    var dataSiap = data.map(function (item) {
+      return {
+        item: item,
+        rincian: (item.rincian_harian || []).map(function (rincian) {
+          return { data: rincian, tanggal: String(rincian.tanggal || '').slice(0, 10), jam: Number(rincian.jam) || 0 };
+        }).filter(function (rincian) { return rincian.jam > 0; })
+      };
+    });
+    var cariNama = semuaAkses ? el('input', { type: 'search', placeholder: 'Cari nama karyawan…', 'aria-label': 'Filter nama karyawan' }) : null;
+    var pilihDivisi = semuaAkses ? el('select', { 'aria-label': 'Filter divisi' }) : null;
+    var tanggalDari = el('input', { type: 'date', 'aria-label': 'Filter dari tanggal' });
+    var tanggalSampai = el('input', { type: 'date', 'aria-label': 'Filter sampai tanggal' });
+    var filterDari = fieldEl('Dari tanggal', tanggalDari);
+    var filterSampai = fieldEl('Sampai tanggal', tanggalSampai);
+    filterDari.classList.add('lembur-date-filter');
+    filterSampai.classList.add('lembur-date-filter');
+    var hasil = el('div');
+    var hitung = el('p', { class: 'hitung' });
+    var kontrol = [filterDari, filterSampai];
+    if (semuaAkses) {
+      pilihDivisi.appendChild(el('option', { value: '', text: 'Semua divisi' }));
+      Array.from(new Set(data.map(function (item) { return String(item.divisi || '').trim(); }).filter(Boolean)))
+        .sort(function (a, b) { return a.localeCompare(b, 'id', { sensitivity: 'base' }); })
+        .forEach(function (divisi) { pilihDivisi.appendChild(el('option', { value: divisi, text: divisi })); });
+      kontrol.push(cariNama, pilihDivisi);
+    }
+    isi.appendChild(el('div', { class: 'toolbar lembur-filter' }, kontrol));
+    isi.appendChild(hitung);
+    isi.appendChild(hasil);
+
+    function tampilkanHasil() {
+      var q = cariNama ? cariNama.value.trim().toLocaleLowerCase('id') : '';
+      var divisiDipilih = pilihDivisi ? pilihDivisi.value : '';
+      var dari = tanggalDari.value;
+      var sampai = tanggalSampai.value;
+      var tersaring = dataSiap.filter(function (siap) {
+        var item = siap.item;
+        var namaCocok = !q || String(item.nama || '').toLocaleLowerCase('id').indexOf(q) >= 0;
+        return namaCocok && (!divisiDipilih || String(item.divisi || '').trim() === divisiDipilih)
+          && siap.rincian.some(function (r) { return (!dari || r.tanggal >= dari) && (!sampai || r.tanggal <= sampai); });
+      }).map(function (siap) {
+        var salinan = Object.assign({}, siap.item);
+        salinan.rincian_harian = siap.rincian.filter(function (r) {
+          return (!dari || r.tanggal >= dari) && (!sampai || r.tanggal <= sampai);
+        }).map(function (r) { return r.data; });
+        return salinan;
+      });
+      hitung.textContent = 'Menampilkan ' + tersaring.length + ' dari ' + data.length + ' data lembur';
+      hasil.innerHTML = '';
+      if (!tersaring.length) {
+        hasil.appendChild(el('div', { class: 'info', text: data.length ? 'Tidak ada data lembur yang cocok dengan filter.' : 'Belum ada data lembur.' }));
+        return;
+      }
+      hasil.appendChild(bangunMatriksLembur(tersaring));
+    }
+    var filterTimer = null;
+    if (cariNama) cariNama.addEventListener('input', function () {
+      clearTimeout(filterTimer);
+      filterTimer = setTimeout(tampilkanHasil, 120);
+    });
+    if (pilihDivisi) pilihDivisi.addEventListener('change', tampilkanHasil);
+    tanggalDari.addEventListener('change', tampilkanHasil);
+    tanggalSampai.addEventListener('change', tampilkanHasil);
+    tampilkanHasil();
+  }).catch(function (e) {
+    if (pesanError(e) !== 'SESI_HABIS' && pesanError(e) !== 'PERMINTAAN_DIBATALKAN') {
+      kotak.className = 'alert';
+      kotak.textContent = pesanError(e);
+    }
+  });
+}
+
+function bangunMatriksLembur(data) {
+  if (!Array.isArray(data) || !data.length) return el('div', { class: 'info', text: 'Belum ada data lembur.' });
+
+  var tanggalSet = Object.create(null);
+  data.forEach(function (row) {
+    (row.rincian_harian || []).forEach(function (r) {
+      if (r.tanggal && r.jam > 0) tanggalSet[r.tanggal] = true;
+    });
+  });
+  var tanggalUnik = Object.keys(tanggalSet).sort();
+  if (!tanggalUnik.length) return el('div', { class: 'info', text: 'Tidak ada rincian harian pada data ini.' });
+
+  var perKaryawan = Object.create(null);
+  data.forEach(function (row) {
+    var kunci = String(row.no_absen || row.nama || '').trim().toLowerCase();
+    if (!kunci) return;
+    if (!perKaryawan[kunci]) {
+      perKaryawan[kunci] = { nama: row.nama || '', divisi: row.divisi || '', cells: Object.create(null), total: 0 };
+    }
+    (row.rincian_harian || []).forEach(function (r) {
+      var t = String(r.tanggal || '');
+      var j = Number(r.jam) || 0;
+      if (!t || j <= 0) return;
+      perKaryawan[kunci].cells[t] = (perKaryawan[kunci].cells[t] || 0) + j;
+      perKaryawan[kunci].total += j;
+    });
+  });
+
+  var daftar = Object.keys(perKaryawan).map(function (k) { return perKaryawan[k]; });
+  daftar.sort(function (a, b) {
+    return String(a.nama).localeCompare(String(b.nama), 'id', { sensitivity: 'base' });
+  });
+
+  var headers = ['Nama'].concat(tanggalUnik.map(function (tgl) {
+    return dmy(tgl).split('/').slice(0, 2).join('/');
+  }), ['Total']);
+
+  var rows = daftar.map(function (k) {
+    var nama = el('div', { class: 'lembur-card-person' }, [
+      el('strong', { text: k.nama }),
+      el('span', { text: k.divisi })
+    ]);
+    var sel = tanggalUnik.map(function (tgl) {
+      var jam = k.cells[tgl];
+      if (!jam) return '—';
+      return el('span', { class: 'lembur-value' }, [
+        el('span', { text: String(Number(jam.toFixed(2))) })
+      ]);
+    });
+    return [nama].concat(sel, [
+      el('strong', { class: 'lembur-total', text: String(Number(k.total.toFixed(2))) })
+    ]);
+  });
+
+  var tbl = tabel(headers, rows);
+  tbl.classList.add('lembur-matrix-wrap');
+  var table = tbl.querySelector('table');
+  if (table) {
+    table.classList.add('lembur-matrix');
+    var ths = table.querySelectorAll('thead th');
+    Array.prototype.forEach.call(ths, function (th, idx) {
+      if (idx > 0 && idx <= tanggalUnik.length) {
+        var tgl = tanggalUnik[idx - 1];
+        var tanggal = new Date(tgl + 'T00:00:00');
+        var hariLibur = tanggal.getDay() === 0 || (typeof LIBUR_NASIONAL !== 'undefined' && !!LIBUR_NASIONAL[tgl])
+          || (typeof CUTI_BERSAMA !== 'undefined' && !!CUTI_BERSAMA[tgl]);
+        th.setAttribute('data-tanggal-singkat', tgl.slice(8, 10) + '/' + tgl.slice(5, 7));
+        th.setAttribute('data-hari', tgl.slice(8, 10));
+        th.setAttribute('title', dmy(tgl));
+        if (hariLibur) {
+          th.classList.add('lembur-libur');
+          Array.prototype.forEach.call(table.querySelectorAll('tbody tr'), function (tr) {
+            var td = tr.children[idx];
+            if (!td) return;
+            td.classList.add('lembur-libur');
+            var nilai = td.querySelector('.lembur-value');
+            if (nilai) nilai.classList.add('lembur-libur');
+          });
+        }
+      }
+    });
+    if (ths.length > 1) {
+      function tombolGeser(th, arah, simbol, label, kelas) {
+        var tombol = el('button', { type: 'button', class: 'lembur-scroll-control ' + kelas, text: simbol, 'aria-label': label, title: label });
+        tombol.addEventListener('click', function () {
+          var kolomTanggal = ths[1];
+          var langkah = kolomTanggal ? kolomTanggal.getBoundingClientRect().width * 3 : 150;
+          tbl.scrollBy({ left: arah * langkah, behavior: 'smooth' });
+        });
+        th.appendChild(tombol);
+      }
+      tombolGeser(ths[0], -1, '‹', 'Geser ke tanggal sebelumnya', 'lembur-scroll-left');
+      tombolGeser(ths[ths.length - 1], 1, '›', 'Geser ke tanggal berikutnya', 'lembur-scroll-right');
+    }
+  }
+  return tbl;
+}
+
+/* ===== REKAPAN: rekap kerja (tabel/kartu) + slip gaji (kartu) ===== */
+var REKAP_UANG = /gaji|upah|tunjangan|potongan|bonus|insentif|total|bersih|netto|uang|thr|bpjs|pajak|pph|premi|nominal|rupiah|kasbon|pinjaman|denda|transport|makan/i;
+var REKAP_BUKAN = /hari|jam|jumlah|hadir|alpa|alpha|izin|cuti|sakit|libur|menit|kali|nomor|^no$|no_|tanggal|bulan|tahun|periode/i;
+var REKAP_TOTAL = /total|bersih|netto|diterima|take_?home|gaji_akhir/i;
+function rekapLabel(k) { var t = String(k).replace(/_/g, ' ').trim(); return t.charAt(0).toUpperCase() + t.slice(1); }
+function rekapAngka(v) {
+  if (typeof v === 'number') return isFinite(v) ? v : null;
+  var s = String(v == null ? '' : v).trim();
+  return /^-?\d+(\.\d+)?$/.test(s) ? Number(s) : null;
+}
+function rekapUang(k, v) {
+  if (rekapAngka(v) === null) return false;
+  if (/lembur/i.test(k) && !/uang|upah|rp|nominal/i.test(k)) return false;
+  return REKAP_UANG.test(k) && !REKAP_BUKAN.test(k);
+}
+function rekapNilai(k, v) {
+  if (v == null || v === '') return '—';
+  if (/^\d{4}-\d{2}-\d{2}$/.test(String(v))) return dmy(v);
+  if (rekapUang(k, v)) { var n = rekapAngka(v); return (n < 0 ? '-' : '') + 'Rp ' + Math.abs(n).toLocaleString('id-ID'); }
+  return String(v);
+}
+function rekapKunci(rows, sendiri) {
+  var seen = {}, keys = [];
+  rows.forEach(function (r) {
+    Object.keys(r).forEach(function (k) {
+      if (k.charAt(0) === '_' || seen[k] || (sendiri && k === 'no_absen')) return;
+      seen[k] = 1; keys.push(k);
+    });
+  });
+  return keys;
+}
+function renderRekapanKaryawan() {
+  var isi = halaman('Rekapan & Slip Gaji',
+    'Rincian gaji dan lembur per periode yang sudah dihitung HRD.');
+  var kotak = el('div', { class: 'info loading', text: 'Memuat data gaji…' });
+  isi.appendChild(kotak);
+
+  api('karyawanRekapan').then(function (r) {
+    kotak.remove();
+    var payslips = (r && r.payslips) || [];
+    var cakupan = (r && r.cakupan) || 'sendiri';
+
+    if (!payslips.length) {
+      isi.appendChild(el('div', { class: 'info',
+        text: 'Belum ada slip gaji yang dipublikasikan. Hubungi HRD bila perlu.' }));
+      return;
+    }
+
+    // Kumpulkan periode unik (dari|sampai), ambil label + sortKey terbaru per periode
+    var periodeMap = {};
+    payslips.forEach(function (p) {
+      var key = (p.periodeDari || '') + '|' + (p.periodeSampai || '');
+      if (!key || key === '|') return;
+      var sortKey = (p.periodeSampai || '') + '|' + (p.dihitungPada || '');
+      if (!periodeMap[key] || periodeMap[key].sortKey < sortKey) {
+        periodeMap[key] = {
+          key: key,
+          label: dmy(p.periodeDari) + ' – ' + dmy(p.periodeSampai),
+          sortKey: sortKey
+        };
+      }
+    });
+    var periode = Object.keys(periodeMap).map(function (k) { return periodeMap[k]; })
+      .sort(function (a, b) { return b.sortKey.localeCompare(a.sortKey); });
+
+    if (!periode.length) {
+      isi.appendChild(el('div', { class: 'info', text: 'Data gaji belum lengkap. Hubungi HRD.' }));
+      return;
+    }
+
+    var pilihPeriode = el('select', { 'aria-label': 'Pilih periode slip gaji' },
+      periode.map(function (o) { return el('option', { value: o.key, text: o.label }); }));
+
+    var cariNama = el('input', { type: 'search', placeholder: 'Cari nama karyawan…', 'aria-label': 'Cari nama karyawan' });
+    var wrapCari = fieldEl('Cari nama', cariNama);
+    if (cakupan === 'sendiri') wrapCari.classList.add('hidden');
+
+    var kartuBox = el('div');
+    isi.appendChild(el('div', {
+      class: 'toolbar',
+      style: 'display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;align-items:end;margin-bottom:14px'
+    }, [
+      fieldEl('Periode', pilihPeriode),
+      wrapCari
+    ]));
+    isi.appendChild(kartuBox);
+
+    function tampilkan() {
+      kartuBox.innerHTML = '';
+      var key = pilihPeriode.value;
+      var q = cariNama.value.trim().toLowerCase();
+
+      // Ambil snapshot terbaru per karyawan untuk periode ini
+      var byKaryawan = {};
+      payslips.forEach(function (p) {
+        var pKey = (p.periodeDari || '') + '|' + (p.periodeSampai || '');
+        if (pKey !== key) return;
+        var kunciKar = String(p.noAbsen || '').toLowerCase();
+        if (!kunciKar) return;
+        var sortKey = p.dihitungPada || '';
+        if (!byKaryawan[kunciKar] || byKaryawan[kunciKar].sortKey < sortKey) {
+          byKaryawan[kunciKar] = { data: p, sortKey: sortKey };
+        }
+      });
+
+      var list = Object.keys(byKaryawan).map(function (k) { return byKaryawan[k].data; });
+      var filtered = list.filter(function (p) {
+        return !q || (String(p.nama || '') + ' ' + String(p.noAbsen || '')).toLowerCase().indexOf(q) >= 0;
+      });
+
+      if (!filtered.length) {
+        kartuBox.appendChild(el('div', { class: 'info', text: list.length
+          ? 'Tidak ada karyawan yang cocok dengan pencarian.'
+          : 'Belum ada slip gaji untuk periode ini.' }));
+        return;
+      }
+
+      if (filtered.length === 1) {
+        kartuBox.appendChild(buatKartuPayslip(filtered[0]));
+      } else {
+        var info = el('p', { class: 'sub2', text: 'Menampilkan ' + filtered.length + ' dari ' + list.length + ' karyawan.' });
+        info.style.marginBottom = '10px';
+        kartuBox.appendChild(info);
+        var grid = el('div', { class: 'slip-grid' });
+        filtered.forEach(function (p) { grid.appendChild(buatKartuPayslip(p)); });
+        kartuBox.appendChild(grid);
+      }
+    }
+
+    pilihPeriode.addEventListener('change', tampilkan);
+    cariNama.addEventListener('input', tampilkan);
+    tampilkan();
+  }).catch(function (e) {
+    if (pesanError(e) !== 'SESI_HABIS' && pesanError(e) !== 'PERMINTAAN_DIBATALKAN') {
+      kotak.className = 'alert';
+      kotak.textContent = pesanError(e);
+    }
+  });
+}
+
+function buatKartuPayslip(p) {
+  function rp(n) { return 'Rp ' + Number(n || 0).toLocaleString('id-ID'); }
+  var periode = dmy(p.periodeDari) + ' – ' + dmy(p.periodeSampai);
+  var tanpaGaji = !!p.tanpaGajiHarian;
+  var statusKaryawan = p.status || '';
+
+  var head = el('div', { class: 'slip-head',
+    style: 'padding:16px 18px;border-bottom:3px solid var(--ink);background:var(--hd)' }, [
+    el('div', { style: 'min-width:0;flex:1' }, [
+      el('span', { class: 'slip-eyebrow', text: 'SLIP GAJI' }),
+      el('h4', { text: p.nama || 'Karyawan', style: 'margin:2px 0 0;line-height:1.25' }),
+      el('span', { class: 'sub2', text: periode, style: 'margin-top:2px' })
+    ]),
+    el('span', { class: 'chip', text: statusKaryawan ? statusKaryawan + ' · ' + (p.divisi || '—') : (p.divisi || '—') })
+  ]);
+
+  function baris(label, sub, nominal, kuat) {
+    return el('div', { class: 'slip-row' + (kuat ? ' total' : '') }, [
+      el('dt', null, [el('span', { text: label }), sub ? el('small', { class: 'sub2', text: sub }) : null]),
+      el('dd', { text: nominal })
+    ]);
+  }
+  var dl = el('dl', { class: 'slip-list' }, [
+    tanpaGaji
+      ? baris('Gaji Pokok', 'Status ' + (statusKaryawan || 'HT/KT') + ' — dibayar di luar sistem ini', rp(0))
+      : baris('Gaji Pokok', p.hariDibayar + ' hari × ' + rp(p.upahHarian), rp(p.nominalGaji)),
+    baris('Lembur', Number(p.jamLembur).toFixed(2) + ' jam × ' + rp(p.tarifLembur), rp(p.nominalLembur)),
+    baris('TOTAL DITERIMA', null, rp(p.totalNominal), true)
+  ]);
+  var footer = el('div', { class: 'aksi', style: 'padding:14px 18px;border-top:2px solid var(--ink)' }, [
+    btn('Cetak / PDF', 'primary', function () { cetakPayslipSatu(p); }),
+    el('span', { class: 'sub2', style: 'margin-left:auto',
+      text: 'Dihitung ' + (p.dihitungPada || '—') })
+  ]);
+  return el('article', { class: 'slip-card' }, [head, dl, footer]);
+}
+
+function cetakPayslipSatu(p) {
+  bukaJendelaCetak(bungkusHtmlCetak(renderPayslipHtml({
+    noAbsen: p.noAbsen, nama: p.nama, divisi: p.divisi, jabatan: p.jabatan,
+    periodeDari: p.periodeDari, periodeSampai: p.periodeSampai,
+    hariDibayar: p.hariDibayar, upahHarian: p.upahHarian, nominalGaji: p.nominalGaji,
+    jamLembur: p.jamLembur, tarifLembur: p.tarifLembur, nominalLembur: p.nominalLembur,
+    totalNominal: p.totalNominal
+  }), 'Slip ' + p.nama));
+}
+
+/* Print helpers (duplikat, karena file ini terpisah dari admin) */
+function renderPayslipHtml(x) {
+  function rp(n) { return 'Rp ' + Number(n || 0).toLocaleString('id-ID'); }
+  function tgl(v) { return v ? String(v).split('-').reverse().join('/') : '—'; }
+  var periode = tgl(x.periodeDari || x.periode_dari) + ' s.d. ' + tgl(x.periodeSampai || x.periode_sampai);
+  var tanpaGaji = !!(x.tanpaGajiHarian || x.tanpa_gaji_harian);
+  var statusKaryawan = x.status || '';
+  
+  var gajiRow;
+  if (tanpaGaji) {
+    gajiRow = '<tr>' +
+      '<td>Gaji Pokok</td>' +
+      '<td colspan="2"><em style="color:#666">Status ' + (statusKaryawan || 'HT/KT') + ' — dibayar di luar rekapan ini</em></td>' +
+      '<td>' + rp(0) + '</td></tr>';
+  } else {
+    gajiRow = '<tr>' +
+      '<td>Gaji Pokok</td>' +
+      '<td>' + (x.hariDibayar || x.hari_dibayar || 0) + ' hari</td>' +
+      '<td>' + rp(x.upahHarian || x.upah_harian) + '</td>' +
+      '<td>' + rp(x.nominalGaji || x.nominal_gaji) + '</td></tr>';
+  }
+  
+  return '' +
+    '<div class="payslip">' +
+      '<div class="slip-head"><div class="slip-brand">' +
+        '<div class="slip-logo">RJP</div>' +
+        '<div><strong>PT RAJA PALMA</strong><small>Human Resources</small></div>' +
+      '</div><div class="slip-title">SLIP GAJI<br><small>' + periode + '</small></div></div>' +
+      '<div class="slip-info">' +
+        '<div><label>No. Absen</label><span>' + (x.noAbsen || x.no_absen || '—') + '</span></div>' +
+        '<div><label>Nama</label><span>' + (x.nama || '—') + '</span></div>' +
+        '<div><label>Divisi</label><span>' + (x.divisi || '—') + '</span></div>' +
+        '<div><label>Status</label><span>' + (statusKaryawan || '—') + '</span></div>' +
+      '</div>' +
+      '<table class="slip-table">' +
+        '<thead><tr><th>Komponen</th><th>Jumlah</th><th>Tarif</th><th>Nominal</th></tr></thead>' +
+        '<tbody>' +
+          gajiRow +
+          '<tr><td>Lembur</td><td>' + Number(x.jamLembur || x.jam_lembur || 0).toFixed(2) + ' jam</td>' +
+            '<td>' + rp(x.tarifLembur || x.tarif_lembur_per_jam) + '</td>' +
+            '<td>' + rp(x.nominalLembur || x.nominal_lembur) + '</td></tr>' +
+          '<tr class="total"><td colspan="3">TOTAL DITERIMA</td><td>' +
+            rp(x.totalNominal || x.total_nominal) + '</td></tr>' +
+        '</tbody>' +
+      '</table>' +
+      (tanpaGaji ? '<p style="font-size:11px;color:#666;margin-top:-10px;margin-bottom:10px;font-style:italic">Catatan: Gaji pokok karyawan berstatus ' + (statusKaryawan || 'HT/KT') + ' dibayarkan melalui jalur penggajian bulanan. Slip ini hanya mencakup lembur.</p>' : '') +
+      '<div class="slip-foot">' +
+        '<div class="ttd"><span>Karyawan</span><i></i></div>' +
+        '<div class="ttd"><span>HRD / Finance</span><i></i></div>' +
+      '</div>' +
+      '<p class="slip-note">Dokumen dibuat otomatis oleh sistem. Hubungi HRD bila ada pertanyaan.</p>' +
+    '</div>';
+}
+
+function bungkusHtmlCetak(body, judul) {
+  return '<!doctype html><html><head><meta charset="utf-8"><title>' + (judul || 'Slip Gaji') + '</title><style>' +
+    '@page{size:A4;margin:15mm}*{box-sizing:border-box}body{font-family:Arial,sans-serif;font-size:12px;color:#000;margin:0}' +
+    '.page-break{page-break-after:always;height:0}' +
+    '.payslip{padding:0;margin:0 0 10px}' +
+    '.slip-head{display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #000;padding-bottom:12px;margin-bottom:16px}' +
+    '.slip-brand{display:flex;align-items:center;gap:10px}' +
+    '.slip-logo{width:56px;height:56px;border:2px solid #000;border-radius:8px;display:grid;place-items:center;font-size:18px;font-weight:800}' +
+    '.slip-brand strong{font-size:18px;display:block}.slip-brand small{font-size:10px;letter-spacing:2px;display:block;margin-top:2px}' +
+    '.slip-title{text-align:right;font-size:16px;font-weight:800;line-height:1.3}.slip-title small{font-size:11px;font-weight:600}' +
+    '.slip-info{display:grid;grid-template-columns:1fr 1fr;gap:8px 24px;padding:14px;background:#f4f4f4;border-radius:6px;margin-bottom:16px}' +
+    '.slip-info div{display:flex;gap:8px;font-size:12px}.slip-info label{min-width:80px;font-weight:700}' +
+    '.slip-table{width:100%;border-collapse:collapse;margin-bottom:20px}' +
+    '.slip-table th,.slip-table td{padding:9px 12px;border:1px solid #999;text-align:left;font-size:12px}' +
+    '.slip-table th{background:#e8e8e8;font-size:10px;text-transform:uppercase;letter-spacing:1px}' +
+    '.slip-table td:nth-child(2),.slip-table td:nth-child(3),.slip-table td:nth-child(4){text-align:right;font-variant-numeric:tabular-nums}' +
+    '.slip-table .total{background:#f0f0f0;font-weight:800;font-size:13px}' +
+    '.slip-foot{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:30px}' +
+    '.ttd{text-align:center;font-size:12px}.ttd i{display:block;border-top:1px solid #000;margin-top:55px}' +
+    '.slip-note{text-align:center;font-size:10px;color:#666;margin-top:20px}' +
+    '</style></head><body>' + body + '</body></html>';
+}
+
+function bukaJendelaCetak(html) {
+  var w = window.open('', '_blank', 'width=800,height=900');
+  if (!w) { toast('Izinkan pop-up untuk mencetak / simpan PDF.'); return; }
+  w.document.open(); w.document.write(html); w.document.close();
+  setTimeout(function () { try { w.focus(); w.print(); } catch (e) {} }, 400);
+}
+
+function tampilJam() {
+  try {
+    $('jam').textContent = new Intl.DateTimeFormat('id-ID', { timeZone: 'Asia/Jakarta', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+      hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).format(new Date());
+  } catch (e) {}
+}
+function toggleLihat(idInput, idTombol) {
+  $(idTombol).addEventListener('click', function () {
+    var x = $(idInput), tampil = x.type === 'password';
+    x.type = tampil ? 'text' : 'password';
+    this.textContent = tampil ? 'Sembunyikan' : 'Lihat';
+    this.setAttribute('aria-pressed', String(tampil));
+  });
+}
+function pulihkanSesi() {
+  S.token = bacaToken();
+  if (!S.token) { if (typeof fokusAwal === 'function') fokusAwal(); return; }
+  api('sesiInfo').then(function (r) {
+    if (!peranCocok(r.peran)) { var t = S.token; resetSesi(); cabutToken(t); tampilPesan('Sesi tidak sesuai dengan portal ini. Silakan login lagi.'); return; }
+    S.peran = r.peran; S.karyawan = r.karyawan || null; S.hak = r.hakAkses || [];
+    bukaAplikasi();
+    mulaiHeartbeatPortal();
+  }).catch(function (e) {
+    if (pesanError(e) !== 'SESI_HABIS' && pesanError(e) !== 'PERMINTAAN_DIBATALKAN') { resetSesi(); tampilPesan('Tidak dapat memeriksa sesi: ' + pesanError(e)); }
+  });
+}
+// UBAH NOMOR INI SENDIRI: format internasional tanpa tanda +, spasi, atau strip.
+var NOMOR_WA_BANTUAN_PASSWORD = '6285268499210';
+
+function initBersama() {
+  pasangPerlindunganInteraksi();
+  tampilJam(); setInterval(tampilJam, 1000);
+  var temaAwal = 'light';
+  try { temaAwal = localStorage.getItem('hrd_tema') || 'light'; } catch (e) {}
+  aturTema(temaAwal === 'dark');
+  function toggleTema() {
+    aturTema(document.documentElement.getAttribute('data-theme') !== 'dark');
+  }
+  $('themeToggle').addEventListener('click', toggleTema);
+  $('loginThemeToggle').addEventListener('click', toggleTema);
+
+  var lupaModal = $('lupaPasswordModal');
+  $('bukaLupaPassword').addEventListener('click', function () {
+    lupaModal.classList.remove('hidden');
+    $('tutupLupaPassword').focus();
+  });
+  function tutupLupaModal() {
+    lupaModal.classList.add('hidden');
+    $('bukaLupaPassword').focus();
+  }
+  $('tutupLupaPassword').addEventListener('click', tutupLupaModal);
+  lupaModal.addEventListener('click', function (e) {
+    if (e.target === lupaModal) tutupLupaModal();
+  });
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && !lupaModal.classList.contains('hidden')) tutupLupaModal();
+  });
+  $('hubungiWhatsApp').addEventListener('click', function () {
+    var nomor = String(NOMOR_WA_BANTUAN_PASSWORD || '').replace(/\\D/g, '');
+    if (!nomor || /x/i.test(NOMOR_WA_BANTUAN_PASSWORD)) {
+      alert('Nomor WhatsApp belum diatur. Ubah NOMOR_WA_BANTUAN_PASSWORD di script terlebih dahulu.');
+      return;
+    }
+    var pesanWA = 'Halo Admin, saya karyawan PT Raja Palma. Saya lupa password Portal Karyawan dan perlu bantuan pemulihan akun.';
+    var urlWA = 'https://wa.me/' + nomor + '?text=' + encodeURIComponent(pesanWA);
+    window.open(urlWA, '_blank', 'noopener,noreferrer');
+  });
+
+  $('menuToggle').addEventListener('click', function () {
+    aturMenu(!$('app').classList.contains('nav-open'));
+  });
+
+  // Geser kiri/kanan pada konten untuk berpindah ke modul berikut/sebelumnya.
+  var titikAwalGestur = null;
+  $('isi').addEventListener('touchstart', function (e) {
+    if (!window.matchMedia('(max-width: 800px)').matches || e.touches.length !== 1) {
+      titikAwalGestur = null;
+      return;
+    }
+    if (document.querySelector('.overlay:not(.hidden), #lupaPasswordModal:not(.hidden)')) {
+      titikAwalGestur = null;
+      return;
+    }
+    var target = e.target;
+    if (target.closest('input, textarea, select, button, a, [contenteditable="true"], .tabelbungkus, [role="dialog"]')) {
+      titikAwalGestur = null;
+      return;
+    }
+    var sentuhan = e.touches[0];
+    // Sisakan tepi layar untuk gestur kembali milik browser/OS.
+    if (sentuhan.clientX < 28 || sentuhan.clientX > window.innerWidth - 28) {
+      titikAwalGestur = null;
+      return;
+    }
+    titikAwalGestur = { x: sentuhan.clientX, y: sentuhan.clientY };
+  }, { passive: true });
+  document.addEventListener('touchend', function (e) {
+    if (!titikAwalGestur || !e.changedTouches.length) return;
+    var awal = titikAwalGestur;
+    titikAwalGestur = null;
+    if (!window.matchMedia('(max-width: 800px)').matches) return;
+    var akhir = e.changedTouches[0];
+    var dx = akhir.clientX - awal.x, dy = akhir.clientY - awal.y;
+    var ambang = Math.max(70, Math.min(110, window.innerWidth * 0.18));
+    if (Math.abs(dx) < ambang || Math.abs(dx) < Math.abs(dy) * 1.3) return;
+    var nav = $('menu');
+    var tombolModul = Array.prototype.slice.call(nav.querySelectorAll('.nav[data-id]'));
+    var aktif = tombolModul.findIndex(function (b) { return b.getAttribute('aria-current') === 'page'; });
+    if (aktif < 0) return;
+    var tujuan = aktif + (dx < 0 ? 1 : -1);
+    // Jangan menutup portal atau berpindah keluar halaman saat sudah di ujung daftar.
+    if (tujuan >= 0 && tujuan < tombolModul.length) pilih(tombolModul[tujuan].dataset.id);
+  }, { passive: true });
+  document.addEventListener('touchcancel', function () { titikAwalGestur = null; }, { passive: true });
+
+  // Gestur dari tepi mengikuti entri menu yang sama dengan tombol Back/Forward browser.
+  var gesturTepiAwal = null;
+  document.addEventListener('touchstart', function (e) {
+    if ($('app').classList.contains('hidden') || e.touches.length !== 1
+      || document.querySelector('.overlay:not(.hidden), #lupaPasswordModal:not(.hidden)')) {
+      gesturTepiAwal = null;
+      return;
+    }
+    var sentuhan = e.touches[0], lebar = window.innerWidth;
+    if (sentuhan.clientX <= 24 && indeksRiwayatMenu > 0) gesturTepiAwal = { x: sentuhan.clientX, y: sentuhan.clientY, tepi: 'kiri' };
+    else if (sentuhan.clientX >= lebar - 24 && indeksRiwayatMenu < riwayatMenu.length - 1) gesturTepiAwal = { x: sentuhan.clientX, y: sentuhan.clientY, tepi: 'kanan' };
+    else gesturTepiAwal = null;
+  }, { passive: true });
+  document.addEventListener('touchend', function (e) {
+    if (!gesturTepiAwal || !e.changedTouches.length) return;
+    var awal = gesturTepiAwal;
+    gesturTepiAwal = null;
+    var akhir = e.changedTouches[0], dx = akhir.clientX - awal.x, dy = akhir.clientY - awal.y;
+    if (Math.abs(dx) < 70 || Math.abs(dx) < Math.abs(dy) * 1.3) return;
+    if (awal.tepi === 'kiri' && dx > 0) history.back();
+    else if (awal.tepi === 'kanan' && dx < 0) history.forward();
+  }, { passive: true });
+  document.addEventListener('touchcancel', function () { gesturTepiAwal = null; }, { passive: true });
+  window.addEventListener('popstate', function (e) {
+    if ($('app').classList.contains('hidden') || !e.state || e.state.__rpPortalMenu !== true) return;
+    var id = e.state.menuId;
+    if (typeof id !== 'string') return;
+    indeksRiwayatMenu = Number(e.state.menuIndex);
+    pilih(id, true);
+  });
+
+  $('menu').addEventListener('pointerenter', function () {
+    clearTimeout(menuCloseTimer);
+  });
+  $('menu').addEventListener('pointerleave', jadwalkanTutupMenu);
+  $('masuk').addEventListener('click', masuk);
+  function tutupPilihanAkun() {
+    $('profilToggle').setAttribute('aria-expanded', 'false');
+    $('profilMenu').classList.add('hidden');
+  }
+  $('bukaProfil').addEventListener('click', function () {
+    tutupPilihanAkun(); pilih('profil');
+  });
+  $('gantiPasswordMenu').addEventListener('click', function () {
+    tutupPilihanAkun(); pilih('password');
+  });
+  $('keluar').addEventListener('click', function () {
+    tutupPilihanAkun(); keluar();
+  });
+  $('profilToggle').addEventListener('click', function () {
+    var buka = this.getAttribute('aria-expanded') !== 'true';
+    this.setAttribute('aria-expanded', String(buka)); $('profilMenu').classList.toggle('hidden', !buka);
+    if (buka) requestAnimationFrame(posisikanMenuProfil);
+  });
+  window.addEventListener('resize', posisikanMenuProfil);
+  window.addEventListener('scroll', posisikanMenuProfil, true);
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', posisikanMenuProfil);
+    window.visualViewport.addEventListener('scroll', posisikanMenuProfil);
+  }
+  document.addEventListener('click', function (e) {
+    tutupMenu();
+    var app = $('app'), nav = $('menu'), tombolNav = $('menuToggle');
+    if (app.classList.contains('nav-open') && !nav.contains(e.target) && !tombolNav.contains(e.target)) aturMenu(false);
+    if (!$('profilToggle').contains(e.target) && !$('profilMenu').contains(e.target)) {
+      $('profilToggle').setAttribute('aria-expanded', 'false'); $('profilMenu').classList.add('hidden');
+    }
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') { tutupMenu(); $('profilToggle').setAttribute('aria-expanded', 'false'); $('profilMenu').classList.add('hidden'); }
+  });
+  window.addEventListener('scroll', tutupMenu, true);
+}
+
+var MENU_KARYAWAN = [
+  { id: 'beranda', n: 'Beranda', k: 'Menu utama' },
+  { id: 'absensi', n: 'Absensi', k: 'Riwayat & dinas luar' },
+  { id: 'lembur', n: 'Lembur', k: 'Riwayat lembur' },
+  { id: 'rekapan', n: 'Rekapan', k: 'Ringkasan kerja dan slip' },
+  { id: 'disiplin', n: 'Disiplin', k: 'Catatan disiplin' },
+  { id: 'sop', n: 'SOP', k: 'Prosedur kerja' },
+  { id: 'karyawan', n: 'Data Karyawan', k: 'Direktori terbatas' },
+  { id: 'profil', n: 'Data Pribadi', k: 'Profil karyawan' },
+  { id: 'password', n: 'Ganti Password', k: 'Keamanan akun' }
+];
+var HAL = {
+  beranda: renderBeranda, profil: renderProfilSendiri, karyawan: renderDirektori, absensi: renderAbsensiKaryawan,
+  disiplin: renderModulData, sop: renderModulData, lembur: renderLemburKaryawan, rekapan: renderRekapanKaryawan, password: renderGantiPassword
+};
+function hakDari(id) {
+  return S.hak.filter(function (h) { return h.menuId === id; })[0]
+    || { lihat: false, cakupan: 'sendiri', tambah: false, edit: false, hapus: false };
+}
+function boleh(id, aksi) {
+  var h = hakDari(id);
+  if (!h || !h.lihat) return false;
+  if (!aksi || aksi === 'lihat') return true;
+  return h[aksi] === true;
+}
+function bolehEdit(id) { return boleh(id, 'edit'); }
+function bolehHapus(id) { return boleh(id, 'hapus'); }
+function bolehTambah(id) { return boleh(id, 'tambah'); }
+function labelPeran() { return 'Karyawan · ' + ((S.karyawan && S.karyawan.nama) || ''); }
+function daftarMenu() { return MENU_KARYAWAN.filter(function (m) { if (m.id === 'beranda') return true; var hak = hakDari(m.id); return m.id !== 'profil' && m.id !== 'password' && hak.lihat; }); }
+function halamanAwal(daftar) {
+  if (S.karyawan && S.karyawan.wajibGantiPassword) return 'password';
+  return 'beranda';
+}
+function stateRiwayatMenu(id, indeks) {
+  var state = history.state && typeof history.state === 'object' ? Object.assign({}, history.state) : {};
+  state.__rpPortalMenu = true;
+  state.menuId = id;
+  state.menuIndex = indeks;
+  return state;
+}
+function siapkanRiwayatMenu(id) {
+  riwayatMenu = [id];
+  indeksRiwayatMenu = 0;
+  riwayatMenuSiap = true;
+  try { history.replaceState(stateRiwayatMenu(id, 0), '', location.href); } catch (e) {}
+}
+function simpanNavigasiMenu(id) {
+  if (!riwayatMenuSiap) { siapkanRiwayatMenu(id); return; }
+  if (riwayatMenu[indeksRiwayatMenu] === id) return;
+  var berikutnya = riwayatMenu.slice(0, indeksRiwayatMenu + 1);
+  berikutnya.push(id);
+  var indeksBaru = berikutnya.length - 1;
+  try { history.pushState(stateRiwayatMenu(id, indeksBaru), '', location.href); }
+  catch (e) { return; }
+  riwayatMenu = berikutnya;
+  indeksRiwayatMenu = indeksBaru;
+}
+function pilih(id, dariRiwayat) {
+  if (S.karyawan && S.karyawan.wajibGantiPassword && id !== 'password') { toast('Ganti password terlebih dahulu.'); return; }
+  if (id !== 'beranda' && id !== 'password' && id !== 'profil' && !hakDari(id).lihat) { toast('Menu ini tidak diizinkan untuk akun Anda.'); return; }
+  if (!dariRiwayat) simpanNavigasiMenu(id);
+  if (pengendaliHalaman) pengendaliHalaman.abort();
+  pengendaliHalaman = typeof AbortController !== 'undefined' ? new AbortController() : null;
+  batalkanTekanLamaAktif();
+  $('app').classList.toggle('home-active', id === 'beranda');
+  // Beranda wajib selalu tanpa navbar; reset juga status dan aria tombol menu.
+  if (id === 'beranda') aturMenu(false);
+  document.querySelectorAll('.nav').forEach(function (n) {
+    if (n.dataset.id === id) n.setAttribute('aria-current', 'page'); else n.removeAttribute('aria-current');
+  });
+  var navAktif = document.querySelector('.nav[aria-current="page"]');
+  if (navAktif && $('app').classList.contains('nav-open') && window.matchMedia('(max-width: 800px)').matches) {
+    navAktif.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
+  }
+  tutupMenu();
+  if (id === 'absensi') absHomeK = true;
+  var fn = HAL[id];
+  if (fn) fn(id);
+  window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+}
+function ambilLogin() {
+  var u = $('employeeUsername').value.trim(), pw = $('employeePassword').value;
+  if (!u || !pw) { tampilPesan('Isi nomor absen dan password.'); return null; }
+  return { aksi: 'karyawanLogin', param: { username: u, password: pw } };
+}
+function bersihLogin() { $('employeePassword').value = ''; }
+function fokusAwal() { $('employeeUsername').focus(); }
+
+function esc(v) {
+  return String(v == null || v === '' ? '—' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+var FOTO_PROFIL_SERVER = '';
+var FOTO_DIREKTORI_SERVER = Object.create(null);
+function fotoProfilTersimpan() { return FOTO_PROFIL_SERVER || ''; }
+function idFotoKaryawan(r) {
+  r = r || {};
+  return String(r.id || r.idKaryawan || r.userId || r.user_id || r.noAbsen || r.no_absen || r.nip || '').trim();
+}
+function kunciIdFotoKaryawan(id) { return String(id == null ? '' : id).trim().toLowerCase(); }
+function daftarIdFotoKaryawan(r) {
+  r = r || {};
+  return [r.id, r.idKaryawan, r.userId, r.user_id, r.noAbsen, r.no_absen, r.nip]
+    .filter(function (id) { return id != null && String(id).trim() !== ''; })
+    .map(function (id) { return String(id).trim(); });
+}
+function nilaiFotoKaryawan(v) {
+  if (typeof v === 'string') return v;
+  if (!v || typeof v !== 'object') return '';
+  return v.fotoProfilData || v.fotoProfil || v.foto || v.avatar || v.url || v.data || '';
+}
+function fotoServerKaryawan(r) {
+  r = r || {};
+  var ids = daftarIdFotoKaryawan(r);
+  for (var i = 0; i < ids.length; i++) {
+    var foto = FOTO_DIREKTORI_SERVER[kunciIdFotoKaryawan(ids[i])];
+    if (foto) return foto;
+  }
+  return nilaiFotoKaryawan(r.fotoProfilData || r.fotoProfil || r.foto || r.avatar);
+}
+
+// Satu permintaan profil dipakai bersama oleh avatar header dan halaman Profil.
+function ambilProfil() {
+  if (!S.profilPromise) {
+    var pr = api('karyawanProfil');
+    S.profilPromise = pr;
+    pr.catch(function () { if (S.profilPromise === pr) S.profilPromise = null; });
+  }
+  return S.profilPromise;
+}
+function tampilkanFotoProfil(src) {
+  var avatar = document.querySelector('.profile-avatar');
+  if (!avatar) return;
+  avatar.innerHTML = '';
+  if (src) avatar.appendChild(el('img', { src: src, alt: 'Foto profil karyawan' }));
+  else avatar.appendChild(ikon(IKON.profil));
+}
+// Muat foto dari backend setiap kali sesi Portal Karyawan dibuka,
+// agar avatar header langsung memakai foto terbaru yang tersimpan di Drive.
+function muatFotoProfilHeader() {
+  if (PORTAL === 'admin' || !S.token) return;
+  FOTO_PROFIL_SERVER = '';
+  tampilkanFotoProfil('');
+  ambilProfil().then(function (r) {
+    if (!r || !r.ok) return;
+    FOTO_PROFIL_SERVER = r.fotoProfilData || '';
+    tampilkanFotoProfil(FOTO_PROFIL_SERVER);
+  }).catch(function () {
+    // Jangan mengganggu proses login/menu jika foto gagal dimuat.
+    tampilkanFotoProfil(FOTO_PROFIL_SERVER);
+  });
+}
+function kontrolFotoProfil(inisial) {
+  var kontrol = el('div', { class: 'profile-photo-control' });
+  var tombol = el('button', { type: 'button', class: 'avatar profile-photo-button', 'aria-label': 'Pilih foto profil', title: 'Pilih foto profil' });
+  var input = el('input', { type: 'file', accept: 'image/jpeg,image/png,image/webp,image/gif', class: 'hidden', 'aria-label': 'Pilih foto profil' });
+  function gambar(src) {
+    tombol.innerHTML = '';
+    tombol.classList.toggle('has-photo', !!src);
+    tombol.setAttribute('aria-label', src ? 'Lihat dan kelola foto profil' : 'Pilih foto profil');
+    tombol.title = src ? 'Lihat dan kelola foto profil' : 'Pilih foto profil';
+    if (src) { var im = el('img', { src: src, alt: '', decoding: 'async' }); im.addEventListener('error', function () { tombol.textContent = inisial || 'K'; tombol.classList.remove('has-photo'); }); tombol.appendChild(im); }
+    else tombol.textContent = inisial || 'K';
+  }
+  gambar(fotoProfilTersimpan());
+  tombol.addEventListener('click', function () {
+    var src = fotoProfilTersimpan();
+    if (!src) { input.click(); return; }
+    var pratinjau = el('img', { src: src, alt: 'Foto profil karyawan', style: 'display:block;width:min(100%,420px);max-height:65vh;object-fit:contain;margin:0 auto;border-radius:12px' });
+    bukaModal('Foto Profil', [pratinjau], [
+      { teks: 'Ubah Foto', kelas: 'primary', klik: function (t) { t(); input.click(); } },
+      { teks: 'Hapus Foto', kelas: 'bahaya', klik: async function (t) {
+        t();
+        var setuju = await konfirmasi('Hapus foto profil?', 'Foto profil akan dihapus.', 'Hapus', true);
+        if (!setuju) return;
+        try {
+          var hasilHapus = await api('karyawanFotoProfilHapus');
+          S.profilPromise = null; FOTO_PROFIL_SERVER = ''; tampilkanFotoProfil('');
+          toast(hasilHapus.pesan || 'Foto profil dihapus.');
+          renderProfilSendiri();
+        } catch (e) { toast(pesanError(e)); }
+      } },
+      { teks: 'Tutup', klik: function (t) { t(); } }
+    ]);
+  });
+  input.addEventListener('change', async function () {
+    var file = input.files && input.files[0];
+    if (!file) return;
+    if (!fileGambarValid(file)) { toast('Pilih foto JPG, PNG, WEBP, atau GIF.'); input.value = ''; return; }
+    try {
+      tombol.disabled = true; toast('Menyimpan foto profil…', 'info');
+      var hasil = await kompresFoto(file, null, 640);
+      var tersimpan = await api('karyawanFotoProfilSimpan', { foto: hasil });
+      FOTO_PROFIL_SERVER = tersimpan.fotoProfilData || hasil.data; S.profilPromise = null;
+      gambar(FOTO_PROFIL_SERVER);
+      tampilkanFotoProfil(FOTO_PROFIL_SERVER);
+      tombol.disabled = false; toast('Foto profil berhasil diterapkan :)');
+    } catch (e) {
+      tombol.disabled = false; toast(pesanError(e) || 'Foto profil gagal disimpan.', 'error');
+    }
+    input.value = '';
+  });
+  kontrol.appendChild(tombol);
+  kontrol.appendChild(input);
+  return kontrol;
+}
+function renderBeranda() {
+  var isi = $('isi');
+  isi.innerHTML = '';
+  var namaAwal = String((S.karyawan && S.karyawan.nama) || 'Karyawan').trim();
+  var inisialAwal = namaAwal.split(/\s+/).filter(Boolean).slice(0, 2).map(function (x) { return x.charAt(0); }).join('').toUpperCase() || 'K';
+  var waktu = new Date();
+  var hari = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+  var bulan = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+  var tanggal = hari[waktu.getDay()] + ', ' + waktu.getDate() + ' ' + bulan[waktu.getMonth()] + ' ' + waktu.getFullYear();
+  var kartuProfil = el('button', { type: 'button', class: 'beranda-profile', 'aria-label': 'Buka Profil Karyawan' });
+  var foto = el('span', { class: 'beranda-profile-photo', id: 'berandaFoto' });
+  function pasangFoto(src, inisial) {
+    foto.innerHTML = '';
+    if (src) {
+      var img = el('img', { src: src, alt: 'Foto profil ' + (namaAwal || 'karyawan'), decoding: 'async' });
+      img.addEventListener('error', function () { foto.textContent = inisial || inisialAwal; });
+      foto.appendChild(img);
+    } else foto.textContent = inisial || inisialAwal;
+  }
+  pasangFoto(fotoProfilTersimpan(), inisialAwal);
+  kartuProfil.appendChild(foto);
+  kartuProfil.appendChild(el('span', { class: 'beranda-profile-meta' }, [
+    el('strong', { id: 'berandaNama', text: namaAwal }),
+    el('span', { id: 'berandaProfilSub', text: 'Lihat profil dan data pribadi  ↗' })
+  ]));
+  kartuProfil.addEventListener('click', function () { pilih('profil'); });
+  var welcome = el('section', { class: 'beranda-welcome' }, [
+    el('div', null, [el('h2', { text: 'Halo, ' + namaAwal + ' 👋' }),
+      el('p', { text: 'Selamat datang kembali di portal karyawan.' }),
+      el('p', { style: 'margin-top:8px;font-size:12px;font-weight:800', text: tanggal })]),
+    kartuProfil
+  ]);
+  isi.appendChild(welcome);
+  isi.appendChild(el('div', { class: 'beranda-section-title' }, [el('h3', { text: 'Menu Utama' }), el('p', { text: 'Pilih menu untuk melanjutkan' })]));
+  var grid = el('div', { class: 'beranda-menu-grid' });
+  var itemBeranda = [
+    {id:'absensi',n:'Absensi',k:'Riwayat kehadiran dan dinas luar',c:'#D9EBDD'},
+    {id:'lembur',n:'Lembur',k:'Data dan riwayat lembur',c:'#F5EDC7'},
+    {id:'rekapan',n:'Rekapan',k:'Ringkasan kerja dan slip',c:'#D8ECE8'},
+    {id:'disiplin',n:'Disiplin',k:'Catatan dan riwayat disiplin',c:'#F5E4D5'},
+    {id:'sop',n:'SOP',k:'Prosedur dan panduan kerja',c:'#E8E0F5'},
+    {id:'karyawan',n:'Data Karyawan',k:'Lihat direktori karyawan',c:'#D8E7F3'}
+  ];
+  itemBeranda.forEach(function (m) {
+    var h = hakDari(m.id);
+    if (!h || !h.lihat) return;
+    var tombol = el('button', { type: 'button', class: 'beranda-menu-card', 'data-menu-id': m.id, style: '--menu-accent:' + m.c });
+    tombol.appendChild(el('span', { class: 'beranda-menu-icon' }, [ikon(IKON[m.id] || IKON.profil)]));
+    tombol.appendChild(el('span', { class: 'beranda-menu-copy' }, [el('strong', { text: m.n }), el('span', { text: m.k })]));
+    tombol.appendChild(el('span', { class: 'beranda-menu-arrow', 'aria-hidden': 'true', text: '↗' }));
+    tombol.addEventListener('click', function () { pilih(m.id); });
+    grid.appendChild(tombol);
+  });
+  isi.appendChild(grid);
+  // Profil dari backend menjadi sumber nama dan foto, sama dengan halaman Data Pribadi.
+  ambilProfil().then(function (r) {
+    if (!r || !r.ok) return;
+    var p = r.profil || {};
+    var nama = String(p.nama || namaAwal).trim();
+    var inisial = nama.split(/\s+/).filter(Boolean).slice(0,2).map(function(x){return x.charAt(0);}).join('').toUpperCase() || 'K';
+    if ($('berandaNama')) $('berandaNama').textContent = nama;
+    var judul = isi.querySelector('.beranda-welcome h2');
+    if (judul) judul.textContent = 'Halo, ' + nama + ' 👋';
+    if ($('berandaProfilSub')) $('berandaProfilSub').textContent = (p.divisi || 'Karyawan') + ' · Lihat profil ↗';
+    if (r.fotoProfilData) FOTO_PROFIL_SERVER = r.fotoProfilData;
+    pasangFoto(FOTO_PROFIL_SERVER, inisial);
+  }).catch(function () {});
+}
+
+function renderProfilSendiri() {
+  var isi = halaman('Profil Karyawan');
+  var keteranganProfil = el('p', { class: 'sub profile-footnote', text: 'Informasi profil dan data pribadi Anda. Perubahan data dilakukan oleh HRD.' });
+  var kotak = el('div', { class: 'info loading', text: 'Memuat data pribadi' });
+  isi.appendChild(kotak);
+  ambilProfil().then(function (r) {
+    var p = r.profil || {};
+    FOTO_PROFIL_SERVER = r.fotoProfilData || '';
+    tampilkanFotoProfil(FOTO_PROFIL_SERVER);
+    kotak.remove();
+    var inisial = String(p.nama || 'K').split(/\s+/).filter(Boolean).slice(0, 2).map(function (x) { return x.charAt(0); }).join('').toUpperCase();
+    var fotoKontrol = kontrolFotoProfil(inisial);
+    var namaProfil = el('div', { class: 'pf-identity-name' }, [
+      el('h4', { text: p.nama || 'Nama belum tersedia' }),
+      el('span', { class: 'chip', text: p.divisi || 'Tanpa divisi' }), ' ',
+      el('span', { class: 'chip', text: p.jabatan || 'Jabatan belum diisi' }),
+      p.kategori ? el('span', { class: 'chip', text: 'Tenaga penugasan · ' + p.kategori }) : null
+    ]);
+    var top = el('div', { class: 'pf-top', style: 'margin-bottom:16px' }, [fotoKontrol, namaProfil]);
+    function bagian(judul, fields, pakaiTop) {
+      var dl = el('dl', { class: 'pf' });
+      fields.forEach(function (f) { dl.appendChild(el('div', f[2] ? { class: 'lebar' } : null, [el('dt', { text: f[0] }), el('dd', { text: f[1] === 0 ? '0' : String(f[1] || '—') })])); });
+      isi.appendChild(panelEl(judul, pakaiTop ? el('span', { class: 'status ok', text: p.status || '?' }) : null, [el('div', { class: 'pad' }, [pakaiTop ? top : null, dl])]));
+    }
+    bagian('Data Karyawan', (p.kategori ? [['Nomor absen', p.noAbsen], ['Kategori penugasan', p.kategori], ['Status kerja', p.status], ['Divisi / lokasi', p.divisi], ['Jabatan', p.jabatan], ['Skema HK', p.kategori === 'Rental' ? (p.skemaHK === 'DIBAYAR' ? 'Dibayar sesuai kehadiran' : 'Tidak dibayar') : 'Mengikuti aturan upah kategori']] : [['NIP / ID', p.nip], ['Nomor absen', p.noAbsen], ['Jenis kelamin', p.jk === 'L' ? 'Laki-laki' : (p.jk === 'P' ? 'Perempuan' : p.jk)], ['Jabatan', p.jabatan], ['Status kerja', p.status], ['Tanggal masuk', p.tglMasuk ? dmy(p.tglMasuk) : '']]), true);
+    if (!p.kategori) bagian('Data Pribadi', [['NIK', p.nik], ['Tempat lahir', p.tempatLahir], ['Tanggal lahir', p.tglLahir ? dmy(p.tglLahir) : ''], ['Nomor HP', p.noHp], ['Status BPJS / Ketenagakerjaan', p.kTk, true]], false);
+    isi.appendChild(keteranganProfil);
+  }).catch(function (e) { if (pesanError(e) !== 'SESI_HABIS' && pesanError(e) !== 'PERMINTAAN_DIBATALKAN') { kotak.className = 'alert'; kotak.textContent = pesanError(e) + ' '; kotak.appendChild(btn('Coba lagi', 'kecil', function () { S.profilPromise = null; renderProfilSendiri(); })); isi.appendChild(keteranganProfil); } });
+}
+
+function renderDirektori() {
+  var hak = hakDari('karyawan');
+  if (!hak || !hak.lihat) { toast('Menu Data Karyawan belum diizinkan oleh admin.'); return; }
+  var semua = hak.cakupan === 'semua';
+  var lihatDivisi = hak.cakupan === 'divisi';
+  var infoCakupan = semua ? 'Semua karyawan'
+    : (lihatDivisi ? ('Divisi: ' + (hak.divisi && hak.divisi.length ? hak.divisi.join(', ') : 'divisi Anda sendiri'))
+    : 'Data Anda sendiri');
+  var isi = halaman('Data Karyawan', 'Direktori karyawan sesuai hak akses akun Anda (' + infoCakupan + ').');
+  var daftar = [];
+  var bisaEdit = bolehEdit('karyawan');
+  var cari = (semua || lihatDivisi) ? el('input', { type: 'search', placeholder: 'Cari nama, divisi, NIP, atau kategori', 'aria-label': 'Cari data karyawan' }) : null;
+  var count = el('p', { class: 'hitung loading', text: 'Memuat direktori' }), kotak = el('div');
+  isi.appendChild(el('div', { class: 'toolbar' }, [cari, btn('Muat ulang', '', muat)]));
+  isi.appendChild(count); isi.appendChild(kotak);
+  function barisAksi(r) {
+    var aksi = el('div', { class: 'baris-aksi direktori-actions' });
+    function tombolAksi(label, kelas, ikonIsi, aksiKlik) {
+      var b = btn('', 'kecil ' + kelas, aksiKlik);
+      b.setAttribute('aria-label', label);
+      b.title = label;
+      b.appendChild(ikon(ikonIsi));
+      b.appendChild(el('span', { class: 'direktori-action-label', text: label }));
+      aksi.appendChild(b);
+    }
+    tombolAksi('Detail', 'aksi-detail', '<circle cx="11" cy="11" r="7"/><path d="m20 20-4-4M11 8v.01M11 11v4"/>', function () { bukaDetailDirektoriAman(r); });
+    tombolAksi('Cetak', 'aksi-cetak', '<path d="M7 8V3h10v5M7 17H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2"/><path d="M7 14h10v7H7zM17 11h.01"/>', function () { cetakProfil(r); });
+    if (bisaEdit) {
+      var bisaEditIni = r.sumber !== 'penugasan' && (semua || lihatDivisi || (S.karyawan && S.karyawan.id === r.id));
+      if (bisaEditIni) tombolAksi('Edit', 'aksi-edit', '<path d="m15 5 4 4M4 20l4-.8L19 8a2.8 2.8 0 0 0-4-4L4 15z"/>', function () { editDirektori(r); });
+    }
+    return aksi;
+  }
+  function kunciFotoDirektori(r) {
+    var identitas = idFotoKaryawan(r) || 'akun';
+    return 'hrd_avatar_karyawan_' + String(identitas).replace(/[^a-zA-Z0-9_-]/g, '_');
+  }
+  function kartuNamaDirektori(r) {
+    var kotakNama = el('div', { class: 'direktori-name-cell' });
+    var avatar = el('span', { class: 'direktori-row-avatar', 'aria-hidden': 'true' });
+    var src = fotoServerKaryawan(r);
+    if (!src) {
+      try { src = localStorage.getItem(kunciFotoDirektori(r)) || ''; } catch (e) {}
+    }
+    if (src) avatar.appendChild(el('img', { src: src, alt: '' }));
+    else avatar.textContent = String(r.nama || 'K').trim().charAt(0).toUpperCase() || 'K';
+    var teks = el('div', { class: 'direktori-name-text' }, [
+      el('strong', { text: r.nama || 'Nama belum tersedia' }),
+      el('span', { class: 'sub2', text: (r.divisi || 'Tanpa divisi') + (r.kategori ? ' · ' + r.kategori : '') })
+    ]);
+    kotakNama.appendChild(avatar);
+    kotakNama.appendChild(teks);
+    return kotakNama;
+  }
+  function gambar() {
+    count.classList.remove('loading');
+    var q = cari ? cari.value.trim().toLowerCase() : '';
+    var rows = daftar.filter(function (r) { return !q || ['nama', 'divisi', 'nip', 'status', 'kategori'].some(function (k) { return String(r[k] || '').toLowerCase().indexOf(q) >= 0; }); });
+    count.textContent = 'Menampilkan ' + rows.length + ' dari ' + daftar.length + ' orang' + (bisaEdit ? ' · perubahan perlu persetujuan admin' : '');
+    kotak.innerHTML = ''; kotak.className = '';
+    if (!rows.length) { kotak.className = 'kosong'; kotak.textContent = daftar.length ? 'Tidak ada data yang cocok dengan pencarian.' : 'Tidak ada data yang dapat ditampilkan.'; return; }
+    kotak.appendChild(tabel(['Nama karyawan', 'NIP', 'Status', 'Tindakan'], rows.map(function (r) {
+      return [kartuNamaDirektori(r), r.nip, r.status, barisAksi(r)];
+    })));
+    Array.prototype.forEach.call(kotak.querySelectorAll('.tbl tbody tr'), function (tr, i) {
+      tr.classList.add('karyawan-row');
+      var selTindakan = tr.querySelector('td:last-child');
+      if (selTindakan) {
+        selTindakan.classList.add('direktori-action-cell');
+        selTindakan.addEventListener('click', function (e) { e.stopPropagation(); });
+        selTindakan.addEventListener('pointerenter', function () { tr.classList.add('action-hover'); });
+        selTindakan.addEventListener('pointerleave', function () { tr.classList.remove('action-hover'); });
+      }
+      tr.addEventListener('click', function (e) {
+        if (e.target.closest('.direktori-action-cell, button')) return;
+        bukaDetailDirektoriAman(rows[i]);
+      });
+    });
+  }
+  async function muat() {
+    try {
+      var r = await api('karyawanDirektori');
+      daftar = r.data || [];
+      FOTO_DIREKTORI_SERVER = Object.create(null);
+      var fotoPerId = r.fotoProfilById || r.fotoById || r.avatarById || r.fotoProfilData || {};
+      if (fotoPerId && typeof fotoPerId === 'object' && !Array.isArray(fotoPerId)) {
+        Object.keys(fotoPerId).forEach(function (id) {
+          var foto = nilaiFotoKaryawan(fotoPerId[id]);
+          if (foto) FOTO_DIREKTORI_SERVER[kunciIdFotoKaryawan(id)] = foto;
+        });
+      }
+      daftar.forEach(function (karyawan) {
+        var foto = nilaiFotoKaryawan(
+          karyawan.fotoProfilData || karyawan.fotoProfil || karyawan.foto || karyawan.avatar
+        );
+        if (foto) daftarIdFotoKaryawan(karyawan).forEach(function (id) {
+          FOTO_DIREKTORI_SERVER[kunciIdFotoKaryawan(id)] = foto;
+        });
+      });
+      gambar();
+    } catch (e) { if (pesanError(e) !== 'SESI_HABIS' && pesanError(e) !== 'PERMINTAAN_DIBATALKAN') { kotak.className = 'alert'; kotak.textContent = pesanError(e); } }
+  }
+  if (cari) cari.addEventListener('input', gambar);
+  muat();
+}
+
+function editDirektori(r) {
+  var f = {
+    nama: el('input', { type: 'text', value: r.nama || '' }),
+    nip: el('input', { type: 'text', value: r.nip || '' }),
+    noAbsen: el('input', { type: 'text', value: r.noAbsen || '' }),
+    jk: el('select'),
+    divisi: el('input', { type: 'text', value: r.divisi || '' }),
+    jabatan: el('input', { type: 'text', value: r.jabatan || '' }),
+    status: el('input', { type: 'text', value: r.status || '' }),
+    tglMasuk: el('input', { type: 'date', value: r.tglMasuk || '' }),
+    keterangan: el('textarea', { rows: '3', value: r.keterangan || '' })
+  };
+  ['', 'L', 'P'].forEach(function (v) { f.jk.appendChild(el('option', { value: v, text: v || 'Belum diisi' })); });
+  f.jk.value = r.jk || '';
+  var err = el('div', { class: 'alert hidden', role: 'alert' });
+  var info = el('div', { class: 'info', text: 'Perubahan akan diajukan ke admin. Data tidak langsung berubah sampai disetujui.' });
+  bukaModal('Ajukan Perubahan Data Karyawan', [
+    el('div', { class: 'pf-top' }, [
+      el('div', { class: 'avatar', text: String(r.nama || 'K').trim().charAt(0).toUpperCase() }),
+      el('div', null, [el('h4', { text: r.nama || 'Karyawan' }), el('span', { class: 'chip', text: r.divisi || 'Tanpa divisi' })])
+    ]),
+    info,
+    el('div', { class: 'grid2' }, [fieldEl('Nama lengkap', f.nama), fieldEl('NIP', f.nip)]),
+    el('div', { class: 'grid2' }, [fieldEl('No. absen', f.noAbsen), fieldEl('Jenis kelamin', f.jk)]),
+    el('div', { class: 'grid2' }, [fieldEl('Divisi', f.divisi), fieldEl('Jabatan', f.jabatan)]),
+    el('div', { class: 'grid2' }, [fieldEl('Status kerja', f.status), fieldEl('Tanggal masuk', f.tglMasuk)]),
+    fieldEl('Keterangan', f.keterangan),
+    err
+  ], [
+    { teks: 'Batal', klik: function (t) { t(); } },
+    { teks: 'Ajukan', kelas: 'primary', klik: async function (t, b) {
+      b.disabled = true; b.textContent = 'Mengirim...';
+      try {
+        var data = {
+          nama: f.nama.value, nip: f.nip.value, noAbsen: f.noAbsen.value,
+          jk: f.jk.value, divisi: f.divisi.value, jabatan: f.jabatan.value,
+          status: f.status.value, tglMasuk: f.tglMasuk.value, keterangan: f.keterangan.value
+        };
+        var res = await api('karyawanDirektoriEdit', { id: r.id, data: data });
+        toast('Pengajuan terkirim: ' + res.idPengajuan + '. Menunggu persetujuan admin.');
+        t();
+      } catch (e) { err.textContent = pesanError(e); err.classList.remove('hidden'); }
+      finally { b.disabled = false; b.textContent = 'Ajukan'; }
+    } }
+  ]).box.classList.add('lebar');
+}
+
+function bukaZoomFotoDirektori(src, nama) {
+  if (!src) { toast('Foto profil karyawan belum tersedia.'); return; }
+  var overlay = el('div', { class: 'foto-profil-zoom-overlay', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Foto profil ' + nama });
+  var dialog = el('div', { class: 'foto-profil-zoom-dialog' });
+  var img = el('img', { class: 'foto-profil-zoom-img', src: src, alt: 'Foto profil ' + nama });
+  var caption = el('div', { class: 'foto-profil-zoom-caption', text: nama });
+  var close = el('button', { type: 'button', class: 'foto-profil-zoom-close', 'aria-label': 'Tutup foto', title: 'Tutup', text: '×' });
+  function tutup() {
+    if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+    document.removeEventListener('keydown', tombolEsc);
+  }
+  function tombolEsc(e) { if (e.key === 'Escape') tutup(); }
+  close.addEventListener('click', tutup);
+  overlay.addEventListener('click', function (e) { if (e.target === overlay) tutup(); });
+  dialog.addEventListener('click', function (e) { e.stopPropagation(); });
+  dialog.appendChild(close); dialog.appendChild(img); dialog.appendChild(caption); overlay.appendChild(dialog);
+  document.body.appendChild(overlay);
+  document.addEventListener('keydown', tombolEsc);
+  close.focus();
+}
+
+// Empat field terbatas hanya terlihat jika akun memiliki hak edit menu Data Karyawan
+// dan karyawan yang dibuka masih berstatus aktif.
+function bolehLihatFieldTerbatasDirektori(r) {
+  return !!r && r.sumber !== 'penugasan' && bolehEdit('karyawan') && !karyawanNonaktifPabrik(r);
+}
+function detailDirektori(r) {
+  var tampilkanFieldTerbatas = bolehLihatFieldTerbatasDirektori(r);
+  var nama = String(r.nama || 'Nama belum tersedia');
+  var inisial = nama.trim().split(/\s+/).filter(Boolean).slice(0, 2).map(function (x) { return x.charAt(0); }).join('').toUpperCase();
+  var sumberFoto = fotoServerKaryawan(r);
+  var identitasFoto = idFotoKaryawan(r) || 'akun';
+  var kunciFoto = 'hrd_avatar_karyawan_' + String(identitasFoto).replace(/[^a-zA-Z0-9_-]/g, '_');
+  var fotoLokal = '';
+  try { fotoLokal = localStorage.getItem(kunciFoto) || ''; } catch (e) {}
+  var foto = sumberFoto || fotoLokal;
+  var avatar = el('div', { class: 'avatar foto-direktori-klik', tabindex: '0', role: 'button', 'aria-label': 'Perbesar foto profil ' + nama, title: 'Klik untuk memperbesar foto', style: 'width:76px;height:76px;overflow:hidden;padding:0' });
+  function tampilFoto(src) {
+    avatar.innerHTML = '';
+    if (src) avatar.appendChild(el('img', { src: src, alt: 'Foto profil ' + nama, style: 'width:100%;height:100%;object-fit:cover;border-radius:inherit' }));
+    else avatar.textContent = inisial || 'K';
+    avatar.setAttribute('aria-label', src ? 'Perbesar foto profil ' + nama : 'Foto profil ' + nama + ' belum tersedia');
+    avatar.title = src ? 'Klik untuk memperbesar foto' : 'Foto profil belum tersedia';
+  }
+  tampilFoto(foto);
+  avatar.addEventListener('click', function () { bukaZoomFotoDirektori(foto, nama); });
+  avatar.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); bukaZoomFotoDirektori(foto, nama); }
+  });
+  var dl = el('dl', { class: 'pf' });
+  var fieldsDetail = [['NIP / ID', r.nip], ['Divisi', r.divisi], ['Jabatan', r.jabatan],
+    ['Jenis kelamin', r.jk === 'L' ? 'Laki-laki' : (r.jk === 'P' ? 'Perempuan' : r.jk)], ['Status kerja', r.status],
+    ['Status di pabrik', karyawanNonaktifPabrik(r) ? 'Nonaktif' : 'Aktif'], ['Tanggal masuk', r.tglMasuk ? dmy(r.tglMasuk) : ''],
+    ['Lama kerja', lamaKerja(r.tglMasuk, karyawanNonaktifPabrik(r) ? r.tglNonaktif : '')], ['Keterangan', r.keterangan]];
+  if (r.sumber === 'penugasan') {
+    fieldsDetail = fieldsDetail.filter(function (f) { return f[0] !== 'Tanggal masuk' && f[0] !== 'Lama kerja'; });
+    fieldsDetail.splice(0, 0, ['Kategori tenaga', r.kategori]);
+    fieldsDetail.splice(6, 0,
+      ['Tanggal mulai penugasan', r.tglMulai ? dmy(r.tglMulai) : ''],
+      ['Tanggal selesai penugasan', r.tglSelesai ? dmy(r.tglSelesai) : '']);
+  }
+  if (tampilkanFieldTerbatas) {
+    fieldsDetail.splice(1, 0, ['Nomor absen', r.noAbsen]);
+    fieldsDetail.splice(fieldsDetail.length - 1, 0,
+      ['Tanggal nonaktif', r.tglNonaktif ? dmy(r.tglNonaktif) : ''],
+      ['Alasan nonaktif', r.alasan], ['Tujuan', r.tujuan]);
+  }
+  var judulDisembunyikan = ['Tanggal nonaktif', 'Alasan nonaktif', 'Tujuan'];
+  fieldsDetail = fieldsDetail.filter(function (f) { return judulDisembunyikan.indexOf(f[0]) < 0; });
+  fieldsDetail.forEach(function (f) { dl.appendChild(el('div', null, [el('dt', { text: f[0] }), el('dd', { text: String(f[1] || '') })])); });
+  bukaModal('Detail Karyawan', [
+    el('div', { class: 'pf-top' }, [avatar, el('div', { class: 'pf-identity-name' }, [el('h4', { text: nama }), el('span', { class: 'chip', text: r.divisi || 'Tanpa divisi' })])]),
+    el('p', { class: 'sub2', text: 'Data pribadi sensitif (NIK, tanggal lahir, nomor HP) tidak ditampilkan.' }), dl
+  ], [{ teks: 'Tutup', kelas: 'primary', klik: function (t) { t(); } }]).box.classList.add('lebar');
+}
+function bukaDetailDirektoriAman(r) {
+  try {
+    detailDirektori(r);
+  } catch (e) {
+    var data = r || {};
+    var fields = [
+      ['Nama lengkap', data.nama], ['NIP / ID', data.nip],
+      ['Divisi', data.divisi], ['Jabatan', data.jabatan], ['Status kerja', data.status],
+      ['Tanggal masuk', data.tglMasuk ? dmy(data.tglMasuk) : ''], ['Keterangan', data.keterangan]
+    ];
+    if (bolehLihatFieldTerbatasDirektori(data)) fields.splice(2, 0, ['Nomor absen', data.noAbsen]);
+    var daftar = el('dl', { class: 'pf' });
+    fields.forEach(function (f) {
+      daftar.appendChild(el('div', null, [el('dt', { text: f[0] }), el('dd', { text: String(f[1] || '?') })]));
+    });
+    bukaModal('Detail Karyawan', [daftar], [
+      { teks: 'Tutup', kelas: 'primary', klik: function (t) { t(); } }
+    ]).box.classList.add('lebar');
+    toast('Detail dibuka dengan tampilan ringkas karena sebagian data tidak dapat dimuat.');
+  }
+}
+function cetakProfil(r) {
+  var w = window.open('', '_blank', 'width=800,height=700');
+  if (!w) { toast('Izinkan pop-up untuk mencetak profil karyawan.'); return; }
+  var tampilkanFieldTerbatas = bolehLihatFieldTerbatasDirektori(r);
+  var fields = [['Nama lengkap', r.nama], ['NIP / ID', r.nip], ['Divisi', r.divisi], ['Jabatan', r.jabatan],
+    ['Jenis kelamin', r.jk === 'L' ? 'Laki-laki' : (r.jk === 'P' ? 'Perempuan' : r.jk)], ['Status kerja', r.status],
+    ['Status di pabrik', karyawanNonaktifPabrik(r) ? 'Nonaktif' : 'Aktif'], ['Tanggal masuk', r.tglMasuk ? dmy(r.tglMasuk) : ''],
+    ['Lama kerja', lamaKerja(r.tglMasuk, karyawanNonaktifPabrik(r) ? r.tglNonaktif : '')], ['Keterangan', r.keterangan]];
+  if (r.sumber === 'penugasan') {
+    fields = fields.filter(function (f) { return f[0] !== 'Tanggal masuk' && f[0] !== 'Lama kerja'; });
+    fields.splice(1, 0, ['Kategori tenaga', r.kategori]);
+    fields.splice(7, 0,
+      ['Tanggal mulai penugasan', r.tglMulai ? dmy(r.tglMulai) : ''],
+      ['Tanggal selesai penugasan', r.tglSelesai ? dmy(r.tglSelesai) : '']);
+  }
+  if (tampilkanFieldTerbatas) {
+    fields.splice(2, 0, ['Nomor absen', r.noAbsen]);
+    fields.splice(fields.length - 1, 0,
+      ['Tanggal nonaktif', r.tglNonaktif ? dmy(r.tglNonaktif) : ''],
+      ['Alasan nonaktif', r.alasan], ['Tujuan', r.tujuan]);
+  }
+  var trs = fields.map(function (f) { return '<tr><th>' + esc(f[0]) + '</th><td>' + esc(f[1]) + '</td></tr>'; }).join('');
+  w.document.open();
+  w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Profil Karyawan</title><style>body{font:14px system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#222;margin:32px}h1{font-size:21px;margin-bottom:4px}p{color:#555}table{width:100%;border-collapse:collapse;margin-top:24px}th,td{border:1px solid #bbb;padding:10px;text-align:left}th{width:32%;background:#f1f4f6}</style></head><body><h1>PROFIL KARYAWAN</h1><p>PT Raja Palma — Portal Karyawan</p><table>' + trs + '</table><p style="margin-top:30px;font-size:11px">Dicetak pada ' + esc(new Date().toLocaleString('id-ID')) + '</p></body></html>');
+  w.document.close(); w.focus();
+  setTimeout(function () { w.print(); }, 300);
+}
+
+var absTabK = 'cek';
+var absHomeK = true;
+function renderAbsensiKaryawan() {
+  var hak = hakDari('absensi');
+  if (!hak.tambah) absTabK = 'cek';
+  if (absHomeK) {
+    var isiHome = halaman('Absensi', 'Pilih fitur absensi yang ingin dibuka.');
+    var pilihan = el('div', { class: 'abs-home-grid' });
+    pilihan.appendChild(kartuPilihanAbsensi('Cek Absensi', 'Lihat riwayat kehadiran dan lembur milik Anda.', 'cek', IKON.absensi, function () { absTabK = 'cek'; absHomeK = false; renderAbsensiKaryawan(); }));
+    if (hak.tambah) pilihan.appendChild(kartuPilihanAbsensi('Input Absensi', 'Catat kehadiran dinas luar dengan foto bukti.', 'input', IKON.kamera, function () { absTabK = 'dinas'; absHomeK = false; renderAbsensiKaryawan(); }));
+    isiHome.appendChild(pilihan);
+    return;
+  }
+  var isi = halaman('Absensi', 'Periksa riwayat kehadiran' + (hak.tambah ? ' atau catat absensi dinas luar.' : ' pribadi Anda.'));
+  if (hak.tambah) {
+    var tabs = el('div', { class: 'tabs' });
+    [['cek', 'Cek Absensi'], ['dinas', 'Absen Dinas Luar']].forEach(function (t) {
+      tabs.appendChild(btn(t[1], absTabK === t[0] ? 'primary' : '', function () { absTabK = t[0]; renderAbsensiKaryawan(); }));
+    });
+    isi.appendChild(tabs);
+  }
+  if (absTabK === 'dinas') absDinasKaryawan(isi); else absCekKaryawan(isi);
+}
+// Libur nasional & cuti bersama 2026 (SKB 3 Menteri). Tambah/ubah tanggal di sini bila ada perubahan atau tahun baru.
+var LIBUR_NASIONAL = {'2026-01-01':'Tahun Baru Masehi','2026-01-16':'Isra Mikraj','2026-02-17':'Tahun Baru Imlek','2026-03-19':'Hari Suci Nyepi','2026-03-21':'Idul Fitri 1447 H','2026-03-22':'Idul Fitri 1447 H','2026-04-03':'Wafat Yesus Kristus','2026-04-05':'Paskah','2026-05-01':'Hari Buruh','2026-05-14':'Kenaikan Yesus Kristus','2026-05-27':'Idul Adha','2026-05-31':'Hari Raya Waisak','2026-06-01':'Hari Lahir Pancasila','2026-06-16':'Tahun Baru Islam 1448 H','2026-08-17':'Hari Kemerdekaan RI','2026-08-25':'Maulid Nabi','2026-12-25':'Hari Raya Natal'};
+var CUTI_BERSAMA = {'2026-02-16':'Cuti Bersama Imlek','2026-03-18':'Cuti Bersama Nyepi','2026-03-20':'Cuti Bersama Idul Fitri','2026-03-23':'Cuti Bersama Idul Fitri','2026-03-24':'Cuti Bersama Idul Fitri','2026-05-15':'Cuti Bersama Kenaikan Yesus Kristus','2026-05-28':'Cuti Bersama Idul Adha','2026-12-24':'Cuti Bersama Natal'};
+function absCekKaryawan(isi) {
+  var hak = hakDari('absensi'), lintas = hak.cakupan === 'semua' || hak.cakupan === 'divisi';
+  var now = new Date(), bulan = new Date(now.getFullYear(), now.getMonth(), 1);
+  var data = [], dipilih = '', akhirDipilih = '', cache = {}, cacheBulanPenuh = {}, reqId = 0;
+  var muatAwal = true, rentangAwal = null;
+  var idxAktif = {}, kalenderBulanRender = '', kalenderDataRender = null;
+  var lemburIdx = null, lemburMuat = false, bisaLihatLembur = !!hakDari('lembur').lihat;
+  var BLN = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+  var cari = el('input', { type: 'search', placeholder: 'Cari nama atau nomor absen pada tanggal ini…', 'aria-label': 'Cari nama atau nomor absen pada tanggal ini' });
+  var cariTimer = null;
+  var judul = el('strong', { class: 'abs-kal-month' });
+  var grid = el('div', { class: 'abs-kal-grid', role: 'grid', 'aria-label': 'Kalender absensi bulanan' });
+  var detail = el('section', { class: 'abs-kal-detail hidden' });
+  var stat = el('div', { class: 'abs-kal-stats' });
+  var loading = el('div', { class: 'info loading', text: 'Memuat data absensi…' });
+  var bar = el('div', { class: 'abs-kal-toolbar hidden' }, [cari]);
+  var prev = btn('‹', 'abs-kal-nav', function () { geser(-1); });
+  var next = btn('›', 'abs-kal-nav', function () { geser(1); });
+  prev.setAttribute('aria-label', 'Bulan sebelumnya'); next.setAttribute('aria-label', 'Bulan berikutnya');
+  var kini = btn('Bulan ini', 'kecil', function () { bulan = new Date(now.getFullYear(), now.getMonth(), 1); muat(); });
+  var head = el('div', { class: 'abs-kal-head' }, [prev, el('div', { class: 'abs-kal-title' }, [judul, kini]), next]);
+  var minggu = el('div', { class: 'abs-kal-week' });
+  ['Min','Sen','Sel','Rab','Kam','Jum','Sab'].forEach(function (h) { minggu.appendChild(el('span', { text: h })); });
+  var info = el('p', { class: 'sub2 abs-kal-info', text: hak.cakupan === 'semua' ? 'Menampilkan data absensi seluruh karyawan sesuai hak akses Anda.' : (hak.cakupan === 'divisi' ? 'Menampilkan data absensi divisi yang diizinkan untuk akun Anda.' : 'Menampilkan riwayat absensi pribadi berdasarkan nomor absen akun Anda.') });
+  var wadah = el('div', { class: 'abs-kal-wrap' }, [head, stat, minggu, grid, info, bar, detail]);
+  isi.appendChild(wadah); isi.appendChild(loading);
+
+  function ym(d) { return d.getFullYear() + '-' + p2(d.getMonth() + 1); }
+  function geser(n) { bulan = new Date(bulan.getFullYear(), bulan.getMonth() + n, 1); muat(); }
+  function kategori(x) {
+    var s = String(x.status || '').toLowerCase(), g = s + ' ' + String(x.keterangan || '').toLowerCase();
+    if (/dinas\s*luar|luar\s*dinas/.test(g)) return 'dinas';
+    if (/izin|sakit|cuti/.test(g)) return 'izin';
+    if (/alpa|alpha|tanpa keterangan|tidak hadir/.test(g)) return 'alpa';
+    if (/anomali|belum lengkap|tidak lengkap|scan kurang|belum scan/.test(g)) return 'anomali';
+    if (x.jamMasuk || x.jamPulang || /hadir|masuk|pulang/.test(s)) return 'hadir';
+    return 'anomali';
+  }
+  var LBL = { hadir: 'Hadir', izin: 'Izin / Sakit', dinas: 'Dinas luar', alpa: 'Alpa', anomali: 'Anomali / belum lengkap' };
+  function tglISO(v) {
+    var t = String(v || '').trim();
+    if (/^\d{4}-\d{2}-\d{2}/.test(t)) return t.slice(0, 10);
+    var m = t.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})$/);
+    return m ? m[3] + '-' + p2(m[2]) + '-' + p2(m[1]) : t.slice(0, 10);
+  }
+  function tglTeks(iso) { var a = iso.split('-'); return Number(a[2]) + ' ' + (BLN[Number(a[1]) - 1] || a[1]) + ' ' + a[0]; }
+  function ketLibur(t) { return LIBUR_NASIONAL[t] || CUTI_BERSAMA[t] || ''; }
+  function batasDipilih() { return !dipilih ? null : (dipilih <= akhirDipilih ? [dipilih, akhirDipilih] : [akhirDipilih, dipilih]); }
+  function dalamRentang(t, batas) { return !!batas && t >= batas[0] && t <= batas[1]; }
+  function kunciLembur(v) { return String(v == null ? '' : v).trim().toLowerCase(); }
+  function muatLembur() {
+    if (lemburMuat || !bisaLihatLembur) return;
+    lemburMuat = true;
+    api('karyawanLembur').then(function (r) {
+      var idx = { noAbsen: {}, nama: {}, semua: {} };
+      ((r && r.data) || []).forEach(function (row) {
+        (row.rincian_harian || []).forEach(function (h) {
+          var t = tglISO(h.tanggal), j = Number(h.jam) || 0;
+          if (!t || j <= 0) return;
+          [['noAbsen', kunciLembur(row.no_absen)], ['nama', kunciLembur(row.nama)], ['semua', '*']].forEach(function (p) {
+            if (!p[1]) return;
+            var m = idx[p[0]];
+            m[p[1]] = m[p[1]] || {};
+            m[p[1]][t] = (m[p[1]][t] || 0) + j;
+          });
+        });
+      });
+      lemburIdx = idx;
+      if (dipilih) gambar();
+    }).catch(function () {
+      lemburMuat = false;
+      lemburIdx = false;
+      if (dipilih) gambar();
+    });
+  }
+  function lemburDi(x, t) {
+    if (!lemburIdx) return null;
+    var m = null, k = kunciLembur(x.noAbsen);
+    if (lintas) {
+      if (k && lemburIdx.noAbsen[k]) m = lemburIdx.noAbsen[k];
+      else { k = kunciLembur(x.nama); if (k && lemburIdx.nama[k]) m = lemburIdx.nama[k]; }
+    } else m = lemburIdx.semua['*'];
+    return m && m[t] ? Number(m[t].toFixed(2)) : null;
+  }
+  function nilaiLembur(x, t) {
+    var asli = x.lembur, kosong = asli == null || asli === '' || Number(asli) === 0;
+    if (!kosong) return asli;
+    var j = lemburDi(x, t);
+    if (j) return j;
+    if (lemburIdx === null && bisaLihatLembur) return 'Memuat…';
+    return asli;
+  }
+
+  function tampilDetail(idx) {
+    detail.innerHTML = '';
+    bar.classList.toggle('hidden', !lintas || !dipilih);
+    if (!dipilih) { detail.classList.add('hidden'); return; }
+    detail.classList.remove('hidden');
+    muatLembur();
+    var batas = batasDipilih(), semuaRs = [], tanggalDetail = Object.keys(idx).filter(function (t) { return dalamRentang(t, batas); }).sort();
+    tanggalDetail.forEach(function (t) { idx[t].forEach(function (x) { semuaRs.push({ data: x, tanggal: t }); }); });
+    var q = lintas ? cari.value.trim().toLowerCase() : '';
+    var rs = semuaRs.filter(function (item) {
+      var x = item.data;
+      return !q || String(x.nama || '').toLowerCase().indexOf(q) >= 0 || String(x.noAbsen || '').toLowerCase().indexOf(q) >= 0;
+    });
+    var labelTanggal = batas[0] === batas[1] ? tglTeks(batas[0]) : tglTeks(batas[0]) + ' – ' + tglTeks(batas[1]);
+    detail.appendChild(el('div', { class: 'abs-kal-detail-head' }, [el('div', null, [el('span', { class: 'abs-kal-eyebrow', text: batas[0] === batas[1] ? 'DETAIL TANGGAL' : 'DETAIL RENTANG TANGGAL' }), el('h3', { text: labelTanggal })]), el('span', { class: 'abs-kal-count', text: rs.length + ' dari ' + semuaRs.length + ' catatan' })]));
+    if (batas[0] === batas[1] && ketLibur(batas[0])) detail.appendChild(el('p', { class: 'abs-kal-note', text: (LIBUR_NASIONAL[batas[0]] ? 'Libur nasional: ' : '') + ketLibur(batas[0]) }));
+    if (!rs.length) { detail.appendChild(el('p', { class: 'abs-kal-empty', text: semuaRs.length ? 'Tidak ada hasil yang cocok dengan pencarian.' : 'Belum ada catatan absensi pada rentang tanggal ini.' })); return; }
+    rs.forEach(function (item) {
+      var x = item.data, k = kategori(x), kartu = el('article', { class: 'abs-kal-record' });
+      kartu.appendChild(el('div', { class: 'abs-kal-record-top' }, [el('strong', { text: (lintas ? ((x.nama || 'Karyawan') + (x.noAbsen ? ' · No. absen ' + x.noAbsen : '')) : 'Absensi Anda') + (batas[0] !== batas[1] ? ' · ' + tglTeks(item.tanggal) : '') }), el('span', { class: 'abs-kal-pill ' + k, text: LBL[k] })]));
+      var meta = el('div', { class: 'abs-kal-meta' });
+      [['Masuk', x.jamMasuk], ['Pulang', x.jamPulang], ['Lembur', nilaiLembur(x, item.tanggal)]].forEach(function (f) { meta.appendChild(el('div', null, [el('span', { text: f[0] }), el('strong', { text: String(f[1] == null || f[1] === '' ? '—' : f[1]) })])); });
+      kartu.appendChild(meta);
+      if (x.status) kartu.appendChild(el('p', { class: 'abs-kal-note', text: 'Status sumber: ' + x.status }));
+      detail.appendChild(kartu);
+    });
+  }
+  function gambar() {
+    var idx = {}, c = { hadir: 0, izin: 0, dinas: 0, alpa: 0, anomali: 0 }, batas = batasDipilih();
+    data.forEach(function (x) { var t = tglISO(x.tanggal); (idx[t] = idx[t] || []).push(x); });
+    data.forEach(function (x) { if (dalamRentang(tglISO(x.tanggal), batas)) c[kategori(x)]++; });
+    if (!dipilih) data.forEach(function (x) { c[kategori(x)]++; });
+    var y = bulan.getFullYear(), m = bulan.getMonth(), n = new Date(y, m + 1, 0).getDate(), off = new Date(y, m, 1).getDay();
+    judul.textContent = BLN[m] + ' ' + y;
+    stat.innerHTML = '';
+    [['Hadir', 'hadir'], ['Izin/Sakit', 'izin'], ['Dinas luar', 'dinas'], ['Alpa', 'alpa'], ['Anomali', 'anomali']].forEach(function (a) { stat.appendChild(el('div', { class: 'abs-kal-stat ' + a[1] }, [el('strong', { text: String(c[a[1]]) }), el('span', { text: a[0] })])); });
+    idxAktif = idx;
+    var kunciRender = ym(bulan);
+    if (kalenderBulanRender !== kunciRender || kalenderDataRender !== data) {
+      var fr = document.createDocumentFragment(), i;
+      for (i = 0; i < off; i++) fr.appendChild(el('div', { class: 'abs-kal-cell kosong', 'aria-hidden': 'true' }));
+      for (i = 1; i <= n; i++) (function (d) {
+        var t = y + '-' + p2(m + 1) + '-' + p2(d), rs = idx[t] || [], dow = new Date(y, m, d).getDay(), kl = ketLibur(t);
+        var merah = dow === 0 || !!LIBUR_NASIONAL[t];
+        var cls = 'abs-kal-cell' + (rs.length ? ' has-data' : '') + (merah ? ' merah' : (CUTI_BERSAMA[t] ? ' cuti' : ''));
+        var b = el('button', { type: 'button', class: cls, 'data-tanggal': t, title: kl, 'aria-label': tglTeks(t) + (kl ? ', ' + kl : '') + ', ' + rs.length + ' catatan' });
+        b.appendChild(el('strong', { class: 'abs-kal-day', text: String(d) }));
+        if (rs.length) {
+          var dots = el('span', { class: 'abs-kal-dots' }), jenis = {};
+          rs.forEach(function (x) { jenis[kategori(x)] = true; });
+          ['hadir', 'izin', 'dinas', 'alpa', 'anomali'].forEach(function (k) { if (jenis[k]) dots.appendChild(el('i', { class: k })); });
+        b.appendChild(dots);
+        }
+        b.addEventListener('click', function () {
+          if (!dipilih) { dipilih = t; akhirDipilih = t; }
+          else if (dipilih === akhirDipilih) {
+            if (t === dipilih) { dipilih = ''; akhirDipilih = ''; }
+            else akhirDipilih = t;
+          } else { dipilih = t; akhirDipilih = t; }
+          if (dipilih && rentangAwal && t < rentangAwal.dari && !cacheBulanPenuh[kunciRender]) {
+            muatBulanPenuh(kunciRender);
+          } else gambar();
+          if (dipilih) detail.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        });
+        fr.appendChild(b);
+      })(i);
+      for (i = 0; i < (7 - ((off + n) % 7)) % 7; i++) fr.appendChild(el('div', { class: 'abs-kal-cell kosong', 'aria-hidden': 'true' }));
+      grid.replaceChildren(fr);
+      kalenderBulanRender = kunciRender;
+      kalenderDataRender = data;
+    }
+    Array.prototype.forEach.call(grid.querySelectorAll('.abs-kal-cell[data-tanggal]'), function (sel) {
+      var t = sel.getAttribute('data-tanggal');
+      sel.classList.toggle('range', dalamRentang(t, batas));
+      sel.classList.toggle('selected', !!batas && (t === batas[0] || t === batas[1]));
+      sel.classList.toggle('range-start', !!batas && t === batas[0]);
+      sel.classList.toggle('range-end', !!batas && t === batas[1]);
+    });
+    tampilDetail(idx);
+  }
+async function muatBulanPenuh(kunci) {
+  var bagian = kunci.split('-'), tahun = Number(bagian[0]), bulanNomor = Number(bagian[1]);
+  var dari = kunci + '-01', sampai = kunci + '-' + p2(new Date(tahun, bulanNomor, 0).getDate());
+  var token = ++reqId;
+  loading.className = 'info loading'; loading.textContent = 'Memuat data absensi…';
+  try {
+    var res = await api('karyawanAbsensi', { dari: dari, sampai: sampai });
+    if (token !== reqId) return;
+    data = Array.isArray(res.data) ? res.data : [];
+    cache[kunci] = data; cacheBulanPenuh[kunci] = true;
+    loading.classList.add('hidden');
+    gambar();
+  } catch (e) {
+    if (token !== reqId) return;
+    loading.className = 'alert'; loading.textContent = pesanError(e) + ' ';
+    loading.appendChild(btn('Coba lagi', 'kecil', function () { muatBulanPenuh(kunci); }));
+  }
+}
+async function muat() {
+  var kunci = ym(bulan), dari = kunci + '-01', sampai = kunci + '-' + p2(new Date(bulan.getFullYear(), bulan.getMonth() + 1, 0).getDate());
+  var token = ++reqId;
+  dipilih = ''; akhirDipilih = '';
+  if (cacheBulanPenuh[kunci]) {
+    data = cache[kunci];
+    loading.classList.add('hidden');
+    gambar();
+    return;
+  }
+  var awal = muatAwal && kunci === ym(new Date());
+  if (awal) {
+    var hariIni = new Date();
+    var tanggalAwal = new Date(hariIni.getFullYear(), hariIni.getMonth(), hariIni.getDate() - 2);
+    dari = isoHari(tanggalAwal); sampai = isoHari(hariIni);
+    rentangAwal = { dari: dari, sampai: sampai };
+  }
+
+  // 1) AUTO-VERIFIKASI (idempoten) — hanya sentuh baris anomali milik sendiri
+  try {
+    var av = await api('absensiAutoVerifikasiHadir', { dari: dari, sampai: sampai });
+    if (av && av.berhasil > 0) {
+      delete cache[kunci];                                   // paksa re-fetch
+      toast(av.berhasil + ' absensi otomatis menjadi Hadir.', 'success');
+    }
+  } catch (e) { /* abaikan: auto-verifikasi opsional */ }
+
+  // 2) Sajikan data (cache atau fetch ulang)
+  if (cacheBulanPenuh[kunci]) { data = cache[kunci]; loading.classList.add('hidden'); gambar(); return; }
+
+  data = []; loading.className = 'info loading'; loading.textContent = 'Memuat data absensi…';
+  gambar();
+  try {
+    var res = await api('karyawanAbsensi', { dari: dari, sampai: sampai });
+    if (token !== reqId) return;
+    data = Array.isArray(res.data) ? res.data : [];
+    if (awal) muatAwal = false;
+    else { cache[kunci] = data; cacheBulanPenuh[kunci] = true; }
+    lintas = !!(res.lihatSemua || res.lihatDivisi);
+    bar.classList.toggle('hidden', !lintas || !dipilih);
+    if (!lintas) cari.value = '';
+    loading.classList.add('hidden');
+    gambar();
+  } catch (e) {
+    if (token !== reqId) return;
+    loading.className = 'alert'; loading.textContent = pesanError(e) + ' ';
+    loading.appendChild(btn('Coba lagi', 'kecil', muat));
+  }
+}
+  cari.addEventListener('input', function () {
+    clearTimeout(cariTimer);
+    cariTimer = setTimeout(function () { tampilDetail(idxAktif); }, 120);
+  });
+  muat();
+}
+function absDinasKaryawan(isi) {
+  var file = null, previewUrl = null;
+  var tanggalEl = el('strong', { text: 'Memuat tanggal…' });
+  var jamEl = el('span', { class: 'live-time', text: '--:--' });
+  function updateClock() {
+    try {
+      var now = new Date();
+      tanggalEl.textContent = new Intl.DateTimeFormat('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Jakarta' }).format(now);
+      jamEl.textContent = new Intl.DateTimeFormat('id-ID', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Jakarta' }).format(now);
+    } catch (e) {}
+  }
+  updateClock();
+  var clockTimer = setInterval(updateClock, 1000);
+  var obs = new MutationObserver(function () { if (!document.body.contains(tanggalEl)) { clearInterval(clockTimer); obs.disconnect(); } });
+  obs.observe(document.body, { childList: true, subtree: true });
+  var dateStrip = el('div', { class: 'dinas-date-strip' }, [
+    el('span', { class: 'dinas-calendar', 'aria-hidden': 'true' }),
+    el('div', { class: 'dinas-date-text' }, [el('span', { class: 'dinas-date-label', text: 'Hari ini' }), tanggalEl]),
+    jamEl
+  ]);
+  function radioPil(nilai, teks, checked) {
+    var input = el('input', { type: 'radio', name: 'jenisAbsenDL', value: nilai });
+    if (checked) input.checked = true;
+    return el('label', { class: 'dinas-opt' }, [input, el('span', { text: teks })]);
+  }
+  var radioMasuk = radioPil('Masuk', 'Absen Masuk', true);
+  var radioKeluar = radioPil('Keluar', 'Absen Keluar', false);
+  var jenisWrap = el('fieldset', { class: 'dinas-type' }, [
+    el('legend', { class: 'field-label', text: 'Jenis absensi' }),
+    el('div', { class: 'dinas-options' }, [radioMasuk, radioKeluar])
+  ]);
+  var lokasi = el('input', { type: 'text', maxlength: '120', autocomplete: 'off', placeholder: 'Contoh : Pengapalan Cpo / Kernel ke dermaga LKS', 'aria-label': 'Lokasi atau tujuan dinas' });
+  var prev = el('img', { id: 'dlPhotoPreview', alt: 'Pratinjau foto bukti kehadiran' });
+  prev.hidden = true;
+  var removeBtn = el('button', { type: 'button', class: 'dinas-remove-photo', 'aria-label': 'Hapus foto', text: '×' });
+  var photoBox = el('div', { class: 'dinas-photo-box' });
+  photoBox.hidden = true;
+  photoBox.appendChild(prev);
+  photoBox.appendChild(removeBtn);
+  var statusMsg = el('p', { class: 'dinas-status', role: 'status', 'aria-live': 'polite' });
+  function setStatus(t, err) { statusMsg.textContent = t || ''; statusMsg.classList.toggle('error', !!err); }
+  var cameraInput = el('input', { type: 'file', accept: 'image/*', class: 'hidden', 'aria-label': 'Pilih aplikasi kamera atau sumber foto' });
+  function resetInputs() { cameraInput.value = ''; }
+  function setFoto(f) {
+    if (!f) return;
+    if (!fileGambarValid(f)) { setStatus('Pilih file gambar JPG, PNG, WEBP, atau GIF.', true); resetInputs(); return; }
+    file = f;
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    previewUrl = URL.createObjectURL(f);
+    prev.src = previewUrl; prev.hidden = false;
+    photoBox.hidden = false;
+    setStatus('', false);
+  }
+  function hapusFoto() {
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    previewUrl = null; file = null;
+    prev.removeAttribute('src'); prev.hidden = true;
+    photoBox.hidden = true;
+    resetInputs(); setStatus('', false);
+  }
+  cameraInput.addEventListener('change', function () { setFoto(cameraInput.files && cameraInput.files[0]); });
+  removeBtn.addEventListener('click', hapusFoto);
+  function tombolFoto(label, ikoSvg, kelas, onClick) {
+    var b = el('button', { type: 'button', class: 'btn ' + kelas, 'aria-label': label, title: label });
+    b.innerHTML = ikoSvg;
+    b.addEventListener('click', onClick);
+    return b;
+  }
+  var btnKamera = tombolFoto('Pilih aplikasi kamera atau sumber foto', '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h-4L8 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-4l-2-3Z"/><circle cx="12" cy="13" r="3"/></svg>', 'primary', function () {
+    resetInputs();
+    try {
+      if (typeof cameraInput.showPicker === 'function') cameraInput.showPicker();
+      else cameraInput.click();
+    } catch (e) { cameraInput.click(); }
+  });
+  var kirim = btn('Kirim Absensi', 'primary', async function () {
+    if (!file) { setStatus('Tambahkan foto bukti kehadiran terlebih dahulu.', true); return; }
+    var jenis = (jenisWrap.querySelector('input[name="jenisAbsenDL"]:checked') || {}).value || 'Masuk';
+    if (!lokasi.value.trim()) { setStatus('Isi lokasi atau tujuan dinas.', true); lokasi.focus(); return; }
+    kirim.disabled = true; kirim.setAttribute('aria-busy', 'true'); kirim.textContent = 'Mengirim…';
+    setStatus('Mengirim absensi…', false);
+    try {
+      var foto = await kompresFoto(file, new Date().toLocaleString('id-ID'));
+      var r = await api('karyawanDinasLuarSimpan', { data: { jenisAbsen: jenis, keterangan: lokasi.value.trim(), fotoBukti: foto } });
+      setStatus(r.pesan || 'Absensi dinas luar terkirim.', false);
+      toast(r.pesan || 'Absensi dinas luar terkirim.');
+      hapusFoto(); lokasi.value = '';
+    } catch (e) { setStatus(pesanError(e), true); toast(pesanError(e)); }
+    finally { kirim.disabled = false; kirim.removeAttribute('aria-busy'); kirim.textContent = 'Kirim Absensi'; }
+  });
+  var body = el('div', { class: 'pad dinas-form' }, [
+    dateStrip, jenisWrap,
+    fieldEl('Lokasi / tujuan dinas', lokasi),
+    el('div', { class: 'dinas-photo-head' }, [el('label', { class: 'field-label', text: 'Foto bukti kehadiran' }), el('span', { class: 'dinas-badge', text: 'Wajib' })]),
+    el('p', { class: 'sub2', style: 'margin:0 0 10px', text: 'Ambil foto di lokasi atau pilih dari galeri.' }),
+    el('div', { class: 'dinas-photo-actions' }, [btnKamera]),
+    photoBox,
+    cameraInput,
+    el('p', { class: 'picker-note dinas-note', text: 'Tekan ikon kamera untuk membuka pilihan kamera atau sumber foto yang tersedia di perangkat. Pilihan yang muncul mengikuti HP dan browser.' }),
+    el('div', { class: 'aksi', style: 'padding-left:0;margin-top:16px' }, [kirim]),
+    statusMsg
+  ]);
+  isi.appendChild(panelEl('Absen Dinas Luar', null, [body]));
+}
+
+/**
+ * Form tambah/edit untuk modul yang bisa ditulis karyawan.
+ * row = null ? mode tambah. row = objek ? mode edit.
+ */
+function formModul(menu, row, onSelesai) {
+  var mode = row ? 'Edit' : 'Tambah';
+  var judul = JUDUL_MODUL[menu] || menu;
+  var fields = {};
+
+  var cakupanModul = hakDari(menu).cakupan || 'sendiri';
+  var cakupanSemuaModul = cakupanModul === 'semua' || cakupanModul === 'divisi';
+
+  var FIELD_DEF = {
+    disiplin: [
+      { key: 'tanggal', label: 'Tanggal', type: 'date' },
+      { key: 'jenis', label: 'Jenis pelanggaran', type: 'text' },
+      { key: 'keterangan', label: 'Keterangan', type: 'textarea' }
+    ],
+    lembur: [
+      { key: 'tanggal', label: 'Tanggal', type: 'date' },
+      { key: 'jam', label: 'Jam lembur', type: 'number' },
+      { key: 'keterangan', label: 'Keterangan', type: 'textarea' }
+    ],
+    absensi: [
+      { key: 'tanggal', label: 'Tanggal', type: 'date' },
+      { key: 'status', label: 'Status kehadiran', type: 'text' },
+      { key: 'jam_masuk', label: 'Jam masuk', type: 'time' },
+      { key: 'jam_keluar', label: 'Jam keluar', type: 'time' },
+      { key: 'keterangan', label: 'Keterangan', type: 'textarea' }
+    ]
+  };
+
+  // Jika user ber-cakupan 'semua', tambahkan field no_absen di awal form
+  // supaya bisa menambah/mengedit baris untuk karyawan lain.
+  if (cakupanSemuaModul) {
+    FIELD_DEF[menu] = [{ key: 'no_absen', label: 'Nomor absen karyawan', type: 'text' }]
+      .concat(FIELD_DEF[menu]);
+  }
+
+  var defs = FIELD_DEF[menu] || [];
+  var elems = [];
+
+  defs.forEach(function (d) {
+    var input;
+    if (d.type === 'textarea') {
+      input = el('textarea', { rows: '3' });
+    } else {
+      input = el('input', { type: d.type || 'text' });
+    }
+    if (row && row[d.key] != null) input.value = row[d.key];
+    fields[d.key] = input;
+    elems.push(fieldEl(d.label, input));
+  });
+
+  var err = el('div', { class: 'alert hidden', role: 'alert' });
+
+  bukaModal(mode + ' Data ' + judul, elems.concat([err]), [
+    { teks: 'Batal', klik: function (t) { t(); } },
+    { teks: 'Simpan', kelas: 'primary', klik: async function (t, b) {
+      b.disabled = true; b.textContent = 'Menyimpan...';
+      try {
+        var data = {};
+        Object.keys(fields).forEach(function (k) { data[k] = fields[k].value; });
+        var param = { menu: menu, data: data };
+        if (row && row._row) param.row = row._row;
+        var res = await api('karyawanModulSimpan', param);
+        toast(res.pesan || 'Tersimpan.');
+        t();
+        if (onSelesai) onSelesai();
+      } catch (e) {
+        err.textContent = pesanError(e);
+        err.classList.remove('hidden');
+      } finally {
+        b.disabled = false; b.textContent = 'Simpan';
+      }
+    } }
+  ]).box.classList.add('lebar');
+}
+
+function renderGantiPassword() {
+  var wajib = S.karyawan && S.karyawan.wajibGantiPassword;
+  var isi = halaman(wajib ? 'Ganti Password Wajib' : 'Ganti Password', 'Perbarui password untuk menjaga keamanan akun portal Anda.');
+  var lama = el('input', { type: 'password', autocomplete: 'current-password', placeholder: wajib ? 'Masukkan password sementara' : 'Masukkan password saat ini' });
+  var baru = el('input', { type: 'password', autocomplete: 'new-password', placeholder: 'Minimal 8 karakter' });
+  var ulang = el('input', { type: 'password', autocomplete: 'new-password', placeholder: 'Masukkan kembali password baru' });
+  var b = btn('Simpan password', 'primary', async function () {
+    if (baru.value.length < 8) { toast('Password baru minimal 8 karakter.'); baru.focus(); return; }
+    if (baru.value !== ulang.value) { toast('Konfirmasi password tidak sama.'); ulang.focus(); return; }
+    b.disabled = true; b.textContent = 'Menyimpan?';
+    try {
+      var r = await api('karyawanGantiPassword', { passwordLama: lama.value, passwordBaru: baru.value });
+      if (S.karyawan) S.karyawan.wajibGantiPassword = false;
+      toast(r.pesan || 'Password berhasil diubah.');
+      pilih('profil');
+    } catch (e) { toast(pesanError(e)); }
+    finally { b.disabled = false; b.textContent = 'Simpan password'; }
+  });
+  isi.appendChild(panelEl('Keamanan akun', null, [el('div', { class: 'pad' }, [
+    el('p', { class: 'sub2', text: 'Gunakan password pribadi yang tidak dibagikan kepada siapa pun.' }),
+    el('div', { style: 'display:grid;gap:14px;max-width:520px;margin-top:12px' }, [
+      fieldEl('Password saat ini', lama, wajib ? 'Password sementara dari HRD.' : 'Verifikasi password yang sedang digunakan.'),
+      fieldEl('Password baru', baru, 'Minimal 8 karakter, sulit ditebak.'),
+      fieldEl('Konfirmasi password baru', ulang, 'Harus sama persis.')
+    ]),
+    el('div', { class: 'aksi', style: 'padding-left:0' }, [b])
+  ])]));
+}
+
+var skalaTeks = 1;
+var ukuranAsliTeks = new WeakMap();
+function perbaruiUkuranTeks(root) {
+  var daftar = [];
+  if (root && root.nodeType === 1) daftar.push(root);
+  if (root && root.querySelectorAll) daftar = daftar.concat(Array.prototype.slice.call(root.querySelectorAll('*')));
+  daftar.forEach(function (node) {
+    if (node.closest && node.closest('.font-size-controls')) return;
+    var adaTeks = Array.prototype.some.call(node.childNodes || [], function (c) {
+      return c.nodeType === 3 && c.nodeValue.trim();
+    });
+    if (!adaTeks && !/^(INPUT|SELECT|TEXTAREA)$/.test(node.tagName || '')) return;
+    var asli = ukuranAsliTeks.get(node);
+    if (asli == null && skalaTeks === 1) return;
+    if (asli == null) {
+      asli = parseFloat(getComputedStyle(node).fontSize);
+      ukuranAsliTeks.set(node, asli);
+    }
+    node.style.fontSize = (asli * skalaTeks) + 'px';
+  });
+  $('fontDecrease').disabled = skalaTeks <= 0.8;
+  $('fontIncrease').disabled = skalaTeks >= 1.3;
+}
+function ubahUkuranTeks(delta) {
+  skalaTeks = Math.max(0.8, Math.min(1.3, Math.round((skalaTeks + delta) * 10) / 10));
+  perbaruiUkuranTeks(document.body);
+}
+var PALET_TEMA = {
+  cream: { bg:'#FFF4D6', paper:'#FFFBEE', side:'#FFD93D', hd:'#FFD93D', ac:'#FF8FB1', ac2:'#7BD3EA', mut:'#3d3d3d' },
+  sage: { bg:'#EEF3E5', paper:'#FAFCF5', side:'#C9D9B8', hd:'#C9D9B8', ac:'#9DBB91', ac2:'#D8E8D0', mut:'#465044' },
+  lavender: { bg:'#F0EAFE', paper:'#FCFAFF', side:'#D7C9F3', hd:'#D7C9F3', ac:'#B6A4E8', ac2:'#E3DAFA', mut:'#514967' },
+  ocean: { bg:'#E4F4FA', paper:'#F8FDFF', side:'#9BD8E8', hd:'#9BD8E8', ac:'#77C8DF', ac2:'#BCEAF4', mut:'#36525D' },
+  peach: { bg:'#FFF0E5', paper:'#FFFAF5', side:'#F6C7A9', hd:'#F6C7A9', ac:'#F2B38F', ac2:'#F9D9C4', mut:'#5B463B' },
+  mono: { bg:'#F0F0F0', paper:'#FFFFFF', side:'#D0D0D0', hd:'#D0D0D0', ac:'#BDBDBD', ac2:'#E2E2E2', mut:'#454545' }
+};
+var ROOT_STYLE = document.documentElement.style;
+function terapkanPalet(nama, latarCustom) {
+  var p = PALET_TEMA[nama] || PALET_TEMA.cream;
+  if (document.documentElement.getAttribute('data-theme') !== 'dark') {
+    ['bg','paper','side','hd','ac','ac2','mut'].forEach(function(k){ ROOT_STYLE.setProperty('--'+k, p[k]); });
+    if (latarCustom) ROOT_STYLE.setProperty('--bg', latarCustom);
+  }
+  try { localStorage.setItem('hrd_palett', nama); if (latarCustom) localStorage.setItem('hrd_latar_custom', latarCustom); else localStorage.removeItem('hrd_latar_custom'); } catch(e) {}
+  document.querySelectorAll('.appearance-swatches [data-palette]').forEach(function(b){ b.setAttribute('aria-pressed', String(b.getAttribute('data-palette') === nama)); });
+  if ($('customBackground')) $('customBackground').value = latarCustom || p.bg;
+  if ($('appearanceStatus')) $('appearanceStatus').textContent = 'Tema diterapkan';
+}
+var appearanceTimer = null;
+function tutupAppearance(){
+  clearTimeout(appearanceTimer);
+  if ($('appearancePanel')) $('appearancePanel').classList.add('hidden');
+}
+function jadwalkanTutupAppearance(){
+  clearTimeout(appearanceTimer);
+  if (!$('appearancePanel') || $('appearancePanel').classList.contains('hidden')) return;
+  appearanceTimer = setTimeout(tutupAppearance, 5000);
+}
+var paletteImage = $('fontPanelToggle').querySelector('img');
+if (paletteImage) paletteImage.addEventListener('error', function () {
+  this.replaceWith(ikon('<path d="M12 3a9 9 0 1 0 0 18h1.2a2 2 0 0 0 1.4-3.4 1.5 1.5 0 0 1 1.1-2.6H18a3 3 0 0 0 3-3A9 9 0 0 0 12 3Z"/><circle cx="7.5" cy="10" r=".8"/><circle cx="10" cy="6.8" r=".8"/><circle cx="14" cy="7" r=".8"/><circle cx="17" cy="10" r=".8"/>'));
+});
+$('fontPanelToggle').addEventListener('click', function(){
+  var panel = $('appearancePanel');
+  if (!panel) return;
+  panel.classList.toggle('hidden');
+  jadwalkanTutupAppearance();
+});
+['pointermove', 'pointerdown', 'keydown', 'focusin'].forEach(function(eventName){
+  $('appearancePanel').addEventListener(eventName, jadwalkanTutupAppearance);
+});
+$('appearanceClose').addEventListener('click', tutupAppearance);
+document.querySelectorAll('.appearance-swatches [data-palette]').forEach(function(b){ b.setAttribute('aria-pressed','false'); b.addEventListener('click',function(){ terapkanPalet(this.getAttribute('data-palette'), ''); }); });
+$('customBackground').addEventListener('input',function(){
+  var nama = 'cream'; try { nama = localStorage.getItem('hrd_palett') || 'cream'; } catch(e) {}
+  terapkanPalet(nama, this.value);
+});
+$('resetAppearance').addEventListener('click',function(){ terapkanPalet('cream',''); if ($('appearanceStatus')) $('appearanceStatus').textContent='Tampilan direset'; });
+document.addEventListener('click',function(e){
+  if ($('appearancePanel').classList.contains('hidden')) return;
+  if ($('appearancePanel').contains(e.target) || $('fontSizeControls').contains(e.target)) return;
+  tutupAppearance();
+});
+try {
+  var paletTersimpan = localStorage.getItem('hrd_palett') || 'cream';
+  var latarTersimpan = localStorage.getItem('hrd_latar_custom') || '';
+  if (document.documentElement.getAttribute('data-theme') !== 'dark') terapkanPalet(paletTersimpan, latarTersimpan);
+  if ($('appearanceStatus')) $('appearanceStatus').textContent='';
+} catch(e) { if (document.documentElement.getAttribute('data-theme') !== 'dark') terapkanPalet('cream',''); }
+
+var tombolTema = $('themeToggle');
+if (tombolTema) tombolTema.addEventListener('click', function(){
+  setTimeout(function(){
+    if (document.documentElement.getAttribute('data-theme') !== 'dark') {
+      var n='cream', bg=''; try { n=localStorage.getItem('hrd_palett')||'cream'; bg=localStorage.getItem('hrd_latar_custom')||''; } catch(e) {}
+      terapkanPalet(n,bg);
+    }
+  },0);
+});
+
+var fontControls = $('fontSizeControls');
+var fontPanelTimer = null;
+function tutupKontrolUkuranTeks() {
+  clearTimeout(fontPanelTimer);
+  fontControls.classList.remove('is-open');
+  $('fontPanelToggle').setAttribute('aria-expanded', 'false');
+  $('fontPanelToggle').setAttribute('aria-label', 'Buka pengaturan tampilan');
+  $('fontPanelToggle').title = 'Buka pengaturan tampilan';
+}
+function jadwalkanTutupKontrolUkuranTeks() {
+  clearTimeout(fontPanelTimer);
+  if (!fontControls.classList.contains('is-open')) return;
+  fontPanelTimer = setTimeout(tutupKontrolUkuranTeks, 5000);
+}
+$('fontPanelToggle').addEventListener('click', function () {
+  if (fontControls.classList.contains('is-open')) {
+    tutupKontrolUkuranTeks();
+    return;
+  }
+  fontControls.classList.add('is-open');
+  this.setAttribute('aria-expanded', 'true');
+  this.setAttribute('aria-label', 'Tutup pengaturan tampilan');
+  this.title = 'Tutup pengaturan tampilan';
+  jadwalkanTutupKontrolUkuranTeks();
+});
+$('fontDecrease').addEventListener('click', function () {
+  ubahUkuranTeks(-0.1);
+  jadwalkanTutupKontrolUkuranTeks();
+});
+$('fontIncrease').addEventListener('click', function () {
+  ubahUkuranTeks(0.1);
+  jadwalkanTutupKontrolUkuranTeks();
+});
+['pointermove', 'pointerdown', 'keydown', 'focusin'].forEach(function (eventName) {
+  fontControls.addEventListener(eventName, jadwalkanTutupKontrolUkuranTeks);
+});
+document.addEventListener('click', function (e) {
+  if (!fontControls.contains(e.target)) tutupKontrolUkuranTeks();
+});
+document.addEventListener('keydown', function (e) {
+  if (e.key === 'Escape') tutupKontrolUkuranTeks();
+});
+perbaruiUkuranTeks(document.body);
+var amatiTeksBaru = new MutationObserver(function (mutasi) {
+  mutasi.forEach(function (m) {
+    Array.prototype.forEach.call(m.addedNodes, function (node) {
+      if (node.nodeType === 1) perbaruiUkuranTeks(node);
+    });
+  });
+});
+amatiTeksBaru.observe(document.body, { childList: true, subtree: true });
+
+initBersama();
+toggleLihat('employeePassword', 'lihatEmployee');
+
+// Enter memindahkan fokus ke kolom berikutnya, lalu menjalankan aksi di akhir.
+document.addEventListener('keydown', function (e) {
+  if (e.key !== 'Enter' || e.defaultPrevented || e.isComposing || e.shiftKey || e.altKey || e.ctrlKey || e.metaKey) return;
+  var target = e.target;
+  if (!target || target.tagName !== 'INPUT' || !/^(text|password|search|date|time|number|email|tel|url)$/i.test(target.type)) return;
+  var scope = target.closest('.modal, .dinas-form, .panel, .card, #isi') || document;
+  var fields = Array.prototype.filter.call(scope.querySelectorAll('input, select, textarea'), function (field) {
+    if (field.disabled || field.type === 'hidden' || field.type === 'file' || field.type === 'checkbox' || field.type === 'radio') return false;
+    return !!(field.offsetWidth || field.offsetHeight || field.getClientRects().length);
+  });
+  var current = fields.indexOf(target);
+  if (current < 0) return;
+  e.preventDefault();
+  if (current < fields.length - 1) {
+    fields[current + 1].focus();
+    return;
+  }
+  var actions = Array.prototype.filter.call(scope.querySelectorAll('button:not(:disabled)'), function (button) {
+    if (!(button.offsetWidth || button.offsetHeight || button.getClientRects().length)) return false;
+    if (button.classList.contains('tema-toggle') || button.id === 'menuToggle' || button.id === 'profilToggle') return false;
+    var label = String(button.textContent || '').trim();
+    return button.id === 'masuk' || /^(terapkan(?: filter)?|simpan(?: password)?|kirim(?: absensi)?|ajukan|masuk(?: ke portal)?)$/i.test(label);
+  });
+  var action = actions.find(function (button) {
+    return !!(target.compareDocumentPosition(button) & Node.DOCUMENT_POSITION_FOLLOWING);
+  });
+  if (action) action.click();
+});
+pulihkanSesi();
+})();
 
 /* RAJA PALMA SPLASH SCREEN */
-#rpSplashScreen {
-  position: fixed;
-  inset: 0;
-  z-index: 999999;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #dff2ff;
-  transition: opacity .5s ease, visibility .5s ease;
-}
+(function () {
+  const splash = document.getElementById('rpSplashScreen');
+  if (!splash) return;
 
-#rpSplashScreen.rp-hidden {
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
-}
+  const key = 'rp_splash_visited';
 
-/* LOGO — hasil trace dari Logo_Monogram_Merah_Geometris.png (vektor SVG, tajam di ukuran berapa pun).
-   Ubah ukuran cukup lewat width; tinggi mengikuti rasio asli logo. */
-.rp-css-logo {
-  width: 160px;
-  aspect-ratio: 1349 / 1097;
-  box-sizing: border-box;
-  background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1349 1097'%3E%3Crect width='1349' height='1097' fill='%23fff'/%3E%3Cpath fill='%23d30101' fill-rule='evenodd' d='M68.2 75.5 68 776.2 70 797.5 75 822.8 79 836.5 84.2 851.5 95 875.2 109 899.2 120.5 915.2 136.5 934 155.2 952.2 172.5 966.5 183.5 974.5 209.5 990.8 227.2 999.8 241 1005.8 257.2 1011.8 267.5 1014.8 280.5 1017.8 294.8 1019.8 827.8 1019.8 827.8 248.5 829 238.5 832.8 227 838.2 216.5 845.2 207.8 854 200 863.8 194.2 873.5 190.2 885.2 188 897 188 911.2 191 917 193.2 924 197 932.2 203.2 939 210 946.5 220.8 949.8 227.5 952.5 235.8 954.5 247.2 954.5 1019.5 955 1020 1014.5 1020 1040.2 1017.5 1060.2 1013.8 1079 1008.8 1095.2 1003.5 1113.2 996.5 1124 991.8 1144 981.5 1160.2 971.8 1179 958.8 1197.8 943.2 1210.2 931.2 1224 916.2 1236.8 900 1246.8 885 1255.5 869.5 1263.5 852.5 1269.5 836.8 1274.5 820 1277.8 805 1279.8 790.8 1280.8 778 1280.5 75.2 1053.2 75.2 1052.5 76 1052.5 952 1051.5 956.8 1048.5 963.2 1044.8 968.2 1040 972.8 1035.5 975.8 1028.2 979 1022.2 980.2 1012.8 980.8 1011.8 980 1011.5 239.8 1009.5 223.2 1006.5 211.5 1001.8 198.8 997.8 190.8 989.5 177.5 980.5 166.5 975 161 962.2 150.2 948 141.2 932.2 134.2 917 130 901 127.8 879 128 865.8 130 848.5 135 832.2 142.5 818.2 151.5 808.8 159.5 796.5 172.8 786.2 188 779.8 201.5 774.8 215.8 771.8 231.2 771.8 235 770.8 235.8 770 235 767.2 225.8 763.2 215.5 751.8 192.2 742.8 177.5 730.8 160.5 715.8 142.8 700.2 127.5 687.8 117 669.5 104 654.2 95 633 84.8 618 79 596.2 72.5 577.2 68.8 556 66.5 536.5 66.2 515.2 67.8 496.2 70.8 482.5 74 463.8 79.8 449.5 85.2 428.8 95 417.8 101 402.8 110.5 388.2 121 375.8 131.2 360.5 145.5 348.2 158.8 337 172.8 321 196.5 314.5 207.8 303 231.5 299 237.8 297.2 239 296.2 207 296 75.5ZM773.2 850.2 773.5 852.5 771.2 873.2 770.8 980 770.2 980.5 663.2 980.8 663 980 664 979 679.2 969.5 701 952.8 709.2 945.5 720.5 934.2 730.2 923.2 746 902.2 756 886 767 864.2 771.8 851.5ZM302.5 843.8 304 845.5 306.5 852.8 311.5 864 323.2 886 334 902.5 345.8 918 358.2 932.2 375.5 949 394.8 964.5 411.5 975.8 417 978.8 418.5 980.2 418.2 980.8 300.5 980.5 300 980 299.8 880.5 300.5 861 302 844.5ZM770.5 371 771.2 371.8 771.2 672.2 770.8 672.8 769.2 671 765.2 661 760 650.8 744.5 625.8 727.8 604.5 711.2 587.5 704 581 689.2 569 679.5 562.2 656.2 548.2 632.2 537 619 532 606.8 528.5 607.5 527.2 616.8 524.5 636.8 516.8 660 505 680 492.2 692.5 482.8 707.8 469.2 724.8 451.2 735.8 437.5 743 427.2 753.8 409.2 760 397.2 766 383.2 769.8 371.8ZM302 371 303.2 372.8 306.2 381.2 315 399.8 326 418.8 337 434.8 343.5 443 358.2 459.8 366.2 467.8 377.5 478 393.2 490.2 404.8 498.2 420 507.2 442.8 518.2 461.8 525.5 470 527.8 470.5 528.5 444.5 538 429.2 545 409.5 556 395.5 565.2 383.8 574 370.5 585.2 359.2 596 348.5 607.5 332 628.2 320.8 645.5 313.8 657.5 303 679.5 299 684.2 298.2 683.2 298.8 657.8 299 414.2 300 387.2 301.2 371.5ZM0 1.5 0.5 2.2 0.5 210.8 0 214 0.5 226 0 277.8 0.5 285.8 0 295.2 0.5 313 0 340.8 0.5 349.8 0 376 0.5 382.8 0.5 453.8 0 457 0.5 467 0.5 485.8 0 489 0.5 501 0.5 541.8 0 550 0.5 562 0.5 584.5 0 588.8 0 599.5 0.5 601 0.5 627.5 0 633 0.5 680 0 759.8 0.5 769.2 0.5 808.8 0 816.2 0.5 825 0.5 910 0 922 0.5 944 0.5 1068 0 1095.2 1.8 1096.5 1347.5 1096.2 1348.8 1095.5 1348.8 1036.8 1348.2 1033.8 1348.8 1024 1348.8 891.5 1348.2 888.8 1348.8 881.2 1348.2 809.5 1348.8 802.8 1348.8 681.5 1348.2 679.5 1348.8 664 1348.8 506.8 1348.2 503.5 1348.8 367.8 1348.2 364 1348.8 352.2 1348.8 182.5 1348.2 180.5 1348.8 162 1348.5 1.8 1347 0 729 0 723.8 0.5 710.8 0 674.8 0.5 664.8 0 375.2 0 370.8 0.5 361.8 0 1.5 0ZM19.8 20.5 20.8 19.5 1328.2 19.5 1329.2 21 1328.8 1076.5 1328 1077 20.5 1077 19.8 1076.2Z'/%3E%3C/svg%3E") center / 100% 100% no-repeat;
-  animation: rpEnter .8s ease both;
-}
-
-.rp-symbol {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-  background: transparent;
-}
-
-/* Bentuk CSS lama tidak dipakai lagi (logo sekarang digambar oleh SVG di atas).
-   Elemennya boleh dihapus dari HTML; kalau dibiarkan, tetap disembunyikan. */
-.rp-left, .rp-right, .rp-circle-top, .rp-circle-bottom,
-.rp-cut-top, .rp-cut-bottom, .rp-arch {
-  display: none;
-}
-
-.rp-loader {
-  position: absolute;
-  bottom: 12%;
-  width: 34px;
-  height: 3px;
-  background: #b5d5e9;
-  overflow: hidden;
-}
-
-.rp-loader::after {
-  content: "";
-  display: block;
-  width: 50%;
-  height: 100%;
-  background: #1876b9;
-  animation: rpLoad .8s infinite alternate;
-}
-
-@keyframes rpEnter {
-  from { opacity: 0; transform: scale(.85); }
-  to { opacity: 1; transform: scale(1); }
-}
-
-@keyframes rpLoad {
-  to { transform: translateX(100%); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  #rpSplashScreen, .rp-css-logo, .rp-loader::after {
-    animation: none;
-    transition: none;
+  if (sessionStorage.getItem(key)) {
+    splash.remove();
+    return;
   }
-}
 
-/* Toast memakai warna palet yang sedang aktif, termasuk progress bar. */
-.toast {
-  background: var(--paper);
-  border-color: var(--ac);
-  border-radius: 16px;
-}
-@supports (background: color-mix(in srgb, white, black)) {
-  .toast {
-    background: color-mix(in srgb, var(--paper) 84%, var(--ac) 16%);
-  }
-}
-.toast-ico {
-  background: var(--ac);
-  color: var(--ink);
-}
-.toast-bar {
-  height: 5px;
-  background: var(--ac2);
-  border-top-color: var(--ac);
-}
-.toast-close {
-  border-color: var(--ac);
-  background: var(--paper);
-}
-.toast-close:hover {
-  background: var(--ac2);
-}
-:root[data-theme="dark"] .toast {
-  background: #111820;
-  border-color: #4f7a93;
-}
-:root[data-theme="dark"] .toast-ico {
-  background: #4f7a93;
-  color: #fff;
-}
-:root[data-theme="dark"] .toast-bar {
-  background: #344955;
-  border-top-color: #4f7a93;
-}
-:root[data-theme="dark"] .toast-close {
-  background: #202b34;
-  border-color: #4f7a93;
-  color: #e5edf3;
-}
+  sessionStorage.setItem(key, '1');
+
+  setTimeout(() => {
+    splash.classList.add('rp-hidden');
+    setTimeout(() => splash.remove(), 550);
+  }, 2500);
+})();
