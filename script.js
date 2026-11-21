@@ -660,7 +660,7 @@
 			hasil.appendChild(el('div', { class: 'info', text: data.length ? 'Tidak ada data lembur yang cocok dengan filter.' : 'Belum ada data lembur.' }));
 			return;
 		}
-		hasil.appendChild(bangunMatriksLembur(tersaring));
+		hasil.appendChild(bangunMatriksLembur(tersaring, dari, sampai));
 		}
 		var filterTimer = null;
 		if (cariNama) cariNama.addEventListener('input', function () {
@@ -679,7 +679,7 @@
 	});
 	}
 
-	function bangunMatriksLembur(data) {
+	function bangunMatriksLembur(data, dari, sampai) {
 	if (!Array.isArray(data) || !data.length) return el('div', { class: 'info', text: 'Belum ada data lembur.' });
 
 	var tanggalSet = Object.create(null);
@@ -688,7 +688,20 @@
 		if (r.tanggal) tanggalSet[r.tanggal] = true;
 		});
 	});
-	var tanggalUnik = Object.keys(tanggalSet).sort();
+	var tanggalTersedia = Object.keys(tanggalSet).sort();
+	if (!tanggalTersedia.length && !dari && !sampai) return el('div', { class: 'info', text: 'Tidak ada rincian harian pada data ini.' });
+	var awal = dari || tanggalTersedia[0] || sampai;
+	var akhir = sampai || tanggalTersedia[tanggalTersedia.length - 1] || dari;
+	if (awal && akhir && awal > akhir) { var tukar = awal; awal = akhir; akhir = tukar; }
+	var tanggalUnik = [];
+	if (awal && akhir) {
+		var tanggalBerjalan = new Date(awal + 'T00:00:00');
+		var tanggalAkhir = new Date(akhir + 'T00:00:00');
+		while (!isNaN(tanggalBerjalan) && tanggalBerjalan <= tanggalAkhir) {
+		tanggalUnik.push(isoHari(tanggalBerjalan));
+		tanggalBerjalan.setDate(tanggalBerjalan.getDate() + 1);
+		}
+	} else tanggalUnik = tanggalTersedia;
 	if (!tanggalUnik.length) return el('div', { class: 'info', text: 'Tidak ada rincian harian pada data ini.' });
 
 	var perKaryawan = Object.create(null);
