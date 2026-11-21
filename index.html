@@ -27,6 +27,29 @@
   </div>
   <div class="rp-loader"></div>
 </div>
+<script>
+(function () {
+  var splash = document.getElementById('rpSplashScreen');
+  if (!splash) return;
+  var key = 'rp_splash_visited';
+  try {
+    if (sessionStorage.getItem(key)) {
+      splash.remove();
+      return;
+    }
+    sessionStorage.setItem(key, '1');
+  } catch (e) {
+    // Splash tetap harus tertutup meskipun penyimpanan sesi tidak tersedia.
+  }
+  setTimeout(function () {
+    if (!splash.parentNode) return;
+    splash.classList.add('rp-hidden');
+    setTimeout(function () {
+      if (splash.parentNode) splash.remove();
+    }, 550);
+  }, 2500);
+})();
+</script>
 
 <div id="login" class="login">
   <header class="login-header">
