@@ -607,12 +607,22 @@
 	api('karyawanLembur').then(function (r) {
 		kotak.remove();
 		var data = (r && r.data) || [];
+		function tanggalLemburISO(nilai) {
+			if (!nilai) return '';
+			if (nilai instanceof Date && !isNaN(nilai.getTime())) return isoHari(nilai);
+			var teks = String(nilai).trim();
+			var iso = teks.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+			if (iso) return iso[1] + '-' + p2(iso[2]) + '-' + p2(iso[3]);
+			var lokal = teks.match(/^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{4})$/);
+			if (lokal) return lokal[3] + '-' + p2(lokal[2]) + '-' + p2(lokal[1]);
+			return '';
+		}
 		var dataSiap = data.map(function (item) {
 		return {
 			item: item,
 			rincian: (item.rincian_harian || []).map(function (rincian) {
-			return { data: rincian, tanggal: String(rincian.tanggal || '').slice(0, 10), jam: Number(rincian.jam) || 0 };
-			}).filter(function (rincian) { return /^\d{4}-\d{2}-\d{2}$/.test(rincian.tanggal); })
+			return { data: rincian, tanggal: tanggalLemburISO(rincian.tanggal), jam: Number(rincian.jam) || 0 };
+			}).filter(function (rincian) { return !!rincian.tanggal; })
 		};
 		});
 		var cariNama = semuaAkses ? el('input', { type: 'search', placeholder: 'Cari nama karyawan…', 'aria-label': 'Filter nama karyawan' }) : null;
