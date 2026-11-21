@@ -2495,16 +2495,24 @@ pulihkanSesi();
   if (!splash) return;
 
   const key = 'rp_splash_visited';
+  let sudahDilihat = false;
 
-  if (sessionStorage.getItem(key)) {
+  try {
+    sudahDilihat = sessionStorage.getItem(key) === '1';
+    if (!sudahDilihat) sessionStorage.setItem(key, '1');
+  } catch (e) {
+    // Splash tetap harus ditutup meskipun penyimpanan sesi diblokir browser.
+  }
+
+  if (sudahDilihat) {
     splash.remove();
     return;
   }
 
-  sessionStorage.setItem(key, '1');
-
-  setTimeout(() => {
+  window.setTimeout(() => {
     splash.classList.add('rp-hidden');
-    setTimeout(() => splash.remove(), 550);
+    window.setTimeout(() => {
+      if (splash.isConnected) splash.remove();
+    }, 550);
   }, 2500);
 })();
