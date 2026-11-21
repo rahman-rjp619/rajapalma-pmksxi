@@ -1422,10 +1422,16 @@ p{line-height:1.55}
   width:80px!important;min-width:80px!important;max-width:80px!important;
   background:var(--hd)!important;text-align:center!important;border-left:2px solid var(--ink)!important
 }
-.lembur-matrix-wrap .tbl.lembur-matrix th{
-  background:var(--hd)!important;color:var(--ink)!important;font-size:11px!important;font-weight:800!important
-}
-.lembur-matrix-wrap .tbl.lembur-matrix td:before{display:none!important;content:none!important}
+ .lembur-matrix-wrap .tbl.lembur-matrix th{
+   background:var(--hd)!important;color:var(--ink)!important;font-size:11px!important;font-weight:800!important
+ }
+ .lembur-matrix-wrap .tbl.lembur-matrix th .lembur-day-name,
+ .lembur-matrix-wrap .tbl.lembur-matrix th .lembur-date-number{
+   display:block!important;text-align:center!important;line-height:1.15!important
+ }
+ .lembur-matrix-wrap .tbl.lembur-matrix th .lembur-day-name{font-size:10px!important;font-weight:700!important;opacity:.78}
+ .lembur-matrix-wrap .tbl.lembur-matrix th .lembur-date-number{font-size:11px!important;font-weight:800!important}
+ .lembur-matrix-wrap .tbl.lembur-matrix td:before{display:none!important;content:none!important}
 .lembur-matrix-wrap .tbl.lembur-matrix tbody tr:nth-child(even){background:transparent!important}
 .lembur-matrix-wrap .tbl.lembur-matrix tbody tr:hover{background:transparent!important}
 .lembur-card-person{display:grid!important;gap:2px!important;min-width:0!important}
@@ -1454,12 +1460,11 @@ p{line-height:1.55}
   .lembur-matrix-wrap .tbl.lembur-matrix td:last-child{
     width:60px!important;min-width:60px!important;max-width:60px!important
   }
-  .lembur-matrix-wrap .tbl.lembur-matrix th:not(:first-child):not(:last-child){
-    font-size:0!important;padding:7px 3px!important
-  }
-  .lembur-matrix-wrap .tbl.lembur-matrix th:not(:first-child):not(:last-child)::after{
-    content:attr(data-tanggal-singkat);font-size:10px!important;font-weight:800!important;white-space:pre-line
-  }
+     .lembur-matrix-wrap .tbl.lembur-matrix th:not(:first-child):not(:last-child){
+     padding:5px 3px!important
+   }
+   .lembur-matrix-wrap .tbl.lembur-matrix th .lembur-day-name{font-size:9px!important}
+   .lembur-matrix-wrap .tbl.lembur-matrix th .lembur-date-number{font-size:10px!important}
   .lembur-card-person strong{font-size:10px!important}
   .lembur-card-person span{font-size:9px!important}
   .lembur-matrix-wrap .lembur-value{min-width:36px!important;font-size:10px!important;padding:2px 3px!important}
@@ -1770,13 +1775,11 @@ p{line-height:1.55}
   .lembur-matrix-wrap .tbl.lembur-matrix th:last-child{
     background:var(--side)!important;text-align:center!important
   }
-  .lembur-matrix-wrap .tbl.lembur-matrix th:not(:first-child):not(:last-child){
-    font-size:0!important;line-height:1.1!important
-  }
-  .lembur-matrix-wrap .tbl.lembur-matrix th:not(:first-child):not(:last-child)::after{
-    content:attr(data-tanggal-singkat)!important;
-    display:block;font-size:9px!important;font-weight:800!important;white-space:nowrap!important
-  }
+     .lembur-matrix-wrap .tbl.lembur-matrix th:not(:first-child):not(:last-child){
+     line-height:1.1!important
+   }
+   .lembur-matrix-wrap .tbl.lembur-matrix th .lembur-day-name{font-size:8px!important}
+   .lembur-matrix-wrap .tbl.lembur-matrix th .lembur-date-number{font-size:9px!important}
   .lembur-matrix-wrap .tbl.lembur-matrix tbody td{
     height:48px!important;padding:6px 3px!important;
     border-top:1px solid var(--line)!important;border-bottom:1px solid var(--line)!important
