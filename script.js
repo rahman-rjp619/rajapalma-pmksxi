@@ -612,16 +612,9 @@ function renderLemburKaryawan() {
         item: item,
         rincian: (item.rincian_harian || []).map(function (rincian) {
           return { data: rincian, tanggal: String(rincian.tanggal || '').slice(0, 10), jam: Number(rincian.jam) || 0 };
-        });
+        }).filter(function (rincian) { return rincian.jam > 0; })
       };
     });
-    var tanggalTersedia = [];
-    dataSiap.forEach(function (siap) {
-      siap.rincian.forEach(function (r) {
-        if (/^\d{4}-\d{2}-\d{2}$/.test(r.tanggal)) tanggalTersedia.push(r.tanggal);
-      });
-    });
-    tanggalTersedia = Array.from(new Set(tanggalTersedia)).sort();
     var cariNama = semuaAkses ? el('input', { type: 'search', placeholder: 'Cari nama karyawan…', 'aria-label': 'Filter nama karyawan' }) : null;
     var pilihDivisi = semuaAkses ? el('select', { 'aria-label': 'Filter divisi' }) : null;
     var tanggalDari = el('input', { type: 'date', 'aria-label': 'Filter dari tanggal' });
@@ -667,11 +660,7 @@ function renderLemburKaryawan() {
         hasil.appendChild(el('div', { class: 'info', text: data.length ? 'Tidak ada data lembur yang cocok dengan filter.' : 'Belum ada data lembur.' }));
         return;
       }
-      hasil.appendChild(bangunMatriksLembur(tersaring, {
-        dari: tanggalDari.value,
-        sampai: tanggalSampai.value,
-        tanggalTersedia: tanggalTersedia
-      }));
+      hasil.appendChild(bangunMatriksLembur(tersaring));
     }
     var filterTimer = null;
     if (cariNama) cariNama.addEventListener('input', function () {
@@ -690,32 +679,16 @@ function renderLemburKaryawan() {
   });
 }
 
-function bangunMatriksLembur(data, rentang) {
+function bangunMatriksLembur(data) {
   if (!Array.isArray(data) || !data.length) return el('div', { class: 'info', text: 'Belum ada data lembur.' });
-  rentang = rentang || {};
 
   var tanggalSet = Object.create(null);
-  (rentang.tanggalTersedia || []).forEach(function (tgl) {
-    if (/^\d{4}-\d{2}-\d{2}$/.test(tgl)) tanggalSet[tgl] = true;
-  });
   data.forEach(function (row) {
     (row.rincian_harian || []).forEach(function (r) {
-      var tgl = String(r.tanggal || '').slice(0, 10);
-      if (/^\d{4}-\d{2}-\d{2}$/.test(tgl)) tanggalSet[tgl] = true;
+      if (r.tanggal && r.jam > 0) tanggalSet[r.tanggal] = true;
     });
   });
-  var tersedia = Object.keys(tanggalSet).sort();
-  var awal = rentang.dari || tersedia[0] || '';
-  var akhir = rentang.sampai || tersedia[tersedia.length - 1] || '';
-  var tanggalUnik = [];
-  if (awal && akhir && awal <= akhir) {
-    var hari = new Date(awal + 'T00:00:00Z');
-    var batas = new Date(akhir + 'T00:00:00Z');
-    while (hari <= batas) {
-      tanggalUnik.push(hari.toISOString().slice(0, 10));
-      hari.setUTCDate(hari.getUTCDate() + 1);
-    }
-  }
+  var tanggalUnik = Object.keys(tanggalSet).sort();
   if (!tanggalUnik.length) return el('div', { class: 'info', text: 'Tidak ada rincian harian pada data ini.' });
 
   var perKaryawan = Object.create(null);
@@ -775,10 +748,6 @@ function bangunMatriksLembur(data, rentang) {
         th.setAttribute('data-tanggal-singkat', tgl.slice(8, 10) + '/' + tgl.slice(5, 7));
         th.setAttribute('data-hari', tgl.slice(8, 10));
         th.setAttribute('title', dmy(tgl));
-        var namaHari = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'][tanggal.getDay()];
-        th.textContent = '';
-        th.appendChild(el('span', { class: 'lembur-day-name', text: namaHari }));
-        th.appendChild(el('span', { class: 'lembur-date-number', text: tgl.slice(8, 10) + '/' + tgl.slice(5, 7) }));
         if (hariLibur) {
           th.classList.add('lembur-libur');
           Array.prototype.forEach.call(table.querySelectorAll('tbody tr'), function (tr) {
@@ -2520,3 +2489,22 @@ document.addEventListener('keydown', function (e) {
 pulihkanSesi();
 })();
 
+/* RAJA PALMA SPLASH SCREEN */
+(function () {
+  const splash = document.getElementById('rpSplashScreen');
+  if (!splash) return;
+
+  const key = 'rp_splash_visited';
+
+  if (sessionStorage.getItem(key)) {
+    splash.remove();
+    return;
+  }
+
+  sessionStorage.setItem(key, '1');
+
+  setTimeout(() => {
+    splash.classList.add('rp-hidden');
+    setTimeout(() => splash.remove(), 550);
+  }, 2500);
+})();
