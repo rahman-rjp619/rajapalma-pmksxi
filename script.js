@@ -2,6 +2,7 @@
 	(function () {
 	'use strict';
 	var PORTAL = 'karyawan';
+
 	var GAS_URL = "https://script.google.com/macros/s/AKfycbwfq5F4ysYs7H0fUxNrJ3A2fpwX0gTK87qa_HS9WMssTV0umNiLwr4zyXzC0gp-gpbG6Q/exec";
 	var KT = 'hrd_token_' + PORTAL;
 	var S = { token: null, peran: null, karyawan: null, hak: [], profilPromise: null };
@@ -1383,6 +1384,7 @@
 	return String(v == null || v === '' ? '—' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 	}
 	var FOTO_PROFIL_SERVER = '';
+	var FOTO_PROFIL_ASLI = '';
 	var FOTO_DIREKTORI_SERVER = Object.create(null);
 	function fotoProfilTersimpan() { return FOTO_PROFIL_SERVER || ''; }
 	function kunciCropFotoProfil() {
@@ -1461,6 +1463,7 @@
 	ambilProfil().then(function (r) {
 		if (!r || !r.ok) return;
 		FOTO_PROFIL_SERVER = r.fotoProfilData || '';
+		FOTO_PROFIL_ASLI = FOTO_PROFIL_SERVER;
 		tampilkanFotoProfil(FOTO_PROFIL_SERVER);
 	}).catch(function () {
 		// Jangan mengganggu proses login/menu jika foto gagal dimuat.
@@ -1546,7 +1549,8 @@
 	tombol.addEventListener('click', function () {
 		var src = fotoProfilTersimpan();
 		if (!src) { input.click(); return; }
-		var pratinjau = el('img', { src: src, alt: 'Foto profil karyawan', style: 'display:block;width:min(100%,420px);max-height:65vh;object-fit:contain;margin:0 auto;border-radius:12px' });
+		var sumberAsli = FOTO_PROFIL_ASLI || src;
+		var pratinjau = el('img', { src: sumberAsli, alt: 'Foto profil asli yang diunggah', style: 'display:block;width:min(100%,420px);max-height:65vh;object-fit:contain;margin:0 auto;border-radius:12px' });
 		bukaModal('Foto Profil', [pratinjau], [
 		{ teks: 'Ubah Foto', kelas: 'primary', klik: function (t) { t(); input.click(); } },
 		{ teks: 'Hapus Foto', kelas: 'bahaya', klik: async function (t) {
@@ -1555,7 +1559,7 @@
 			if (!setuju) return;
 			try {
 			var hasilHapus = await api('karyawanFotoProfilHapus');
-			S.profilPromise = null; FOTO_PROFIL_SERVER = ''; tampilkanFotoProfil('');
+			S.profilPromise = null; FOTO_PROFIL_SERVER = ''; FOTO_PROFIL_ASLI = ''; tampilkanFotoProfil('');
 			toast(hasilHapus.pesan || 'Foto profil dihapus.');
 			renderProfilSendiri();
 			} catch (e) { toast(pesanError(e)); }
@@ -1574,7 +1578,9 @@
 				toast('Menyimpan foto profil…', 'info');
 				var tersimpan = await api('karyawanFotoProfilSimpan', { foto: { nama: hasil.nama, mimeType: hasil.mimeType, data: hasil.data } });
 				simpanCropFotoProfil(hasil.crop);
-				FOTO_PROFIL_SERVER = tersimpan.fotoProfilData || hasil.data; S.profilPromise = null;
+				FOTO_PROFIL_SERVER = tersimpan.fotoProfilData || hasil.data;
+				FOTO_PROFIL_ASLI = hasil.data;
+				S.profilPromise = null;
 		gambar(FOTO_PROFIL_SERVER);
 		tampilkanFotoProfil(FOTO_PROFIL_SERVER);
 		toast('Foto profil berhasil diterapkan.');
@@ -1654,7 +1660,10 @@
 		var judul = isi.querySelector('.beranda-welcome h2');
 		if (judul) judul.textContent = 'Halo, ' + nama + ' 👋';
 		if ($('berandaProfilSub')) $('berandaProfilSub').textContent = (p.divisi || 'Karyawan') + ' · Lihat profil ↗';
-		if (r.fotoProfilData) FOTO_PROFIL_SERVER = r.fotoProfilData;
+		if (r.fotoProfilData) {
+		FOTO_PROFIL_SERVER = r.fotoProfilData;
+		FOTO_PROFIL_ASLI = r.fotoProfilData;
+		}
 		pasangFoto(FOTO_PROFIL_SERVER, inisial);
 	}).catch(function () {});
 	}
@@ -1667,6 +1676,7 @@
 	ambilProfil().then(function (r) {
 		var p = r.profil || {};
 		FOTO_PROFIL_SERVER = r.fotoProfilData || '';
+		FOTO_PROFIL_ASLI = FOTO_PROFIL_SERVER;
 		tampilkanFotoProfil(FOTO_PROFIL_SERVER);
 		kotak.remove();
 		var inisial = String(p.nama || 'K').split(/\s+/).filter(Boolean).slice(0, 2).map(function (x) { return x.charAt(0); }).join('').toUpperCase();
