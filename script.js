@@ -629,6 +629,11 @@
 		var pilihDivisi = semuaAkses ? el('select', { 'aria-label': 'Filter divisi' }) : null;
 		var tanggalDari = el('input', { type: 'date', 'aria-label': 'Filter dari tanggal' });
 		var tanggalSampai = el('input', { type: 'date', 'aria-label': 'Filter sampai tanggal' });
+		var tanggalAkhirAwal = new Date();
+		var tanggalMulaiAwal = new Date(tanggalAkhirAwal);
+		tanggalMulaiAwal.setDate(tanggalMulaiAwal.getDate() - 13);
+		tanggalDari.value = isoHari(tanggalMulaiAwal);
+		tanggalSampai.value = isoHari(tanggalAkhirAwal);
 		var filterDari = fieldEl('Dari tanggal', tanggalDari);
 		var filterSampai = fieldEl('Sampai tanggal', tanggalSampai);
 		filterDari.classList.add('lembur-date-filter');
@@ -1438,6 +1443,61 @@
 		tampilkanFotoProfil(FOTO_PROFIL_SERVER);
 	});
 	}
+	function editorPangkasFoto(file) {
+	return new Promise(function (selesai, gagal) {
+		var url = URL.createObjectURL(file), gambarAsli = new Image(), sudahSelesai = false;
+		function akhir(nilai) {
+			if (sudahSelesai) return;
+			sudahSelesai = true;
+			URL.revokeObjectURL(url);
+			selesai(nilai);
+		}
+		gambarAsli.onerror = function () { URL.revokeObjectURL(url); gagal(new Error('File tidak dapat dibaca sebagai gambar.')); };
+		gambarAsli.onload = function () {
+			var zoom = el('input', { type: 'range', min: '1', max: '3', step: '0.01', value: '1', 'aria-label': 'Perbesar foto' });
+			var geserX = el('input', { type: 'range', min: '0', max: '100', value: '50', 'aria-label': 'Atur posisi horizontal foto' });
+			var geserY = el('input', { type: 'range', min: '0', max: '100', value: '50', 'aria-label': 'Atur posisi vertikal foto' });
+			var bingkai = el('div', { style: 'position:relative;width:min(280px, calc(100vw - 100px));aspect-ratio:1/1;margin:0 auto;overflow:hidden;border:2px solid var(--ink);border-radius:12px;background:#222;touch-action:none' });
+			var pratinjau = el('img', { src: url, alt: 'Atur potongan foto profil', draggable: 'false', style: 'position:absolute;max-width:none;user-select:none;pointer-events:none' });
+			bingkai.appendChild(pratinjau);
+			bingkai.appendChild(el('div', { class: 'foto-crop-guide', 'aria-hidden': 'true' }));
+			function perbaruiPratinjau() {
+				var sisi = bingkai.clientWidth || 280;
+				var skala = Math.max(sisi / gambarAsli.naturalWidth, sisi / gambarAsli.naturalHeight) * Number(zoom.value);
+				var lebar = gambarAsli.naturalWidth * skala, tinggi = gambarAsli.naturalHeight * skala;
+				pratinjau.style.width = lebar + 'px'; pratinjau.style.height = tinggi + 'px';
+				pratinjau.style.left = ((sisi - lebar) * Number(geserX.value) / 100) + 'px';
+				pratinjau.style.top = ((sisi - tinggi) * Number(geserY.value) / 100) + 'px';
+			}
+			[zoom, geserX, geserY].forEach(function (input) { input.addEventListener('input', perbaruiPratinjau); });
+			var keterangan = el('p', { class: 'sub2', text: 'Geser zoom dan posisi hingga foto pas di dalam bingkai.' });
+			var kontrol = el('div', { style: 'display:grid;gap:8px;margin-top:12px' }, [
+				fieldEl('Zoom', zoom), fieldEl('Posisi horizontal', geserX), fieldEl('Posisi vertikal', geserY)
+			]);
+			var hasil = null;
+			var modal = bukaModal('Sesuaikan Foto Profil', [bingkai, keterangan, kontrol], [
+				{ teks: 'Batal', klik: function (t) { t(); } },
+				{ teks: 'Gunakan Foto', kelas: 'primary', klik: function (t, tombol) {
+					tombol.disabled = true;
+					try {
+						var sisi = bingkai.clientWidth || 280;
+						var skala = Math.max(sisi / gambarAsli.naturalWidth, sisi / gambarAsli.naturalHeight) * Number(zoom.value);
+						var kiri = (sisi - gambarAsli.naturalWidth * skala) * Number(geserX.value) / 100;
+						var atas = (sisi - gambarAsli.naturalHeight * skala) * Number(geserY.value) / 100;
+						var kanvas = document.createElement('canvas'); kanvas.width = 640; kanvas.height = 640;
+						var konteks = kanvas.getContext('2d');
+						konteks.drawImage(gambarAsli, -kiri / skala, -atas / skala, sisi / skala, sisi / skala, 0, 0, 640, 640);
+						hasil = { nama: file.name.replace(/\\.[^.]+$/, '') + '.jpg', mimeType: 'image/jpeg', data: kanvas.toDataURL('image/jpeg', .82) };
+						t();
+					} catch (e) { tombol.disabled = false; toast('Foto tidak dapat diproses.', 'error'); }
+				} }
+			], function () { akhir(hasil); });
+			modal.box.classList.add('lebar');
+			perbaruiPratinjau();
+		};
+		gambarAsli.src = url;
+	});
+	}
 	function kontrolFotoProfil(inisial) {
 	var kontrol = el('div', { class: 'profile-photo-control' });
 	var tombol = el('button', { type: 'button', class: 'avatar profile-photo-button', 'aria-label': 'Pilih foto profil', title: 'Pilih foto profil' });
@@ -1476,17 +1536,21 @@
 		if (!file) return;
 		if (!fileGambarValid(file)) { toast('Pilih foto JPG, PNG, WEBP, atau GIF.'); input.value = ''; return; }
 		try {
-		tombol.disabled = true; toast('Menyimpan foto profil…', 'info');
-		var hasil = await kompresFoto(file, null, 640);
+		tombol.disabled = true;
+		var hasil = await editorPangkasFoto(file);
+		if (!hasil) return;
+		toast('Menyimpan foto profil…', 'info');
 		var tersimpan = await api('karyawanFotoProfilSimpan', { foto: hasil });
 		FOTO_PROFIL_SERVER = tersimpan.fotoProfilData || hasil.data; S.profilPromise = null;
 		gambar(FOTO_PROFIL_SERVER);
 		tampilkanFotoProfil(FOTO_PROFIL_SERVER);
-		tombol.disabled = false; toast('Foto profil berhasil diterapkan :)');
+		toast('Foto profil berhasil diterapkan.');
 		} catch (e) {
-		tombol.disabled = false; toast(pesanError(e) || 'Foto profil gagal disimpan.', 'error');
-		}
+		toast(pesanError(e) || 'Foto profil gagal disimpan.', 'error');
+		} finally {
+		tombol.disabled = false;
 		input.value = '';
+		}
 	});
 	kontrol.appendChild(tombol);
 	kontrol.appendChild(input);
@@ -1917,7 +1981,7 @@
 	var head = el('div', { class: 'abs-kal-head' }, [prev, el('div', { class: 'abs-kal-title' }, [judul, kini]), next]);
 	var minggu = el('div', { class: 'abs-kal-week' });
 	['Min','Sen','Sel','Rab','Kam','Jum','Sab'].forEach(function (h) { minggu.appendChild(el('span', { text: h })); });
-	var infoCakupan = 'Data absensi sesuai hak akses akun.';
+	var infoCakupan = 'Data absensi sesuai hak akses akun Anda.';
 	var info = el('p', { class: 'sub2 abs-kal-info', text: infoCakupan });
 	var wadah = el('div', { class: 'abs-kal-wrap' }, [head, stat, minggu, grid, info, bar, detail]);
 	isi.appendChild(wadah); isi.appendChild(loading);
@@ -2079,7 +2143,7 @@
 		if (token !== reqId) return;
 		data = Array.isArray(res.data) ? res.data : [];
 		cache[kunci] = data; cacheBulanPenuh[kunci] = true;
-		info.textContent = infoCakupan + ' Menampilkan data lengkap bulan ' + BLN[bulanNomor - 1] + ' ' + tahun + '.';
+		info.textContent = infoCakupan;
 		loading.classList.add('hidden');
 		gambar();
 	} catch (e) {
@@ -2094,7 +2158,7 @@
 	dipilih = ''; akhirDipilih = '';
 	if (cacheBulanPenuh[kunci]) {
 		data = cache[kunci];
-		info.textContent = infoCakupan + ' Menampilkan data lengkap bulan ' + BLN[bulan.getMonth()] + ' ' + bulan.getFullYear() + '.';
+		info.textContent = infoCakupan;
 		loading.classList.add('hidden');
 		gambar();
 		return;
@@ -2102,7 +2166,7 @@
 	var awal = muatAwal && kunci === ym(new Date());
 	if (awal) {
 		var hariIni = new Date();
-		var tanggalAwal = new Date(hariIni.getFullYear(), hariIni.getMonth(), hariIni.getDate() - 2);
+		var tanggalAwal = new Date(hariIni.getFullYear(), hariIni.getMonth(), hariIni.getDate() - 13);
 		dari = isoHari(tanggalAwal); sampai = isoHari(hariIni);
 		rentangAwal = { dari: dari, sampai: sampai };
 	}
@@ -2117,7 +2181,7 @@
 	} catch (e) { /* abaikan: auto-verifikasi opsional */ }
 
 	// 2) Sajikan data (cache atau fetch ulang)
-	if (cacheBulanPenuh[kunci]) { data = cache[kunci]; info.textContent = infoCakupan + ' Menampilkan data lengkap bulan ' + BLN[bulan.getMonth()] + ' ' + bulan.getFullYear() + '.'; loading.classList.add('hidden'); gambar(); return; }
+	if (cacheBulanPenuh[kunci]) { data = cache[kunci]; info.textContent = infoCakupan; loading.classList.add('hidden'); gambar(); return; }
 
 	data = []; loading.className = 'info loading'; loading.textContent = 'Memuat data absensi…';
 	gambar();
@@ -2127,10 +2191,10 @@
 		data = Array.isArray(res.data) ? res.data : [];
 		if (awal) {
 		muatAwal = false;
-		info.textContent = infoCakupan + ' Tampilan awal memuat catatan ' + tglTeks(dari) + ' sampai ' + tglTeks(sampai) + '. Pilih tanggal lebih lama untuk memuat seluruh bulan.';
+		info.textContent = infoCakupan;
 		} else {
 		cache[kunci] = data; cacheBulanPenuh[kunci] = true;
-		info.textContent = infoCakupan + ' Menampilkan data lengkap bulan ' + BLN[bulan.getMonth()] + ' ' + bulan.getFullYear() + '.';
+		info.textContent = infoCakupan;
 		}
 		lintas = !!(res.lihatSemua || res.lihatDivisi);
 		bar.classList.toggle('hidden', !lintas || !dipilih);
