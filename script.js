@@ -599,7 +599,7 @@
 	oleh backend Modul.gs). Frontend hanya merapikan jadi matriks.
 	============================================================ */
 	function renderLemburKaryawan() {
-	var isi = halaman('Lembur', 'Riwayat lembur sesuai hak akses akun Anda.');
+	var isi = halaman('Lembur', 'Rekap jam lembur per karyawan.');
 	var kotak = el('div', { class: 'info loading', text: 'Memuat data lembur' });
 	isi.appendChild(kotak);
 	var semuaAkses = hakDari('lembur').cakupan === 'semua';
@@ -633,25 +633,48 @@
 		var filterSampai = fieldEl('Sampai tanggal', tanggalSampai);
 		filterDari.classList.add('lembur-date-filter');
 		filterSampai.classList.add('lembur-date-filter');
-		var hasil = el('div');
-		var hitung = el('p', { class: 'hitung' });
+		var hasil = el('div', { class: 'lembur-results' });
+		var hitung = el('p', { class: 'hitung lembur-count', 'aria-live': 'polite' });
 		var kontrol = [filterDari, filterSampai];
 		if (semuaAkses) {
 		pilihDivisi.appendChild(el('option', { value: '', text: 'Semua divisi' }));
 		Array.from(new Set(data.map(function (item) { return String(item.divisi || '').trim(); }).filter(Boolean)))
 			.sort(function (a, b) { return a.localeCompare(b, 'id', { sensitivity: 'base' }); })
 			.forEach(function (divisi) { pilihDivisi.appendChild(el('option', { value: divisi, text: divisi })); });
-		kontrol.push(cariNama, pilihDivisi);
+		kontrol.push(fieldEl('Cari nama', cariNama), fieldEl('Divisi', pilihDivisi));
 		}
-		isi.appendChild(el('div', { class: 'toolbar lembur-filter' }, kontrol));
-		isi.appendChild(hitung);
-		isi.appendChild(hasil);
+		var resetFilter = btn('Bersihkan filter', 'kecil lembur-reset', function () {
+		tanggalDari.value = ''; tanggalSampai.value = '';
+		if (cariNama) cariNama.value = '';
+		if (pilihDivisi) pilihDivisi.value = '';
+		tampilkanHasil();
+		});
+		kontrol.push(resetFilter);
+		var panelFilter = el('section', { class: 'lembur-filter-panel', 'aria-label': 'Filter data lembur' }, [
+		el('h3', { class: 'sec', text: 'Filter lembur' }),
+		el('div', { class: 'toolbar lembur-filter' }, kontrol)
+		]);
+		var tampilan = el('section', { class: 'lembur-view', 'aria-label': 'Ringkasan lembur' }, [
+		panelFilter,
+		hitung,
+		el('h3', { class: 'sec', text: 'Ringkasan lembur' }),
+		hasil
+		]);
+		isi.appendChild(tampilan);
 
 		function tampilkanHasil() {
+		resetFilter.disabled = !tanggalDari.value && !tanggalSampai.value
+			&& !(cariNama && cariNama.value.trim()) && !(pilihDivisi && pilihDivisi.value);
 		var q = cariNama ? cariNama.value.trim().toLocaleLowerCase('id') : '';
 		var divisiDipilih = pilihDivisi ? pilihDivisi.value : '';
 		var dari = tanggalDari.value;
 		var sampai = tanggalSampai.value;
+		hasil.innerHTML = '';
+		if (dari && sampai && dari > sampai) {
+			hitung.textContent = 'Rentang tanggal belum valid.';
+			hasil.appendChild(el('div', { class: 'alert', role: 'alert', text: 'Tanggal “Dari” harus sama dengan atau lebih awal daripada tanggal “Sampai”.' }));
+			return;
+		}
 		var tersaring = dataSiap.filter(function (siap) {
 			var item = siap.item;
 			var namaCocok = !q || String(item.nama || '').toLocaleLowerCase('id').indexOf(q) >= 0;
@@ -664,8 +687,7 @@
 			}).map(function (r) { return r.data; });
 			return salinan;
 		});
-		hitung.textContent = 'Menampilkan ' + tersaring.length + ' dari ' + data.length + ' data lembur';
-		hasil.innerHTML = '';
+		hitung.textContent = 'Menampilkan ' + tersaring.length + ' dari ' + data.length + ' karyawan';
 		if (!tersaring.length) {
 			hasil.appendChild(el('div', { class: 'info', text: data.length ? 'Tidak ada data lembur yang cocok dengan filter.' : 'Belum ada data lembur.' }));
 			return;
@@ -1895,7 +1917,8 @@
 	var head = el('div', { class: 'abs-kal-head' }, [prev, el('div', { class: 'abs-kal-title' }, [judul, kini]), next]);
 	var minggu = el('div', { class: 'abs-kal-week' });
 	['Min','Sen','Sel','Rab','Kam','Jum','Sab'].forEach(function (h) { minggu.appendChild(el('span', { text: h })); });
-	var info = el('p', { class: 'sub2 abs-kal-info', text: hak.cakupan === 'semua' ? 'Menampilkan data absensi seluruh karyawan sesuai hak akses Anda.' : (hak.cakupan === 'divisi' ? 'Menampilkan data absensi divisi yang diizinkan untuk akun Anda.' : 'Menampilkan riwayat absensi pribadi berdasarkan nomor absen akun Anda.') });
+	var infoCakupan = 'Data absensi sesuai hak akses akun.';
+	var info = el('p', { class: 'sub2 abs-kal-info', text: infoCakupan });
 	var wadah = el('div', { class: 'abs-kal-wrap' }, [head, stat, minggu, grid, info, bar, detail]);
 	isi.appendChild(wadah); isi.appendChild(loading);
 
@@ -1910,7 +1933,7 @@
 		if (x.jamMasuk || x.jamPulang || /hadir|masuk|pulang/.test(s)) return 'hadir';
 		return 'anomali';
 	}
-	var LBL = { hadir: 'Hadir', izin: 'Izin / Sakit', dinas: 'Dinas luar', alpa: 'Alpa', anomali: 'Anomali / belum lengkap' };
+	var LBL = { hadir: 'Hadir', izin: 'Sakit / Izin', dinas: 'Dinas luar', alpa: 'Alpha', anomali: 'Belum lengkap' };
 	function tglISO(v) {
 		var t = String(v || '').trim();
 		if (/^\d{4}-\d{2}-\d{2}/.test(t)) return t.slice(0, 10);
@@ -1979,7 +2002,8 @@
 		return !q || String(x.nama || '').toLowerCase().indexOf(q) >= 0 || String(x.noAbsen || '').toLowerCase().indexOf(q) >= 0;
 		});
 		var labelTanggal = batas[0] === batas[1] ? tglTeks(batas[0]) : tglTeks(batas[0]) + ' – ' + tglTeks(batas[1]);
-		detail.appendChild(el('div', { class: 'abs-kal-detail-head' }, [el('div', null, [el('span', { class: 'abs-kal-eyebrow', text: batas[0] === batas[1] ? 'DETAIL TANGGAL' : 'DETAIL RENTANG TANGGAL' }), el('h3', { text: labelTanggal })]), el('span', { class: 'abs-kal-count', text: rs.length + ' dari ' + semuaRs.length + ' catatan' })]));
+		var tombolHapusPilihan = btn('Hapus pilihan', 'kecil abs-kal-clear', function () { dipilih = ''; akhirDipilih = ''; gambar(); });
+		detail.appendChild(el('div', { class: 'abs-kal-detail-head' }, [el('div', null, [el('span', { class: 'abs-kal-eyebrow', text: batas[0] === batas[1] ? 'DETAIL TANGGAL' : 'DETAIL RENTANG TANGGAL' }), el('h3', { text: labelTanggal })]), el('div', { class: 'abs-kal-detail-actions' }, [el('span', { class: 'abs-kal-count', text: rs.length + ' dari ' + semuaRs.length + ' catatan' }), tombolHapusPilihan])]));
 		if (batas[0] === batas[1] && ketLibur(batas[0])) detail.appendChild(el('p', { class: 'abs-kal-note', text: (LIBUR_NASIONAL[batas[0]] ? 'Libur nasional: ' : '') + ketLibur(batas[0]) }));
 		if (!rs.length) { detail.appendChild(el('p', { class: 'abs-kal-empty', text: semuaRs.length ? 'Tidak ada hasil yang cocok dengan pencarian.' : 'Belum ada catatan absensi pada rentang tanggal ini.' })); return; }
 		rs.forEach(function (item) {
@@ -2000,7 +2024,7 @@
 		var y = bulan.getFullYear(), m = bulan.getMonth(), n = new Date(y, m + 1, 0).getDate(), off = new Date(y, m, 1).getDay();
 		judul.textContent = BLN[m] + ' ' + y;
 		stat.innerHTML = '';
-		[['Hadir', 'hadir'], ['Izin/Sakit', 'izin'], ['Dinas luar', 'dinas'], ['Alpa', 'alpa'], ['Anomali', 'anomali']].forEach(function (a) { stat.appendChild(el('div', { class: 'abs-kal-stat ' + a[1] }, [el('strong', { text: String(c[a[1]]) }), el('span', { text: a[0] })])); });
+		[['Hadir', 'hadir'], ['Sakit / Izin', 'izin'], ['Dinas luar', 'dinas'], ['Alpha', 'alpa'], ['Belum lengkap', 'anomali']].forEach(function (a) { stat.appendChild(el('div', { class: 'abs-kal-stat ' + a[1] }, [el('strong', { text: String(c[a[1]]) }), el('span', { text: a[0] })])); });
 		idxAktif = idx;
 		var kunciRender = ym(bulan);
 		if (kalenderBulanRender !== kunciRender || kalenderDataRender !== data) {
@@ -2055,6 +2079,7 @@
 		if (token !== reqId) return;
 		data = Array.isArray(res.data) ? res.data : [];
 		cache[kunci] = data; cacheBulanPenuh[kunci] = true;
+		info.textContent = infoCakupan + ' Menampilkan data lengkap bulan ' + BLN[bulanNomor - 1] + ' ' + tahun + '.';
 		loading.classList.add('hidden');
 		gambar();
 	} catch (e) {
@@ -2069,6 +2094,7 @@
 	dipilih = ''; akhirDipilih = '';
 	if (cacheBulanPenuh[kunci]) {
 		data = cache[kunci];
+		info.textContent = infoCakupan + ' Menampilkan data lengkap bulan ' + BLN[bulan.getMonth()] + ' ' + bulan.getFullYear() + '.';
 		loading.classList.add('hidden');
 		gambar();
 		return;
@@ -2091,7 +2117,7 @@
 	} catch (e) { /* abaikan: auto-verifikasi opsional */ }
 
 	// 2) Sajikan data (cache atau fetch ulang)
-	if (cacheBulanPenuh[kunci]) { data = cache[kunci]; loading.classList.add('hidden'); gambar(); return; }
+	if (cacheBulanPenuh[kunci]) { data = cache[kunci]; info.textContent = infoCakupan + ' Menampilkan data lengkap bulan ' + BLN[bulan.getMonth()] + ' ' + bulan.getFullYear() + '.'; loading.classList.add('hidden'); gambar(); return; }
 
 	data = []; loading.className = 'info loading'; loading.textContent = 'Memuat data absensi…';
 	gambar();
@@ -2099,8 +2125,13 @@
 		var res = await api('karyawanAbsensi', { dari: dari, sampai: sampai });
 		if (token !== reqId) return;
 		data = Array.isArray(res.data) ? res.data : [];
-		if (awal) muatAwal = false;
-		else { cache[kunci] = data; cacheBulanPenuh[kunci] = true; }
+		if (awal) {
+		muatAwal = false;
+		info.textContent = infoCakupan + ' Tampilan awal memuat catatan ' + tglTeks(dari) + ' sampai ' + tglTeks(sampai) + '. Pilih tanggal lebih lama untuk memuat seluruh bulan.';
+		} else {
+		cache[kunci] = data; cacheBulanPenuh[kunci] = true;
+		info.textContent = infoCakupan + ' Menampilkan data lengkap bulan ' + BLN[bulan.getMonth()] + ' ' + bulan.getFullYear() + '.';
+		}
 		lintas = !!(res.lihatSemua || res.lihatDivisi);
 		bar.classList.toggle('hidden', !lintas || !dipilih);
 		if (!lintas) cari.value = '';
