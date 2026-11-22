@@ -1,4 +1,4 @@
-	/* PT Raja Palma - script */
+/* PT Raja Palma - script */
 	(function () {
 	'use strict';
 	var PORTAL = 'karyawan';
@@ -381,6 +381,21 @@
 	return res;
 	}
 
+	/* Daftar divisi: sumber sama dengan Portal Admin (aksi portalDivisiDaftar). */
+	var divisiPortal = [];
+	async function muatDivisiPortal() {
+	try {
+		var r = await api('portalDivisiDaftar');
+		var baru = Array.from(new Set((r.divisi || []).map(function (d) {
+		return String(typeof d === 'object' && d ? (d.divisi || d.nama || '') : d || '').trim();
+		}).filter(Boolean))).sort(function (a, b) { return a.localeCompare(b, 'id', { sensitivity: 'base' }); });
+		if (baru.length) divisiPortal = baru;
+	} catch (e) {
+		if (pesanError(e) === 'SESI_HABIS') throw e;
+	}
+	return divisiPortal;
+	}
+
 	function kirimHeartbeatPortal() {
 	if (PORTAL !== 'karyawan' || !S.token || portalAnalyticsSedangKirim) return;
 	portalAnalyticsSedangKirim = true;
@@ -603,7 +618,8 @@
 	isi.appendChild(kotak);
 	var semuaAkses = hakDari('lembur').cakupan === 'semua';
 
-	api('karyawanLembur').then(function (r) {
+	Promise.all([api('karyawanLembur'), muatDivisiPortal()]).then(function (hasilMuat) {
+		var r = hasilMuat[0];
 		kotak.remove();
 		var data = (r && r.data) || [];
 		function tanggalLemburISO(nilai) {
@@ -642,8 +658,9 @@
 		var kontrol = [filterDari, filterSampai];
 		if (semuaAkses) {
 		pilihDivisi.appendChild(el('option', { value: '', text: 'Semua divisi' }));
-		Array.from(new Set(data.map(function (item) { return String(item.divisi || '').trim(); }).filter(Boolean)))
-			.sort(function (a, b) { return a.localeCompare(b, 'id', { sensitivity: 'base' }); })
+		/* Samakan dengan Portal Admin; jika gagal dimuat, pakai divisi dari data lembur. */
+		(divisiPortal.length ? divisiPortal : Array.from(new Set(data.map(function (item) { return String(item.divisi || '').trim(); }).filter(Boolean)))
+			.sort(function (a, b) { return a.localeCompare(b, 'id', { sensitivity: 'base' }); }))
 			.forEach(function (divisi) { pilihDivisi.appendChild(el('option', { value: divisi, text: divisi })); });
 		kontrol.push(fieldEl('Cari nama', cariNama), fieldEl('Divisi', pilihDivisi));
 		}
