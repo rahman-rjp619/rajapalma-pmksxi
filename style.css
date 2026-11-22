@@ -222,6 +222,7 @@ table.tbl{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
 .profile-photo-control{display:grid;justify-items:center;gap:4px;flex:none}
 .profile-photo-button{position:relative;padding:0;overflow:hidden;cursor:pointer}
 .profile-photo-button img,.profile-avatar img{display:block;width:100%;height:100%;object-fit:cover;border-radius:inherit}
+.foto-crop-guide{position:absolute;inset:0;pointer-events:none;border:2px solid #fff;border-radius:50%;background:radial-gradient(circle,transparent 69%,rgba(0,0,0,.55) 70%);box-shadow:inset 0 0 0 1px rgba(0,0,0,.3)}
  .profile-photo-button:not(.has-photo)::after{content:"";position:absolute;right:1px;bottom:1px;display:block;width:25px;height:25px;border:2px solid var(--ink);border-radius:50%;background-color:var(--ac);-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M14 4h-4L8 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-4z'/%3E%3Ccircle cx='12' cy='13' r='3.5'/%3E%3C/svg%3E") center/16px 16px no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M14 4h-4L8 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-4z'/%3E%3Ccircle cx='12' cy='13' r='3.5'/%3E%3C/svg%3E") center/16px 16px no-repeat}
 :root[data-theme="dark"] .profile-photo-button:not(.has-photo)::after{background:var(--c-orange,#9a6a4a);color:#fff}
 .profile-photo-hint{font-size:9px;font-weight:700;color:var(--mut);white-space:nowrap}
@@ -670,7 +671,7 @@ body,.bar,nav,.panel,.card,.stat,.info,.modal,.tabelbungkus,input,select,textare
 .bar .header-actions #themeToggle svg, .bar .header-actions #menuToggle svg{width:23px;height:23px}
 .bar .header-actions .profile-toggle{display:grid;place-items:center;width:42px;height:42px;min-height:42px;max-width:none;padding:0;border:0!important;border-radius:0;background:transparent!important;box-shadow:none!important;color:inherit}
 .bar .header-actions .profile-toggle:hover{background:transparent!important;box-shadow:none!important;transform:scale(1.08)}
-.bar .header-actions .profile-avatar{width:26px;height:26px;border:0;background:transparent}
+.bar .header-actions .profile-avatar{width:26px;height:26px;min-width:26px;min-height:26px;aspect-ratio:1/1;flex:0 0 26px;box-sizing:border-box;overflow:hidden;border:0;border-radius:50%;background:transparent}
 .bar .header-actions .profile-avatar svg{width:24px;height:24px}
 .bar .header-actions .profile-label{display:none}
 @media(min-width:801px){
