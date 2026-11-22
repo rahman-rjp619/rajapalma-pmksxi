@@ -2,7 +2,6 @@
 	(function () {
 	'use strict';
 	var PORTAL = 'karyawan';
-
 	var GAS_URL = "https://script.google.com/macros/s/AKfycbwfq5F4ysYs7H0fUxNrJ3A2fpwX0gTK87qa_HS9WMssTV0umNiLwr4zyXzC0gp-gpbG6Q/exec";
 	var KT = 'hrd_token_' + PORTAL;
 	var S = { token: null, peran: null, karyawan: null, hak: [], profilPromise: null };
