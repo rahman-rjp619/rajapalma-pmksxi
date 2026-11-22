@@ -1972,3 +1972,123 @@ input,textarea,select,[contenteditable="true"],[contenteditable=""]{-webkit-user
     font-size: 10px !important;
   }
 }
+
+/* Petunjuk dan legenda Absensi serta filter Lembur. */
+#isi .abs-kal-selection-hint,
+#isi .lembur-help {
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--paper);
+  color: var(--mut);
+  font-size: 12px;
+  line-height: 1.5;
+}
+#isi .abs-kal-selection-hint::before {
+  content: "Petunjuk: ";
+  color: var(--ink);
+  font-weight: 800;
+}
+#isi .abs-kal-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: -4px;
+}
+#isi .abs-kal-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 9px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 700;
+}
+#isi .abs-kal-legend-item i {
+  display: block;
+  width: 9px;
+  height: 9px;
+  flex: 0 0 9px;
+  border-radius: 50%;
+  background: var(--mut);
+}
+#isi .abs-kal-legend-item i.hadir { background: #398a4b; }
+#isi .abs-kal-legend-item i.izin { background: #278bb5; }
+#isi .abs-kal-legend-item i.dinas { background: #bd8b18; }
+#isi .abs-kal-legend-item i.alpa { background: #c64c55; }
+#isi .abs-kal-legend-item i.anomali { background: #8b65b8; }
+#isi .abs-kal-detail-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+#isi .abs-kal-clear { min-height: 34px; }
+#isi .lembur-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 14px;
+  border: 2px solid var(--ink);
+  border-radius: 14px;
+  background: var(--paper);
+}
+#isi .lembur-filter .field { flex: 1 1 170px; min-width: 140px; }
+#isi .lembur-filter .lembur-reset { min-height: 42px; }
+#isi .lembur-help { margin: 0 0 10px; }
+#isi .lembur-matrix-wrap { margin-top: 8px; }
+:root[data-theme="dark"] #isi .abs-kal-selection-hint,
+:root[data-theme="dark"] #isi .abs-kal-legend-item,
+:root[data-theme="dark"] #isi .lembur-help,
+:root[data-theme="dark"] #isi .lembur-filter {
+  background: #111820;
+}
+@media (max-width: 620px) {
+  #isi .abs-kal-selection-hint,
+  #isi .lembur-help { padding: 9px 10px; font-size: 11px; }
+  #isi .abs-kal-legend { gap: 6px; }
+  #isi .abs-kal-legend-item { padding: 5px 7px; font-size: 10px; }
+  #isi .abs-kal-detail-actions { width: 100%; justify-content: space-between; }
+  #isi .lembur-filter { gap: 9px; padding: 10px; }
+  #isi .lembur-filter .field { flex-basis: calc(50% - 9px); min-width: 0; }
+  #isi .lembur-filter .lembur-reset { width: 100%; }
+}
+@media (max-width: 360px) {
+  #isi .abs-kal-legend-item { gap: 4px; padding: 4px 6px; font-size: 9px; }
+  #isi .lembur-filter .field { flex-basis: 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #isi .lembur-matrix-wrap { scroll-behavior: auto; }
+}
+
+/* Warna status kalender dan detail mengikuti kotak statistik Absensi. */
+:root {
+  --abs-hadir: #b8f2a8;
+  --abs-izin: #a9e7f4;
+  --abs-dinas: #ffe680;
+  --abs-alpa: #ffb0b0;
+  --abs-anomali: #d9c5f2;
+}
+:root[data-theme="dark"] {
+  --abs-hadir: #294b37;
+  --abs-izin: #244653;
+  --abs-dinas: #554a27;
+  --abs-alpa: #5b383b;
+  --abs-anomali: #463b5c;
+}
+#isi .abs-kal-stat.hadir,
+#isi .abs-kal-dots i.hadir,
+#isi .abs-kal-pill.hadir { background: var(--abs-hadir) !important; }
+#isi .abs-kal-stat.izin,
+#isi .abs-kal-dots i.izin,
+#isi .abs-kal-pill.izin { background: var(--abs-izin) !important; }
+#isi .abs-kal-stat.dinas,
+#isi .abs-kal-dots i.dinas,
+#isi .abs-kal-pill.dinas { background: var(--abs-dinas) !important; }
+#isi .abs-kal-stat.alpa,
+#isi .abs-kal-dots i.alpa,
+#isi .abs-kal-pill.alpa { background: var(--abs-alpa) !important; }
+#isi .abs-kal-stat.anomali,
+#isi .abs-kal-dots i.anomali,
+#isi .abs-kal-pill.anomali { background: var(--abs-anomali) !important; }
+#isi .abs-kal-dots i { border: 1px solid currentColor; }
