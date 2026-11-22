@@ -1385,6 +1385,28 @@
 	var FOTO_PROFIL_SERVER = '';
 	var FOTO_DIREKTORI_SERVER = Object.create(null);
 	function fotoProfilTersimpan() { return FOTO_PROFIL_SERVER || ''; }
+	function kunciCropFotoProfil() {
+		var karyawan = S.karyawan || {};
+		var identitas = karyawan.noAbsen || karyawan.no_absen || karyawan.id || 'akun';
+		return 'hrd_avatar_crop_' + String(identitas).replace(/[^a-zA-Z0-9_-]/g, '_');
+	}
+	function bacaCropFotoProfil() {
+		try {
+			var crop = JSON.parse(localStorage.getItem(kunciCropFotoProfil()) || 'null');
+			if (crop) return { zoom: Math.max(1, Math.min(3, Number(crop.zoom) || 1)), x: Math.max(0, Math.min(100, Number(crop.x) || 0)), y: Math.max(0, Math.min(100, Number(crop.y) || 0)) };
+		} catch (e) {}
+		return { zoom: 1, x: 50, y: 50 };
+	}
+	function simpanCropFotoProfil(crop) {
+		try { localStorage.setItem(kunciCropFotoProfil(), JSON.stringify(crop)); } catch (e) {}
+	}
+	function terapkanCropFotoProfil(img) {
+		var crop = bacaCropFotoProfil();
+		img.style.objectFit = 'cover';
+		img.style.objectPosition = crop.x + '% ' + crop.y + '%';
+		img.style.transform = 'scale(' + crop.zoom + ')';
+		img.style.transformOrigin = crop.x + '% ' + crop.y + '%';
+	}
 	function idFotoKaryawan(r) {
 	r = r || {};
 	return String(r.id || r.idKaryawan || r.userId || r.user_id || r.noAbsen || r.no_absen || r.nip || '').trim();
@@ -1424,8 +1446,11 @@
 	var avatar = document.querySelector('.profile-avatar');
 	if (!avatar) return;
 	avatar.innerHTML = '';
-	if (src) avatar.appendChild(el('img', { src: src, alt: 'Foto profil karyawan' }));
-	else avatar.appendChild(ikon(IKON.profil));
+			if (src) {
+			var img = el('img', { src: src, alt: 'Foto profil karyawan' });
+			terapkanCropFotoProfil(img);
+			avatar.appendChild(img);
+		} else avatar.appendChild(ikon(IKON.profil));
 	}
 	// Muat foto dari backend setiap kali sesi Portal Karyawan dibuka,
 	// agar avatar header langsung memakai foto terbaru yang tersimpan di Drive.
@@ -1442,6 +1467,15 @@
 		tampilkanFotoProfil(FOTO_PROFIL_SERVER);
 	});
 	}
+	function namaFileFotoProfil(file) {
+		var karyawan = S.karyawan || {};
+		function aman(teks, fallback) {
+			return String(teks || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9]+/g, '-').replace(/^-+|-+$/g, '').toLowerCase() || fallback;
+		}
+		var ekstensi = String(file.name || '').match(/\.([^.]+)$/);
+		ekstensi = ekstensi ? ekstensi[1].toLowerCase() : ({ 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif' }[file.type] || 'jpg');
+		return aman(karyawan.noAbsen || karyawan.no_absen || karyawan.nip, 'noabsen') + '-' + aman(karyawan.nama, 'karyawan') + '.' + ekstensi;
+	}
 	function editorPangkasFoto(file) {
 	return new Promise(function (selesai, gagal) {
 		var url = URL.createObjectURL(file), gambarAsli = new Image(), sudahSelesai = false;
@@ -1456,7 +1490,7 @@
 			var zoom = el('input', { type: 'range', min: '1', max: '3', step: '0.01', value: '1', 'aria-label': 'Perbesar foto' });
 			var geserX = el('input', { type: 'range', min: '0', max: '100', value: '50', 'aria-label': 'Atur posisi horizontal foto' });
 			var geserY = el('input', { type: 'range', min: '0', max: '100', value: '50', 'aria-label': 'Atur posisi vertikal foto' });
-			var bingkai = el('div', { style: 'position:relative;width:min(280px, calc(100vw - 100px));aspect-ratio:1/1;margin:0 auto;overflow:hidden;border:2px solid var(--ink);border-radius:12px;background:#222;touch-action:none' });
+			var bingkai = el('div', { style: 'position:relative;width:min(280px, calc(100vw - 100px));aspect-ratio:1/1;margin:0 auto;overflow:hidden;border:3px solid #fff;border-radius:50%;background:#222;box-shadow:0 0 0 3px #111,0 8px 24px rgba(0,0,0,.45);touch-action:none' });
 			var pratinjau = el('img', { src: url, alt: 'Atur potongan foto profil', draggable: 'false', style: 'position:absolute;max-width:none;user-select:none;pointer-events:none' });
 			bingkai.appendChild(pratinjau);
 			bingkai.appendChild(el('div', { class: 'foto-crop-guide', 'aria-hidden': 'true' }));
@@ -1479,15 +1513,14 @@
 				{ teks: 'Gunakan Foto', kelas: 'primary', klik: function (t, tombol) {
 					tombol.disabled = true;
 					try {
-						var sisi = bingkai.clientWidth || 280;
-						var skala = Math.max(sisi / gambarAsli.naturalWidth, sisi / gambarAsli.naturalHeight) * Number(zoom.value);
-						var kiri = (sisi - gambarAsli.naturalWidth * skala) * Number(geserX.value) / 100;
-						var atas = (sisi - gambarAsli.naturalHeight * skala) * Number(geserY.value) / 100;
-						var kanvas = document.createElement('canvas'); kanvas.width = 640; kanvas.height = 640;
-						var konteks = kanvas.getContext('2d');
-						konteks.drawImage(gambarAsli, -kiri / skala, -atas / skala, sisi / skala, sisi / skala, 0, 0, 640, 640);
-						hasil = { nama: file.name.replace(/\\.[^.]+$/, '') + '.jpg', mimeType: 'image/jpeg', data: kanvas.toDataURL('image/jpeg', .82) };
-						t();
+						var crop = { zoom: Number(zoom.value), x: Number(geserX.value), y: Number(geserY.value) };
+						var pembaca = new FileReader();
+						pembaca.onerror = function () { tombol.disabled = false; toast('Foto tidak dapat dibaca.', 'error'); };
+						pembaca.onload = function () {
+							hasil = { nama: namaFileFotoProfil(file), mimeType: file.type || 'image/jpeg', data: pembaca.result, crop: crop };
+							t();
+						};
+						pembaca.readAsDataURL(file);
 					} catch (e) { tombol.disabled = false; toast('Foto tidak dapat diproses.', 'error'); }
 				} }
 			], function () { akhir(hasil); });
@@ -1506,7 +1539,7 @@
 		tombol.classList.toggle('has-photo', !!src);
 		tombol.setAttribute('aria-label', src ? 'Lihat dan kelola foto profil' : 'Pilih foto profil');
 		tombol.title = src ? 'Lihat dan kelola foto profil' : 'Pilih foto profil';
-		if (src) { var im = el('img', { src: src, alt: '', decoding: 'async' }); im.addEventListener('error', function () { tombol.textContent = inisial || 'K'; tombol.classList.remove('has-photo'); }); tombol.appendChild(im); }
+		if (src) { var im = el('img', { src: src, alt: '', decoding: 'async' }); terapkanCropFotoProfil(im); im.addEventListener('error', function () { tombol.textContent = inisial || 'K'; tombol.classList.remove('has-photo'); }); tombol.appendChild(im); }
 		else tombol.textContent = inisial || 'K';
 	}
 	gambar(fotoProfilTersimpan());
@@ -1536,11 +1569,12 @@
 		if (!fileGambarValid(file)) { toast('Pilih foto JPG, PNG, WEBP, atau GIF.'); input.value = ''; return; }
 		try {
 		tombol.disabled = true;
-		var hasil = await editorPangkasFoto(file);
-		if (!hasil) return;
-		toast('Menyimpan foto profil…', 'info');
-		var tersimpan = await api('karyawanFotoProfilSimpan', { foto: hasil });
-		FOTO_PROFIL_SERVER = tersimpan.fotoProfilData || hasil.data; S.profilPromise = null;
+						var hasil = await editorPangkasFoto(file);
+				if (!hasil) return;
+				toast('Menyimpan foto profil…', 'info');
+				var tersimpan = await api('karyawanFotoProfilSimpan', { foto: { nama: hasil.nama, mimeType: hasil.mimeType, data: hasil.data } });
+				simpanCropFotoProfil(hasil.crop);
+				FOTO_PROFIL_SERVER = tersimpan.fotoProfilData || hasil.data; S.profilPromise = null;
 		gambar(FOTO_PROFIL_SERVER);
 		tampilkanFotoProfil(FOTO_PROFIL_SERVER);
 		toast('Foto profil berhasil diterapkan.');
@@ -1570,6 +1604,7 @@
 		foto.innerHTML = '';
 		if (src) {
 		var img = el('img', { src: src, alt: 'Foto profil ' + (namaAwal || 'karyawan'), decoding: 'async' });
+		terapkanCropFotoProfil(img);
 		img.addEventListener('error', function () { foto.textContent = inisial || inisialAwal; });
 		foto.appendChild(img);
 		} else foto.textContent = inisial || inisialAwal;
