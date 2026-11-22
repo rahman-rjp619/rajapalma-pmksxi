@@ -2093,3 +2093,62 @@ input,textarea,select,[contenteditable="true"],[contenteditable=""]{-webkit-user
 #isi .abs-kal-dots i.anomali,
 #isi .abs-kal-pill.anomali { background: var(--abs-anomali) !important; }
 #isi .abs-kal-dots i { border: 1px solid currentColor; }
+
+/* Kontrol filter dan formulir lebih lega pada layar ponsel. */
+@media (max-width: 620px) {
+  main { padding-left: 12px; padding-right: 12px; }
+  #isi .toolbar:not(.lembur-filter) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) !important;
+    align-items: stretch;
+    gap: 10px;
+    width: 100%;
+  }
+  #isi .toolbar:not(.lembur-filter) > *,
+  #isi .toolbar:not(.lembur-filter) .field,
+  #isi .toolbar:not(.lembur-filter) input,
+  #isi .toolbar:not(.lembur-filter) select,
+  #isi .toolbar:not(.lembur-filter) .btn {
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+  }
+  #isi .toolbar:not(.lembur-filter) input,
+  #isi .toolbar:not(.lembur-filter) select,
+  #isi .abs-filter input,
+  #isi .abs-filter select {
+    min-height: 48px;
+    padding: 11px 12px;
+  }
+  #isi .abs-filter {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
+  #isi .abs-filter input[type="search"] { grid-column: auto; }
+  #isi .abs-filter .btn { width: 100%; min-height: 48px; }
+  #isi .lembur-filter {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+    padding: 12px;
+  }
+  #isi .lembur-filter .field {
+    width: 100%;
+    min-width: 0;
+    flex: initial;
+  }
+  #isi .lembur-filter input,
+  #isi .lembur-filter select,
+  #isi .lembur-filter .btn {
+    width: 100%;
+    min-height: 48px;
+  }
+  #isi .field { min-width: 0; }
+  #isi .grid2 { grid-template-columns: minmax(0, 1fr); }
+  #isi .modal .mb { padding: 16px 14px; }
+}
+@media (max-width: 380px) {
+  main { padding-left: 10px; padding-right: 10px; }
+  #isi .toolbar:not(.lembur-filter),
+  #isi .lembur-filter { gap: 9px; }
+}
