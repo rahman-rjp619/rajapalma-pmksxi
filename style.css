@@ -2163,3 +2163,45 @@ input,textarea,select,[contenteditable="true"],[contenteditable=""]{-webkit-user
 #isi .abs-kal-cell.abs-kal-match{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
 :root[data-theme="dark"] #isi .abs-kal-stat.anomali{background:var(--abs-anomali)}
 @media(prefers-reduced-motion:reduce){#isi button.abs-kal-stat{transition:none}}
+
+.tbl td.off, .chip.off {
+  color: #4a5568;
+  background: #edf2f7;
+  border: 1px dashed #a0aec0;
+  font-weight: 700;
+}
+.abs-kal-day.off, .abs-kal-stats .off, .chip.off {
+	color: #4a5568;
+	background: #edf2f7;
+	border: 1px dashed #a0aec0;
+	font-weight: 700;
+}
+
+/* ============================================================
+   style.css — TAMBAHKAN di paling bawah file.
+   Status baru "OFF / Libur" pada kalender Cek Absensi.
+   ============================================================ */
+:root { --abs-off: #e2e8f0; }
+:root[data-theme="dark"] { --abs-off: #3a4651; }
+
+/* Kotak statistik: 6 kolom di desktop, 3 di tablet, 2 di ponsel */
+#isi .abs-kal-stats { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+@media (max-width: 900px) {
+  #isi .abs-kal-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 620px) {
+  #isi .abs-kal-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  #isi .abs-kal-stat:first-child,
+  #isi .abs-kal-stat:last-child { grid-column: span 2; }
+}
+
+/* Warna status OFF (kotak statistik, titik kalender, label detail) */
+#isi .abs-kal-stat.off,
+#isi .abs-kal-dots i.off,
+#isi .abs-kal-pill.off { background: var(--abs-off) !important; }
+#isi .abs-kal-legend-item i.off { background: #718096; }
+:root[data-theme="dark"] #isi .abs-kal-stat.off { color: var(--ink); border-color: var(--ink); }
+
+/* Tanggal yang punya jadwal Off produksi / maintenance */
+#isi .abs-kal-cell.off-prod { border-style: dashed; }
+#isi .abs-kal-cell.off-prod:not(.selected):not(.range) { background: var(--abs-off); }
