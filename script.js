@@ -101,6 +101,80 @@
 	function pesanError(e) { return String((e && e.message) || e).replace(/^Error:\s*/, ''); }
 	function p2(n) { return ('0' + n).slice(-2); }
 	function isoHari(d) { d = d || new Date(); return d.getFullYear() + '-' + p2(d.getMonth() + 1) + '-' + p2(d.getDate()); }
+/* ===== OFF PRODUKSI / MAINTENANCE / LIBUR (satu sumber kebenaran) ===== */
+var OFF_STATE = { siap: false, gagal: false, ver: 0, aturan: [], divisiByNo: Object.create(null), promise: null };
+
+function kunciNoAbsen(v) {
+  return String(v == null ? '' : v).trim().toLowerCase().replace(/^0+(?=\d)/, '');
+}
+
+/* Muat jadwal Off dari server. paksa=true -> ambil ulang (dipakai tiap membuka Cek Absensi). */
+function muatLiburProduksi(paksa) {
+  if (OFF_STATE.promise && !paksa) return OFF_STATE.promise;
+  var p = api('karyawanLiburProduksi').then(function (r) {
+    OFF_STATE.aturan = Array.isArray(r && r.aturan) ? r.aturan : [];
+    OFF_STATE.divisiByNo = (r && r.divisiByNo) || Object.create(null);
+    OFF_STATE.siap = true; OFF_STATE.gagal = false; OFF_STATE.ver++;
+    return OFF_STATE;
+  }).catch(function (e) {
+    OFF_STATE.promise = null;
+    var m = pesanError(e);
+    if (m === 'SESI_HABIS' || m === 'PERMINTAAN_DIBATALKAN') throw e;
+    // Gagal memuat: tandai agar Alpha TIDAK dihitung (lebih aman daripada salah menuduh Alpha).
+    OFF_STATE.siap = false; OFF_STATE.gagal = true; OFF_STATE.ver++;
+    return OFF_STATE;
+  });
+  OFF_STATE.promise = p;
+  return p;
+}
+
+function resetOffState() {
+  OFF_STATE.siap = false; OFF_STATE.gagal = false; OFF_STATE.ver++;
+  OFF_STATE.aturan = []; OFF_STATE.divisiByNo = Object.create(null); OFF_STATE.promise = null;
+}
+
+/* Apakah tanggal tsb hari OFF untuk karyawan k = { noAbsen, divisi }?
+   Urutan prioritas: Off produksi/maintenance -> libur nasional -> cuti bersama -> libur mingguan.
+   Aturan mingguan sama dengan backend (absensiTanggalLibur_): Aktiva Bangunan libur Jumat, lainnya Minggu. */
+function infoHariOff(tgl, k) {
+  tgl = String(tgl || '').trim().slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(tgl)) return null;
+  k = k || {};
+  var div = String(k.divisi || '').trim().toLowerCase();
+  var no = kunciNoAbsen(k.noAbsen);
+  var daftar = OFF_STATE.aturan || [];
+  for (var i = 0; i < daftar.length; i++) {
+    var o = daftar[i];
+    if (!o || o.tanggal !== tgl) continue;
+    var kena = false;
+    if (o.cakupan === 'pegawai') {
+      kena = !!no && (o.noAbsen || []).some(function (n) { return kunciNoAbsen(n) === no; });
+    } else {
+      kena = !!div && (o.divisi || []).some(function (d) { return String(d || '').trim().toLowerCase() === div; });
+    }
+    if (kena) {
+      var alasan = String(o.alasan || '').trim();
+      return { jenis: 'produksi', ket: (alasan && alasan.toLowerCase() !== 'off') ? 'Off produksi — ' + alasan : 'Off produksi' };
+    }
+  }
+  if (LIBUR_NASIONAL[tgl]) return { jenis: 'nasional', ket: 'Libur nasional: ' + LIBUR_NASIONAL[tgl] };
+  if (CUTI_BERSAMA[tgl]) return { jenis: 'cuti', ket: CUTI_BERSAMA[tgl] };
+  var d0 = new Date(tgl + 'T00:00:00');
+  if (isNaN(d0)) return null;
+  var hari = d0.getDay();
+  if (div === 'aktiva bangunan' ? hari === 5 : hari === 0) {
+    return { jenis: 'mingguan', ket: hari === 5 ? 'Libur mingguan (Jumat)' : 'Libur mingguan (Minggu)' };
+  }
+  return null;
+}
+
+/* Ringkasan aturan Off produksi pada satu tanggal (sudah difilter server sesuai hak akses). */
+function ringkasOffProduksi(tgl) {
+  return (OFF_STATE.aturan || []).filter(function (o) { return o && o.tanggal === tgl; }).map(function (o) {
+    var cakup = o.cakupan === 'pegawai' ? ((o.noAbsen || []).length + ' karyawan') : ((o.divisi || []).join(', ') || 'divisi');
+    return (o.alasan || 'Off') + ' — ' + cakup;
+  });
+}
 	function dmy(iso) { return iso ? String(iso).split('-').reverse().join('/') : ''; }
 	function karyawanNonaktifPabrik(r) {
 	r = r || {};
@@ -460,6 +534,7 @@
 	pengendaliHalaman = null;
 	batalkanTekanLamaAktif();
 	S.profilPromise = null; S.token = null; S.peran = null; S.karyawan = null; S.hak = []; simpanToken(null);
+	resetOffState();
 	}
 	function sesiHabis() { resetSesi(); bersihkanTampilan(); tampilPesan('Sesi habis. Silakan login lagi.'); }
 	function keluar() { var t = S.token; resetSesi(); bersihkanTampilan(); tampilPesan(''); cabutToken(t); }
@@ -2012,380 +2087,454 @@
 		});
 		isi.appendChild(tabs);
 	}
-	if (absTabK === 'dinas') absDinasKaryawan(isi); else absCekKaryawan(isi);
+	 if (absTabK === 'dinas') absDinasKaryawan(isi);
+  else {
+    var tunggu = el('div', { class: 'info loading', text: 'Memuat kalender kerja' });
+    isi.appendChild(tunggu);
+    muatLiburProduksi(true).then(function () {
+      if (!tunggu.isConnected) return;          // pengguna sudah pindah halaman
+      tunggu.remove();
+      absCekKaryawan(isi);
+    }).catch(function () {});
+  }
 	}
 	// Libur nasional & cuti bersama 2026 (SKB 3 Menteri). Tambah/ubah tanggal di sini bila ada perubahan atau tahun baru.
 	var LIBUR_NASIONAL = {'2026-01-01':'Tahun Baru Masehi','2026-01-16':'Isra Mikraj','2026-02-17':'Tahun Baru Imlek','2026-03-19':'Hari Suci Nyepi','2026-03-21':'Idul Fitri 1447 H','2026-03-22':'Idul Fitri 1447 H','2026-04-03':'Wafat Yesus Kristus','2026-04-05':'Paskah','2026-05-01':'Hari Buruh','2026-05-14':'Kenaikan Yesus Kristus','2026-05-27':'Idul Adha','2026-05-31':'Hari Raya Waisak','2026-06-01':'Hari Lahir Pancasila','2026-06-16':'Tahun Baru Islam 1448 H','2026-08-17':'Hari Kemerdekaan RI','2026-08-25':'Maulid Nabi','2026-12-25':'Hari Raya Natal'};
+var LIBUR_PRODUKSI = Object.create(null);
+var liburProduksiSiap = false;
+async function muatLiburProduksi() {
+	if (liburProduksiSiap) return;
+	try {
+		var r = await api('karyawanLiburProduksi');
+		((r && (r.libur || r.data)) || []).forEach(function (it) {
+			var t = String(it.tanggal || '').trim().slice(0, 10);
+			if (/^\d{4}-\d{2}-\d{2}$/.test(t)) LIBUR_PRODUKSI[t] = String(it.keterangan || 'Libur Produksi');
+		});
+	} catch (e) {}
+	liburProduksiSiap = true;
+}
 	var CUTI_BERSAMA = {'2026-02-16':'Cuti Bersama Imlek','2026-03-18':'Cuti Bersama Nyepi','2026-03-20':'Cuti Bersama Idul Fitri','2026-03-23':'Cuti Bersama Idul Fitri','2026-03-24':'Cuti Bersama Idul Fitri','2026-05-15':'Cuti Bersama Kenaikan Yesus Kristus','2026-05-28':'Cuti Bersama Idul Adha','2026-12-24':'Cuti Bersama Natal'};
 	function absCekKaryawan(isi) {
-	var hak = hakDari('absensi'), lintas = hak.cakupan === 'semua' || hak.cakupan === 'divisi';
-	var now = new Date(), bulan = new Date(now.getFullYear(), now.getMonth(), 1);
-	var data = [], dipilih = '', akhirDipilih = '', cache = {}, cacheBulanPenuh = {}, reqId = 0;
-	var muatAwal = true, rentangAwal = null;
-	var idxAktif = {}, kalenderKunciRender = '', kalenderDataRender = null;
-	var lemburIdx = null, lemburMuat = false, bisaLihatLembur = !!hakDari('lembur').lihat;
-	var filterKat = '';                       // filter status dari kotak statistik
-	var rentangData = null;                   // rentang tanggal yang benar-benar sudah dimuat (untuk hitung Alpha)
-	var rosterData = [], rosterVer = 0, rosterMuat = false;
-	var JAM_ALPA_HARI_INI = 18;               // hari ini baru dihitung Alpha setelah jam ini
-	var BLN = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
-	var cari = el('input', { type: 'search', placeholder: 'Cari nama atau nomor absen pada tanggal ini…', 'aria-label': 'Cari nama atau nomor absen pada tanggal ini' });
-	var cariTimer = null;
-	var judul = el('strong', { class: 'abs-kal-month' });
-	var grid = el('div', { class: 'abs-kal-grid', role: 'grid', 'aria-label': 'Kalender absensi bulanan' });
-	var detail = el('section', { class: 'abs-kal-detail hidden' });
-	var stat = el('div', { class: 'abs-kal-stats' });
-	var loading = el('div', { class: 'info loading', text: 'Memuat data absensi…' });
-	var bar = el('div', { class: 'abs-kal-toolbar hidden' }, [cari]);
-	var prev = btn('‹', 'abs-kal-nav', function () { geser(-1); });
-	var next = btn('›', 'abs-kal-nav', function () { geser(1); });
-	prev.setAttribute('aria-label', 'Bulan sebelumnya'); next.setAttribute('aria-label', 'Bulan berikutnya');
-	var kini = btn('Bulan ini', 'kecil', function () { bulan = new Date(now.getFullYear(), now.getMonth(), 1); muat(); });
-	var head = el('div', { class: 'abs-kal-head' }, [prev, el('div', { class: 'abs-kal-title' }, [judul, kini]), next]);
-	var minggu = el('div', { class: 'abs-kal-week' });
-	['Min','Sen','Sel','Rab','Kam','Jum','Sab'].forEach(function (h) { minggu.appendChild(el('span', { text: h })); });
-	var infoCakupan = 'Data absensi sesuai hak akses akun Anda. Klik kotak ringkasan untuk menyaring berdasarkan status. Hari kerja tanpa catatan dihitung Alpha (kecuali Minggu, libur, dan hari yang belum lewat).';
-	var info = el('p', { class: 'sub2 abs-kal-info', text: infoCakupan });
-	var wadah = el('div', { class: 'abs-kal-wrap' }, [head, stat, minggu, grid, info, bar, detail]);
-	isi.appendChild(wadah); isi.appendChild(loading);
+  var hak = hakDari('absensi'), lintas = hak.cakupan === 'semua' || hak.cakupan === 'divisi';
+  var now = new Date(), bulan = new Date(now.getFullYear(), now.getMonth(), 1);
+  var data = [], dipilih = '', akhirDipilih = '', cache = {}, cacheBulanPenuh = {}, reqId = 0;
+  var muatAwal = true, rentangAwal = null;
+  var idxAktif = {}, kalenderKunciRender = '', kalenderDataRender = null;
+  var lemburIdx = null, lemburMuat = false, bisaLihatLembur = !!hakDari('lembur').lihat;
+  var filterKat = '';                       // filter status dari kotak statistik
+  var rentangData = null;                   // rentang tanggal yang benar-benar sudah dimuat
+  var rosterData = [], rosterVer = 0, rosterMuat = false;
+  var JAM_ALPA_HARI_INI = 18;               // hari ini baru dihitung Alpha setelah jam ini
+  var BUAT_BARIS_OFF = true;                // true: hari OFF tanpa catatan ditampilkan sebagai baris "OFF"
+  var KATEGORI = ['hadir', 'izin', 'dinas', 'alpa', 'anomali', 'off'];
+  var LBL = { hadir: 'Hadir', izin: 'Sakit / Izin', dinas: 'Dinas luar', alpa: 'Alpha', anomali: 'Belum lengkap', off: 'OFF / Libur' };
+  var BLN = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
 
-	function ym(d) { return d.getFullYear() + '-' + p2(d.getMonth() + 1); }
-	function geser(n) { bulan = new Date(bulan.getFullYear(), bulan.getMonth() + n, 1); muat(); }
-	function aturBar() { bar.classList.toggle('hidden', !lintas || !(dipilih || filterKat)); }
-	function kategori(x) {
-		if (x._virtual) return 'alpa';
-		var s = String(x.status || '').toLowerCase(), g = s + ' ' + String(x.keterangan || '').toLowerCase();
-		if (/dinas\s*luar|luar\s*dinas/.test(g)) return 'dinas';
-		if (/izin|sakit|cuti/.test(g)) return 'izin';
-		if (/alpa|alpha|tanpa keterangan|tidak hadir/.test(g)) return 'alpa';
-		if (/anomali|belum lengkap|tidak lengkap|scan kurang|belum scan/.test(g)) return 'anomali';
-		if (x.jamMasuk || x.jamPulang || /hadir|masuk|pulang/.test(s)) return 'hadir';
-		return 'anomali';
-	}
-	var LBL = { hadir: 'Hadir', izin: 'Sakit / Izin', dinas: 'Dinas luar', alpa: 'Alpha', anomali: 'Belum lengkap' };
-	function tglISO(v) {
-		var t = String(v || '').trim();
-		if (/^\d{4}-\d{2}-\d{2}/.test(t)) return t.slice(0, 10);
-		var m = t.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})$/);
-		return m ? m[3] + '-' + p2(m[2]) + '-' + p2(m[1]) : t.slice(0, 10);
-	}
-	function tglTeks(iso) { var a = iso.split('-'); return Number(a[2]) + ' ' + (BLN[Number(a[1]) - 1] || a[1]) + ' ' + a[0]; }
-	function ketLibur(t) { return LIBUR_NASIONAL[t] || CUTI_BERSAMA[t] || ''; }
-	function batasDipilih() { return !dipilih ? null : (dipilih <= akhirDipilih ? [dipilih, akhirDipilih] : [akhirDipilih, dipilih]); }
-	function dalamRentang(t, batas) { return !!batas && t >= batas[0] && t <= batas[1]; }
-	function kunciLembur(v) { return String(v == null ? '' : v).trim().toLowerCase(); }
+  var cari = el('input', { type: 'search', placeholder: 'Cari nama atau nomor absen pada tanggal ini…', 'aria-label': 'Cari nama atau nomor absen pada tanggal ini' });
+  var cariTimer = null;
+  var judul = el('strong', { class: 'abs-kal-month' });
+  var grid = el('div', { class: 'abs-kal-grid', role: 'grid', 'aria-label': 'Kalender absensi bulanan' });
+  var detail = el('section', { class: 'abs-kal-detail hidden' });
+  var stat = el('div', { class: 'abs-kal-stats' });
+  var loading = el('div', { class: 'info loading', text: 'Memuat data absensi…' });
+  var bar = el('div', { class: 'abs-kal-toolbar hidden' }, [cari]);
+  var prev = btn('‹', 'abs-kal-nav', function () { geser(-1); });
+  var next = btn('›', 'abs-kal-nav', function () { geser(1); });
+  prev.setAttribute('aria-label', 'Bulan sebelumnya'); next.setAttribute('aria-label', 'Bulan berikutnya');
+  var kini = btn('Bulan ini', 'kecil', function () { bulan = new Date(now.getFullYear(), now.getMonth(), 1); muat(); });
+  var head = el('div', { class: 'abs-kal-head' }, [prev, el('div', { class: 'abs-kal-title' }, [judul, kini]), next]);
+  var minggu = el('div', { class: 'abs-kal-week' });
+  ['Min','Sen','Sel','Rab','Kam','Jum','Sab'].forEach(function (h) { minggu.appendChild(el('span', { text: h })); });
+  var infoCakupan = 'Data absensi sesuai hak akses akun Anda. Hari Off produksi, maintenance, dan libur tidak dihitung Alpha.';
+  var info = el('p', { class: 'sub2 abs-kal-info', text: infoCakupan });
+  var peringatan = el('div', { class: 'alert hidden', role: 'alert' });
+  var legenda = el('div', { class: 'abs-kal-legend', 'aria-label': 'Keterangan warna status' }, KATEGORI.map(function (k) {
+    return el('span', { class: 'abs-kal-legend-item' }, [el('i', { class: k }), LBL[k]]);
+  }));
+  var wadah = el('div', { class: 'abs-kal-wrap' }, [head, stat, minggu, grid, legenda, info, peringatan, bar, detail]);
+  isi.appendChild(wadah); isi.appendChild(loading);
 
-	/* ===== Alpha otomatis untuk karyawan tanpa catatan ===== */
-	function buatKar(nama, noAbsen, mulai, selesai) {
-		return { nama: nama || '', noAbsen: noAbsen || '', a: kunciLembur(noAbsen), n: kunciLembur(nama), mulai: mulai || '', selesai: selesai || '' };
-	}
-	function muatRoster() {
-		if (!lintas || rosterMuat) return;
-		rosterMuat = true;
-		if (!hakDari('karyawan').lihat) { rosterVer++; return; }
-		api('karyawanDirektori').then(function (r) {
-			rosterData = [];
-			((r && r.data) || []).forEach(function (k) {
-				var nonaktif = karyawanNonaktifPabrik(k), penugasan = k.sumber === 'penugasan';
-				var selesai = tglISO(penugasan ? k.tglSelesai : (nonaktif ? k.tglNonaktif : ''));
-				if (nonaktif && !penugasan && !selesai) return;   // nonaktif tanpa tanggal: jangan dihitung
-				rosterData.push(buatKar(k.nama, k.noAbsen, tglISO(penugasan ? k.tglMulai : k.tglMasuk), selesai));
-			});
-			rosterVer++; gambar();
-		}).catch(function () { rosterVer++; gambar(); });
-	}
-	function daftarKaryawan() {
-		if (!lintas) {
-			var s = S.karyawan || {};
-			return [buatKar(s.nama, s.noAbsen || s.no_absen, tglISO(s.tglMasuk), '')];
-		}
-		var daftar = rosterData.slice(), ada = {}, awal = {};
-		rosterData.forEach(function (k) { if (k.a) ada['a:' + k.a] = 1; if (k.n) ada['n:' + k.n] = 1; });
-		data.forEach(function (x) {
-			var a = kunciLembur(x.noAbsen), n = kunciLembur(x.nama), key = a ? 'a:' + a : (n ? 'n:' + n : '');
-			if (!key) return;
-			var t = tglISO(x.tanggal);
-			if (!awal[key] || t < awal[key]) awal[key] = t;
-		});
-		data.forEach(function (x) {
-			var a = kunciLembur(x.noAbsen), n = kunciLembur(x.nama), key = a ? 'a:' + a : (n ? 'n:' + n : '');
-			if (!key || (a && ada['a:' + a]) || (n && ada['n:' + n])) return;
-			if (a) ada['a:' + a] = 1; if (n) ada['n:' + n] = 1;
-			daftar.push(buatKar(x.nama, x.noAbsen, awal[key], ''));   // karyawan yang hanya terlihat di data: mulai dari catatan pertamanya
-		});
-		return daftar;
-	}
-	function hitungAlpa(idxAsli) {
-		var out = {};
-		if (!rentangData) return out;                               // data belum selesai dimuat
-		var y = bulan.getFullYear(), m = bulan.getMonth(), n = new Date(y, m + 1, 0).getDate();
-		var sekarang = new Date(), hariIni = isoHari(sekarang), tunda = sekarang.getHours() < JAM_ALPA_HARI_INI;
-		var daftar = daftarKaryawan();
-		for (var d = 1; d <= n; d++) {
-			var t = y + '-' + p2(m + 1) + '-' + p2(d);
-			if (t > hariIni || (t === hariIni && tunda)) break;     // hari yang belum lewat tidak dihitung
-			if (t < rentangData.dari || t > rentangData.sampai) continue;
-			if (new Date(y, m, d).getDay() === 0 || LIBUR_NASIONAL[t] || CUTI_BERSAMA[t]) continue;
-			var rs = idxAsli[t] || [];
-			if (!lintas) { if (!rs.length && daftar[0]) out[t] = [alpaVirtual(daftar[0], t)]; continue; }
-			var hadir = {};
-			rs.forEach(function (x) {
-				var a = kunciLembur(x.noAbsen), nm = kunciLembur(x.nama);
-				if (a) hadir['a:' + a] = 1; if (nm) hadir['n:' + nm] = 1;
-			});
-			daftar.forEach(function (k) {
-				if ((k.mulai && t < k.mulai) || (k.selesai && t > k.selesai)) return;
-				if ((k.a && hadir['a:' + k.a]) || (k.n && hadir['n:' + k.n])) return;
-				(out[t] = out[t] || []).push(alpaVirtual(k, t));
-			});
-		}
-		return out;
-	}
-	function alpaVirtual(k, t) {
-		return { tanggal: t, nama: k.nama, noAbsen: k.noAbsen, status: 'Tidak ada catatan absensi', keterangan: '', _virtual: true };
-	}
+  /* ---------- util ---------- */
+  function ym(d) { return d.getFullYear() + '-' + p2(d.getMonth() + 1); }
+  function geser(n) { bulan = new Date(bulan.getFullYear(), bulan.getMonth() + n, 1); muat(); }
+  function aturBar() { bar.classList.toggle('hidden', !lintas || !(dipilih || filterKat)); }
+  function tglISO(v) {
+    var t = String(v || '').trim();
+    if (/^\d{4}-\d{2}-\d{2}/.test(t)) return t.slice(0, 10);
+    var m = t.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})$/);
+    return m ? m[3] + '-' + p2(m[2]) + '-' + p2(m[1]) : t.slice(0, 10);
+  }
+  function tglTeks(iso) { var a = iso.split('-'); return Number(a[2]) + ' ' + (BLN[Number(a[1]) - 1] || a[1]) + ' ' + a[0]; }
+  function ketLibur(t) { return LIBUR_NASIONAL[t] || CUTI_BERSAMA[t] || ''; }
+  function adaAturanOff(t) { return (OFF_STATE.aturan || []).some(function (o) { return o && o.tanggal === t; }); }
+  function ketHari(t) { return [ketLibur(t)].concat(ringkasOffProduksi(t)).filter(Boolean).join(' · '); }
+  function batasDipilih() { return !dipilih ? null : (dipilih <= akhirDipilih ? [dipilih, akhirDipilih] : [akhirDipilih, dipilih]); }
+  function dalamRentang(t, batas) { return !!batas && t >= batas[0] && t <= batas[1]; }
+  function kunciLembur(v) { return String(v == null ? '' : v).trim().toLowerCase(); }
+  function divisiOrang(noAbsen) { return OFF_STATE.divisiByNo[kunciNoAbsen(noAbsen)] || ''; }
+  function karDari(x) {
+    var div = x.divisi || divisiOrang(x.noAbsen);
+    if (!div && !lintas && S.karyawan) div = S.karyawan.divisi || '';
+    return { noAbsen: x.noAbsen, divisi: div };
+  }
 
-	function muatLembur() {
-		if (lemburMuat || !bisaLihatLembur) return;
-		lemburMuat = true;
-		api('karyawanLembur').then(function (r) {
-		var idx = { noAbsen: {}, nama: {}, semua: {} };
-		((r && r.data) || []).forEach(function (row) {
-			(row.rincian_harian || []).forEach(function (h) {
-			var t = tglISO(h.tanggal), j = Number(h.jam) || 0;
-			if (!t || j <= 0) return;
-			[['noAbsen', kunciLembur(row.no_absen)], ['nama', kunciLembur(row.nama)], ['semua', '*']].forEach(function (p) {
-				if (!p[1]) return;
-				var m = idx[p[0]];
-				m[p[1]] = m[p[1]] || {};
-				m[p[1]][t] = (m[p[1]][t] || 0) + j;
-			});
-			});
-		});
-		lemburIdx = idx;
-		if (dipilih) gambar();
-		}).catch(function () {
-		lemburMuat = false;
-		lemburIdx = false;
-		if (dipilih) gambar();
-		});
-	}
-	function lemburDi(x, t) {
-		if (!lemburIdx) return null;
-		var m = null, k = kunciLembur(x.noAbsen);
-		if (lintas) {
-		if (k && lemburIdx.noAbsen[k]) m = lemburIdx.noAbsen[k];
-		else { k = kunciLembur(x.nama); if (k && lemburIdx.nama[k]) m = lemburIdx.nama[k]; }
-		} else m = lemburIdx.semua['*'];
-		return m && m[t] ? Number(m[t].toFixed(2)) : null;
-	}
-	function nilaiLembur(x, t) {
-		if (x._virtual) return '';
-		var asli = x.lembur, kosong = asli == null || asli === '' || Number(asli) === 0;
-		if (!kosong) return asli;
-		var j = lemburDi(x, t);
-		if (j) return j;
-		if (lemburIdx === null && bisaLihatLembur) return 'Memuat…';
-		return asli;
-	}
+  /* ---------- kategori status ---------- */
+  function kategori(x) {
+    if (x._kat) return x._kat;                                  // baris virtual (Alpha / OFF) sudah pasti
+    var s = String(x.status || '').toLowerCase(), g = s + ' ' + String(x.keterangan || '').toLowerCase();
+    var adaScan = !!(x.jamMasuk || x.jamPulang);
+    function liburAda() { return infoHariOff(tglISO(x.tanggal), karDari(x)); }
+    if (/dinas\s*luar|luar\s*dinas/.test(g)) return 'dinas';
+    if (/izin|sakit|cuti/.test(g)) return 'izin';
+    if (/\b(off|libur|maintenance|maintenence|shutdown)\b/.test(s)) return 'off';
+    if (/alpa|alpha|tanpa keterangan|tidak hadir/.test(g)) return (!adaScan && liburAda()) ? 'off' : 'alpa';
+    if (/anomali|belum lengkap|tidak lengkap|scan kurang|belum scan/.test(g)) return (!adaScan && liburAda()) ? 'off' : 'anomali';
+    if (adaScan || /hadir|masuk|pulang/.test(s)) return 'hadir';
+    return liburAda() ? 'off' : 'anomali';
+  }
 
-	function tampilDetail(idx) {
-		detail.innerHTML = '';
-		aturBar();
-		if (!dipilih && !filterKat) { detail.classList.add('hidden'); return; }
-		detail.classList.remove('hidden');
-		muatLembur();
-		var batas = batasDipilih(), semuaRs = [];
-		var tanggalDetail = Object.keys(idx).filter(function (t) { return !batas || dalamRentang(t, batas); }).sort();
-		tanggalDetail.forEach(function (t) {
-		idx[t].forEach(function (x) { if (!filterKat || kategori(x) === filterKat) semuaRs.push({ data: x, tanggal: t }); });
-		});
-		var q = lintas ? cari.value.trim().toLowerCase() : '';
-		var rs = semuaRs.filter(function (item) {
-		var x = item.data;
-		return !q || String(x.nama || '').toLowerCase().indexOf(q) >= 0 || String(x.noAbsen || '').toLowerCase().indexOf(q) >= 0;
-		});
-		var labelTanggal = !batas ? judul.textContent : (batas[0] === batas[1] ? tglTeks(batas[0]) : tglTeks(batas[0]) + ' – ' + tglTeks(batas[1]));
-		var eyebrow = !batas ? 'DETAIL BULAN INI' : (batas[0] === batas[1] ? 'DETAIL TANGGAL' : 'DETAIL RENTANG TANGGAL');
-		if (filterKat) eyebrow += ' · FILTER: ' + LBL[filterKat].toUpperCase();
-		var aksiDetail = [el('span', { class: 'abs-kal-count', text: rs.length + ' dari ' + semuaRs.length + ' catatan' })];
-		if (dipilih) aksiDetail.push(btn('Hapus pilihan', 'kecil abs-kal-clear', function () { dipilih = ''; akhirDipilih = ''; gambar(); }));
-		if (filterKat) aksiDetail.push(btn('Hapus filter', 'kecil abs-kal-clear', function () { filterKat = ''; gambar(); }));
-		detail.appendChild(el('div', { class: 'abs-kal-detail-head' }, [el('div', null, [el('span', { class: 'abs-kal-eyebrow', text: eyebrow }), el('h3', { text: labelTanggal })]), el('div', { class: 'abs-kal-detail-actions' }, aksiDetail)]));
-		if (batas && batas[0] === batas[1] && ketLibur(batas[0])) detail.appendChild(el('p', { class: 'abs-kal-note', text: (LIBUR_NASIONAL[batas[0]] ? 'Libur nasional: ' : '') + ketLibur(batas[0]) }));
-		if (!rs.length) {
-		var kosongTeks = semuaRs.length ? 'Tidak ada hasil yang cocok dengan pencarian.'
-			: (filterKat ? 'Tidak ada catatan berstatus ' + LBL[filterKat] + ' pada ' + (batas ? 'rentang tanggal ini.' : 'bulan ini.') : 'Belum ada catatan absensi pada rentang tanggal ini.');
-		detail.appendChild(el('p', { class: 'abs-kal-empty', text: kosongTeks }));
-		return;
-		}
-		var BATAS_KARTU = 300;
-		rs.slice(0, BATAS_KARTU).forEach(function (item) {
-		var x = item.data, k = kategori(x), kartu = el('article', { class: 'abs-kal-record' });
-		var tampilTanggal = !batas || batas[0] !== batas[1];
-		kartu.appendChild(el('div', { class: 'abs-kal-record-top' }, [el('strong', { text: (lintas ? ((x.nama || 'Karyawan') + (x.noAbsen ? ' · No. absen ' + x.noAbsen : '')) : 'Absensi Anda') + (tampilTanggal ? ' · ' + tglTeks(item.tanggal) : '') }), el('span', { class: 'abs-kal-pill ' + k, text: LBL[k] })]));
-		var meta = el('div', { class: 'abs-kal-meta' });
-		[['Masuk', x.jamMasuk], ['Pulang', x.jamPulang], ['Lembur', nilaiLembur(x, item.tanggal)]].forEach(function (f) { meta.appendChild(el('div', null, [el('span', { text: f[0] }), el('strong', { text: String(f[1] == null || f[1] === '' ? '—' : f[1]) })])); });
-		kartu.appendChild(meta);
-		if (x.status) kartu.appendChild(el('p', { class: 'abs-kal-note', text: 'Status sumber: ' + x.status }));
-		detail.appendChild(kartu);
-		});
-		if (rs.length > BATAS_KARTU) detail.appendChild(el('p', { class: 'abs-kal-note', text: 'Menampilkan ' + BATAS_KARTU + ' catatan pertama. Persempit dengan pencarian atau pilih tanggal.' }));
-	}
-	function gambar() {
-		var idxAsli = {}, idx = {}, c = { hadir: 0, izin: 0, dinas: 0, alpa: 0, anomali: 0 }, batas = batasDipilih(), katTgl = {};
-		data.forEach(function (x) { var t = tglISO(x.tanggal); (idxAsli[t] = idxAsli[t] || []).push(x); });
-		var alpa = hitungAlpa(idxAsli);
-		Object.keys(idxAsli).forEach(function (t) { idx[t] = idxAsli[t].slice(); });
-		Object.keys(alpa).forEach(function (t) { idx[t] = (idx[t] || []).concat(alpa[t]); });
-		Object.keys(idx).forEach(function (t) {
-		idx[t].forEach(function (x) {
-			var k = kategori(x);
-			(katTgl[t] = katTgl[t] || {})[k] = true;
-			if (!batas || dalamRentang(t, batas)) c[k]++;
-		});
-		});
-		var y = bulan.getFullYear(), m = bulan.getMonth(), n = new Date(y, m + 1, 0).getDate(), off = new Date(y, m, 1).getDay();
-		judul.textContent = BLN[m] + ' ' + y;
-		stat.innerHTML = '';
-		[['Hadir', 'hadir'], ['Sakit / Izin', 'izin'], ['Dinas luar', 'dinas'], ['Alpha', 'alpa'], ['Belum lengkap', 'anomali']].forEach(function (a) {
-		var aktif = filterKat === a[1];
-		var kotak = el('button', { type: 'button', class: 'abs-kal-stat ' + a[1] + (aktif ? ' aktif' : ''), 'aria-pressed': String(aktif), title: aktif ? 'Klik untuk menghapus filter' : 'Klik untuk menyaring: ' + a[0] }, [el('strong', { text: String(c[a[1]]) }), el('span', { text: a[0] })]);
-		kotak.addEventListener('click', function () { filterKat = filterKat === a[1] ? '' : a[1]; gambar(); });
-		stat.appendChild(kotak);
-		});
-		idxAktif = idx;
-		var kunciBulan = ym(bulan);
-		var kunciKal = kunciBulan + '|' + rosterVer + '|' + (rentangData ? rentangData.dari + '~' + rentangData.sampai : '-');
-		if (kalenderKunciRender !== kunciKal || kalenderDataRender !== data) {
-		var fr = document.createDocumentFragment(), i;
-		for (i = 0; i < off; i++) fr.appendChild(el('div', { class: 'abs-kal-cell kosong', 'aria-hidden': 'true' }));
-		for (i = 1; i <= n; i++) (function (d) {
-			var t = y + '-' + p2(m + 1) + '-' + p2(d), rs = idx[t] || [], dow = new Date(y, m, d).getDay(), kl = ketLibur(t);
-			var merah = dow === 0 || !!LIBUR_NASIONAL[t];
-			var cls = 'abs-kal-cell' + (rs.length ? ' has-data' : '') + (merah ? ' merah' : (CUTI_BERSAMA[t] ? ' cuti' : ''));
-			var b = el('button', { type: 'button', class: cls, 'data-tanggal': t, title: kl, 'aria-label': tglTeks(t) + (kl ? ', ' + kl : '') + ', ' + rs.length + ' catatan' });
-			b.appendChild(el('strong', { class: 'abs-kal-day', text: String(d) }));
-			if (rs.length) {
-			var dots = el('span', { class: 'abs-kal-dots' }), jenis = {};
-			rs.forEach(function (x) { jenis[kategori(x)] = true; });
-			['hadir', 'izin', 'dinas', 'alpa', 'anomali'].forEach(function (k) { if (jenis[k]) dots.appendChild(el('i', { class: k })); });
-			b.appendChild(dots);
-			}
-			b.addEventListener('click', function () {
-			if (!dipilih) { dipilih = t; akhirDipilih = t; }
-			else if (dipilih === akhirDipilih) {
-				if (t === dipilih) { dipilih = ''; akhirDipilih = ''; }
-				else akhirDipilih = t;
-			} else { dipilih = t; akhirDipilih = t; }
-			if (dipilih && rentangAwal && t < rentangAwal.dari && !cacheBulanPenuh[kunciBulan]) {
-				muatBulanPenuh(kunciBulan);
-			} else gambar();
-			if (dipilih) detail.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-			});
-			fr.appendChild(b);
-		})(i);
-		for (i = 0; i < (7 - ((off + n) % 7)) % 7; i++) fr.appendChild(el('div', { class: 'abs-kal-cell kosong', 'aria-hidden': 'true' }));
-		grid.replaceChildren(fr);
-		kalenderKunciRender = kunciKal;
-		kalenderDataRender = data;
-		}
-		Array.prototype.forEach.call(grid.querySelectorAll('.abs-kal-cell[data-tanggal]'), function (sel) {
-		var t = sel.getAttribute('data-tanggal');
-		var cocok = !!filterKat && !!(katTgl[t] && katTgl[t][filterKat]);
-		sel.classList.toggle('range', dalamRentang(t, batas));
-		sel.classList.toggle('selected', !!batas && (t === batas[0] || t === batas[1]));
-		sel.classList.toggle('range-start', !!batas && t === batas[0]);
-		sel.classList.toggle('range-end', !!batas && t === batas[1]);
-		sel.classList.toggle('abs-kal-match', cocok);
-		sel.classList.toggle('abs-kal-dim', !!filterKat && !cocok);
-		});
-		tampilDetail(idx);
-	}
-	async function muatBulanPenuh(kunci) {
-	var bagian = kunci.split('-'), tahun = Number(bagian[0]), bulanNomor = Number(bagian[1]);
-	var dari = kunci + '-01', sampai = kunci + '-' + p2(new Date(tahun, bulanNomor, 0).getDate());
-	var token = ++reqId;
-	loading.className = 'info loading'; loading.textContent = 'Memuat data absensi…';
-	try {
-		var res = await api('karyawanAbsensi', { dari: dari, sampai: sampai });
-		if (token !== reqId) return;
-		data = Array.isArray(res.data) ? res.data : [];
-		rentangData = { dari: dari, sampai: sampai };
-		cache[kunci] = data; cacheBulanPenuh[kunci] = true;
-		info.textContent = infoCakupan;
-		loading.classList.add('hidden');
-		gambar();
-	} catch (e) {
-		if (token !== reqId) return;
-		loading.className = 'alert'; loading.textContent = pesanError(e) + ' ';
-		loading.appendChild(btn('Coba lagi', 'kecil', function () { muatBulanPenuh(kunci); }));
-	}
-	}
-	async function muat() {
-	var kunci = ym(bulan), dari = kunci + '-01', sampai = kunci + '-' + p2(new Date(bulan.getFullYear(), bulan.getMonth() + 1, 0).getDate());
-	var blnDari = dari, blnSampai = sampai;
-	var token = ++reqId;
-	dipilih = ''; akhirDipilih = '';
-	if (cacheBulanPenuh[kunci]) {
-		data = cache[kunci];
-		rentangData = { dari: blnDari, sampai: blnSampai };
-		info.textContent = infoCakupan;
-		loading.classList.add('hidden');
-		gambar();
-		return;
-	}
-	var awal = muatAwal && kunci === ym(new Date());
-	if (awal) {
-		var hariIni = new Date();
-		var tanggalAwal = new Date(hariIni.getFullYear(), hariIni.getMonth(), hariIni.getDate() - 13);
-		dari = isoHari(tanggalAwal); sampai = isoHari(hariIni);
-		rentangAwal = { dari: dari, sampai: sampai };
-	}
+  /* ---------- karyawan + baris virtual (Alpha / OFF) ---------- */
+  function buatKar(nama, noAbsen, mulai, selesai, divisi) {
+    return { nama: nama || '', noAbsen: noAbsen || '', a: kunciNoAbsen(noAbsen), n: kunciLembur(nama), mulai: mulai || '', selesai: selesai || '', divisi: divisi || '' };
+  }
+  function muatRoster() {
+    if (!lintas || rosterMuat) return;
+    rosterMuat = true;
+    if (!hakDari('karyawan').lihat) { rosterVer++; return; }
+    api('karyawanDirektori').then(function (r) {
+      rosterData = [];
+      ((r && r.data) || []).forEach(function (k) {
+        var nonaktif = karyawanNonaktifPabrik(k), penugasan = k.sumber === 'penugasan';
+        var selesai = tglISO(penugasan ? k.tglSelesai : (nonaktif ? k.tglNonaktif : ''));
+        if (nonaktif && !penugasan && !selesai) return;   // nonaktif tanpa tanggal: jangan dihitung
+        rosterData.push(buatKar(k.nama, k.noAbsen, tglISO(penugasan ? k.tglMulai : k.tglMasuk), selesai, k.divisi || divisiOrang(k.noAbsen)));
+      });
+      rosterVer++; gambar();
+    }).catch(function () { rosterVer++; gambar(); });
+  }
+  function daftarKaryawan() {
+    if (!lintas) {
+      var s = S.karyawan || {}, no = s.noAbsen || s.no_absen;
+      return [buatKar(s.nama, no, tglISO(s.tglMasuk), '', divisiOrang(no) || s.divisi || '')];
+    }
+    var daftar = rosterData.slice(), ada = {}, awal = {};
+    rosterData.forEach(function (k) { if (k.a) ada['a:' + k.a] = 1; if (k.n) ada['n:' + k.n] = 1; });
+    data.forEach(function (x) {
+      var a = kunciNoAbsen(x.noAbsen), n = kunciLembur(x.nama), key = a ? 'a:' + a : (n ? 'n:' + n : '');
+      if (!key) return;
+      var t = tglISO(x.tanggal);
+      if (!awal[key] || t < awal[key]) awal[key] = t;
+    });
+    data.forEach(function (x) {
+      var a = kunciNoAbsen(x.noAbsen), n = kunciLembur(x.nama), key = a ? 'a:' + a : (n ? 'n:' + n : '');
+      if (!key || (a && ada['a:' + a]) || (n && ada['n:' + n])) return;
+      if (a) ada['a:' + a] = 1; if (n) ada['n:' + n] = 1;
+      daftar.push(buatKar(x.nama, x.noAbsen, awal[key], '', divisiOrang(x.noAbsen)));   // hanya terlihat di data: mulai dari catatan pertamanya
+    });
+    return daftar;
+  }
+  function barisVirtual(k, t, kat, ket) {
+    return { tanggal: t, nama: k.nama, noAbsen: k.noAbsen, divisi: k.divisi, status: ket || 'Tidak ada catatan absensi', keterangan: '', _virtual: true, _kat: kat, _ket: ket || '' };
+  }
+  function hitungVirtual(idxAsli) {
+    var out = {};
+    if (!rentangData) return out;                                  // data belum selesai dimuat
+    var y = bulan.getFullYear(), m = bulan.getMonth(), n = new Date(y, m + 1, 0).getDate();
+    var sekarang = new Date(), hariIni = isoHari(sekarang), tunda = sekarang.getHours() < JAM_ALPA_HARI_INI;
+    var daftar = daftarKaryawan();
+    for (var d = 1; d <= n; d++) {
+      var t = y + '-' + p2(m + 1) + '-' + p2(d);
+      if (t < rentangData.dari || t > rentangData.sampai) continue;
+      // Alpha hanya dihitung bila jadwal Off berhasil dimuat DAN harinya sudah lewat.
+      var bolehAlpa = OFF_STATE.siap && (t < hariIni || (t === hariIni && !tunda));
+      var rs = idxAsli[t] || [], hadir = {};
+      if (lintas) rs.forEach(function (x) {
+        var a = kunciNoAbsen(x.noAbsen), nm = kunciLembur(x.nama);
+        if (a) hadir['a:' + a] = 1; if (nm) hadir['n:' + nm] = 1;
+      });
+      daftar.forEach(function (k) {
+        if ((k.mulai && t < k.mulai) || (k.selesai && t > k.selesai)) return;      // belum masuk / sudah nonaktif
+        var punya = lintas ? !!((k.a && hadir['a:' + k.a]) || (k.n && hadir['n:' + k.n])) : rs.length > 0;
+        if (punya) return;                                                          // sudah ada catatan nyata
+        var off = infoHariOff(t, k);
+        if (off) { if (BUAT_BARIS_OFF) (out[t] = out[t] || []).push(barisVirtual(k, t, 'off', off.ket)); return; }
+        if (bolehAlpa) (out[t] = out[t] || []).push(barisVirtual(k, t, 'alpa', ''));
+      });
+    }
+    return out;
+  }
 
-	// 1) AUTO-VERIFIKASI (idempoten) — hanya sentuh baris anomali milik sendiri
-	try {
-		var av = await api('absensiAutoVerifikasiHadir', { dari: dari, sampai: sampai });
-		if (av && av.berhasil > 0) {
-		delete cache[kunci];                                   // paksa re-fetch
-		toast(av.berhasil + ' absensi otomatis menjadi Hadir.', 'success');
-		}
-	} catch (e) { /* abaikan: auto-verifikasi opsional */ }
+  /* ---------- lembur ---------- */
+  function muatLembur() {
+    if (lemburMuat || !bisaLihatLembur) return;
+    lemburMuat = true;
+    api('karyawanLembur').then(function (r) {
+      var idx = { noAbsen: {}, nama: {}, semua: {} };
+      ((r && r.data) || []).forEach(function (row) {
+        (row.rincian_harian || []).forEach(function (h) {
+          var t = tglISO(h.tanggal), j = Number(h.jam) || 0;
+          if (!t || j <= 0) return;
+          [['noAbsen', kunciLembur(row.no_absen)], ['nama', kunciLembur(row.nama)], ['semua', '*']].forEach(function (p) {
+            if (!p[1]) return;
+            var mm = idx[p[0]];
+            mm[p[1]] = mm[p[1]] || {};
+            mm[p[1]][t] = (mm[p[1]][t] || 0) + j;
+          });
+        });
+      });
+      lemburIdx = idx;
+      if (dipilih) gambar();
+    }).catch(function () {
+      lemburMuat = false;
+      lemburIdx = false;
+      if (dipilih) gambar();
+    });
+  }
+  function lemburDi(x, t) {
+    if (!lemburIdx) return null;
+    var m = null, k = kunciLembur(x.noAbsen);
+    if (lintas) {
+      if (k && lemburIdx.noAbsen[k]) m = lemburIdx.noAbsen[k];
+      else { k = kunciLembur(x.nama); if (k && lemburIdx.nama[k]) m = lemburIdx.nama[k]; }
+    } else m = lemburIdx.semua['*'];
+    return m && m[t] ? Number(m[t].toFixed(2)) : null;
+  }
+  function nilaiLembur(x, t) {
+    if (x._virtual) return '';
+    var asli = x.lembur, kosong = asli == null || asli === '' || Number(asli) === 0;
+    if (!kosong) return asli;
+    var j = lemburDi(x, t);
+    if (j) return j;
+    if (lemburIdx === null && bisaLihatLembur) return 'Memuat…';
+    return asli;
+  }
 
-	// 2) Sajikan data (cache atau fetch ulang)
-	if (cacheBulanPenuh[kunci]) { data = cache[kunci]; rentangData = { dari: blnDari, sampai: blnSampai }; info.textContent = infoCakupan; loading.classList.add('hidden'); gambar(); return; }
+  /* ---------- tampilan ---------- */
+  function aturPeringatan() {
+    peringatan.innerHTML = '';
+    peringatan.classList.toggle('hidden', !OFF_STATE.gagal);
+    if (!OFF_STATE.gagal) return;
+    peringatan.appendChild(el('span', { text: 'Jadwal Off produksi / maintenance belum dapat dimuat, jadi status Alpha sementara tidak dihitung agar tidak keliru. ' }));
+    peringatan.appendChild(btn('Muat ulang jadwal', 'kecil', function () {
+      muatLiburProduksi(true).then(function () { kalenderKunciRender = ''; gambar(); }).catch(function () {});
+    }));
+  }
+  function tampilDetail(idx) {
+    detail.innerHTML = '';
+    aturBar();
+    if (!dipilih && !filterKat) { detail.classList.add('hidden'); return; }
+    detail.classList.remove('hidden');
+    muatLembur();
+    var batas = batasDipilih(), semuaRs = [];
+    var tanggalDetail = Object.keys(idx).filter(function (t) { return !batas || dalamRentang(t, batas); }).sort();
+    tanggalDetail.forEach(function (t) {
+      idx[t].forEach(function (x) {
+        var k = kategori(x);
+        if (!filterKat || k === filterKat) semuaRs.push({ data: x, tanggal: t, kat: k });
+      });
+    });
+    // Baris OFF ditaruh paling akhir agar tidak menutupi catatan penting pada batas tampilan.
+    semuaRs.sort(function (a, b) {
+      return ((a.kat === 'off' ? 1 : 0) - (b.kat === 'off' ? 1 : 0)) || (a.tanggal < b.tanggal ? -1 : (a.tanggal > b.tanggal ? 1 : 0));
+    });
+    var q = lintas ? cari.value.trim().toLowerCase() : '';
+    var rs = semuaRs.filter(function (item) {
+      var x = item.data;
+      return !q || String(x.nama || '').toLowerCase().indexOf(q) >= 0 || String(x.noAbsen || '').toLowerCase().indexOf(q) >= 0;
+    });
+    var labelTanggal = !batas ? judul.textContent : (batas[0] === batas[1] ? tglTeks(batas[0]) : tglTeks(batas[0]) + ' – ' + tglTeks(batas[1]));
+    var eyebrow = !batas ? 'DETAIL BULAN INI' : (batas[0] === batas[1] ? 'DETAIL TANGGAL' : 'DETAIL RENTANG TANGGAL');
+    if (filterKat) eyebrow += ' · FILTER: ' + LBL[filterKat].toUpperCase();
+    var aksiDetail = [el('span', { class: 'abs-kal-count', text: rs.length + ' dari ' + semuaRs.length + ' catatan' })];
+    if (dipilih) aksiDetail.push(btn('Hapus pilihan', 'kecil abs-kal-clear', function () { dipilih = ''; akhirDipilih = ''; gambar(); }));
+    if (filterKat) aksiDetail.push(btn('Hapus filter', 'kecil abs-kal-clear', function () { filterKat = ''; gambar(); }));
+    detail.appendChild(el('div', { class: 'abs-kal-detail-head' }, [el('div', null, [el('span', { class: 'abs-kal-eyebrow', text: eyebrow }), el('h3', { text: labelTanggal })]), el('div', { class: 'abs-kal-detail-actions' }, aksiDetail)]));
+    if (batas && batas[0] === batas[1]) {
+      var catatanHari = [];
+      if (ketLibur(batas[0])) catatanHari.push((LIBUR_NASIONAL[batas[0]] ? 'Libur nasional: ' : '') + ketLibur(batas[0]));
+      ringkasOffProduksi(batas[0]).forEach(function (r) { catatanHari.push('Off produksi: ' + r); });
+      catatanHari.forEach(function (tks) { detail.appendChild(el('p', { class: 'abs-kal-note', text: tks })); });
+    }
+    if (!rs.length) {
+      var kosongTeks = semuaRs.length ? 'Tidak ada hasil yang cocok dengan pencarian.'
+        : (filterKat ? 'Tidak ada catatan berstatus ' + LBL[filterKat] + ' pada ' + (batas ? 'rentang tanggal ini.' : 'bulan ini.') : 'Belum ada catatan absensi pada rentang tanggal ini.');
+      detail.appendChild(el('p', { class: 'abs-kal-empty', text: kosongTeks }));
+      return;
+    }
+    var BATAS_KARTU = 300;
+    rs.slice(0, BATAS_KARTU).forEach(function (item) {
+      var x = item.data, k = item.kat, kartu = el('article', { class: 'abs-kal-record' });
+      var tampilTanggal = !batas || batas[0] !== batas[1];
+      kartu.appendChild(el('div', { class: 'abs-kal-record-top' }, [el('strong', { text: (lintas ? ((x.nama || 'Karyawan') + (x.noAbsen ? ' · No. absen ' + x.noAbsen : '')) : 'Absensi Anda') + (tampilTanggal ? ' · ' + tglTeks(item.tanggal) : '') }), el('span', { class: 'abs-kal-pill ' + k, text: LBL[k] })]));
+      if (x._virtual) {
+        kartu.appendChild(el('p', { class: 'abs-kal-note', text: x._ket || 'Tidak ada catatan absensi pada hari kerja ini.' }));
+      } else {
+        var meta = el('div', { class: 'abs-kal-meta' });
+        [['Masuk', x.jamMasuk], ['Pulang', x.jamPulang], ['Lembur', nilaiLembur(x, item.tanggal)]].forEach(function (f) { meta.appendChild(el('div', null, [el('span', { text: f[0] }), el('strong', { text: String(f[1] == null || f[1] === '' ? '—' : f[1]) })])); });
+        kartu.appendChild(meta);
+        if (x.status) kartu.appendChild(el('p', { class: 'abs-kal-note', text: 'Status sumber: ' + x.status }));
+        if (k === 'off') {
+          var oi = infoHariOff(item.tanggal, karDari(x));
+          if (oi) kartu.appendChild(el('p', { class: 'abs-kal-note', text: 'Dihitung OFF (bukan Alpha): ' + oi.ket }));
+        }
+      }
+      detail.appendChild(kartu);
+    });
+    if (rs.length > BATAS_KARTU) detail.appendChild(el('p', { class: 'abs-kal-note', text: 'Menampilkan ' + BATAS_KARTU + ' catatan pertama. Persempit dengan pencarian atau pilih tanggal.' }));
+  }
+  function gambar() {
+    var idxAsli = {}, idx = {}, c = { hadir: 0, izin: 0, dinas: 0, alpa: 0, anomali: 0, off: 0 }, batas = batasDipilih(), katTgl = {};
+    data.forEach(function (x) { var t = tglISO(x.tanggal); (idxAsli[t] = idxAsli[t] || []).push(x); });
+    var virt = hitungVirtual(idxAsli);
+    Object.keys(idxAsli).forEach(function (t) { idx[t] = idxAsli[t].slice(); });
+    Object.keys(virt).forEach(function (t) { idx[t] = (idx[t] || []).concat(virt[t]); });
+    Object.keys(idx).forEach(function (t) {
+      idx[t].forEach(function (x) {
+        var k = kategori(x);
+        (katTgl[t] = katTgl[t] || {})[k] = true;
+        if (!batas || dalamRentang(t, batas)) c[k]++;
+      });
+    });
+    var y = bulan.getFullYear(), m = bulan.getMonth(), n = new Date(y, m + 1, 0).getDate(), off = new Date(y, m, 1).getDay();
+    judul.textContent = BLN[m] + ' ' + y;
+    stat.innerHTML = '';
+    [['Hadir', 'hadir'], ['Sakit / Izin', 'izin'], ['Dinas luar', 'dinas'], ['Alpha', 'alpa'], ['Belum lengkap', 'anomali'], ['OFF / Libur', 'off']].forEach(function (a) {
+      var aktif = filterKat === a[1];
+      var kotak = el('button', { type: 'button', class: 'abs-kal-stat ' + a[1] + (aktif ? ' aktif' : ''), 'aria-pressed': String(aktif), title: aktif ? 'Klik untuk menghapus filter' : 'Klik untuk menyaring: ' + a[0] }, [el('strong', { text: String(c[a[1]]) }), el('span', { text: a[0] })]);
+      kotak.addEventListener('click', function () { filterKat = filterKat === a[1] ? '' : a[1]; gambar(); });
+      stat.appendChild(kotak);
+    });
+    aturPeringatan();
+    idxAktif = idx;
+    var kunciBulan = ym(bulan);
+    var kunciKal = kunciBulan + '|' + rosterVer + '|' + OFF_STATE.ver + '|' + (rentangData ? rentangData.dari + '~' + rentangData.sampai : '-');
+    if (kalenderKunciRender !== kunciKal || kalenderDataRender !== data) {
+      var fr = document.createDocumentFragment(), i;
+      for (i = 0; i < off; i++) fr.appendChild(el('div', { class: 'abs-kal-cell kosong', 'aria-hidden': 'true' }));
+      for (i = 1; i <= n; i++) (function (d) {
+        var t = y + '-' + p2(m + 1) + '-' + p2(d), rs = idx[t] || [], dow = new Date(y, m, d).getDay(), kl = ketHari(t);
+        var merah = dow === 0 || !!LIBUR_NASIONAL[t];
+        var cls = 'abs-kal-cell' + (rs.length ? ' has-data' : '') + (merah ? ' merah' : (CUTI_BERSAMA[t] ? ' cuti' : '')) + (adaAturanOff(t) ? ' off-prod' : '');
+        var b = el('button', { type: 'button', class: cls, 'data-tanggal': t, title: kl, 'aria-label': tglTeks(t) + (kl ? ', ' + kl : '') + ', ' + rs.length + ' catatan' });
+        b.appendChild(el('strong', { class: 'abs-kal-day', text: String(d) }));
+        if (rs.length) {
+          var dots = el('span', { class: 'abs-kal-dots' }), jenis = {};
+          rs.forEach(function (x) { jenis[kategori(x)] = true; });
+          KATEGORI.forEach(function (k) { if (jenis[k]) dots.appendChild(el('i', { class: k })); });
+          b.appendChild(dots);
+        }
+        b.addEventListener('click', function () {
+          if (!dipilih) { dipilih = t; akhirDipilih = t; }
+          else if (dipilih === akhirDipilih) {
+            if (t === dipilih) { dipilih = ''; akhirDipilih = ''; }
+            else akhirDipilih = t;
+          } else { dipilih = t; akhirDipilih = t; }
+          if (dipilih && rentangAwal && t < rentangAwal.dari && !cacheBulanPenuh[kunciBulan]) {
+            muatBulanPenuh(kunciBulan);
+          } else gambar();
+          if (dipilih) detail.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        });
+        fr.appendChild(b);
+      })(i);
+      for (i = 0; i < (7 - ((off + n) % 7)) % 7; i++) fr.appendChild(el('div', { class: 'abs-kal-cell kosong', 'aria-hidden': 'true' }));
+      grid.replaceChildren(fr);
+      kalenderKunciRender = kunciKal;
+      kalenderDataRender = data;
+    }
+    Array.prototype.forEach.call(grid.querySelectorAll('.abs-kal-cell[data-tanggal]'), function (sel) {
+      var t = sel.getAttribute('data-tanggal');
+      var cocok = !!filterKat && !!(katTgl[t] && katTgl[t][filterKat]);
+      sel.classList.toggle('range', dalamRentang(t, batas));
+      sel.classList.toggle('selected', !!batas && (t === batas[0] || t === batas[1]));
+      sel.classList.toggle('range-start', !!batas && t === batas[0]);
+      sel.classList.toggle('range-end', !!batas && t === batas[1]);
+      sel.classList.toggle('abs-kal-match', cocok);
+      sel.classList.toggle('abs-kal-dim', !!filterKat && !cocok);
+    });
+    tampilDetail(idx);
+  }
 
-	data = []; rentangData = null; loading.className = 'info loading'; loading.textContent = 'Memuat data absensi…';
-	gambar();
-	try {
-		var res = await api('karyawanAbsensi', { dari: dari, sampai: sampai });
-		if (token !== reqId) return;
-		data = Array.isArray(res.data) ? res.data : [];
-		rentangData = { dari: dari, sampai: sampai };
-		if (awal) {
-		muatAwal = false;
-		info.textContent = infoCakupan;
-		} else {
-		cache[kunci] = data; cacheBulanPenuh[kunci] = true;
-		info.textContent = infoCakupan;
-		}
-		lintas = !!(res.lihatSemua || res.lihatDivisi);
-		if (!lintas) cari.value = '';
-		loading.classList.add('hidden');
-		muatRoster();
-		gambar();
-	} catch (e) {
-		if (token !== reqId) return;
-		loading.className = 'alert'; loading.textContent = pesanError(e) + ' ';
-		loading.appendChild(btn('Coba lagi', 'kecil', muat));
-	}
-	}
-	cari.addEventListener('input', function () {
-		clearTimeout(cariTimer);
-		cariTimer = setTimeout(function () { tampilDetail(idxAktif); }, 120);
-	});
-	muat();
-	}
+  /* ---------- muat data ---------- */
+  async function muatBulanPenuh(kunci) {
+    var bagian = kunci.split('-'), tahun = Number(bagian[0]), bulanNomor = Number(bagian[1]);
+    var dari = kunci + '-01', sampai = kunci + '-' + p2(new Date(tahun, bulanNomor, 0).getDate());
+    var token = ++reqId;
+    loading.className = 'info loading'; loading.textContent = 'Memuat data absensi…';
+    try {
+      var res = await api('karyawanAbsensi', { dari: dari, sampai: sampai });
+      if (token !== reqId) return;
+      data = Array.isArray(res.data) ? res.data : [];
+      rentangData = { dari: dari, sampai: sampai };
+      cache[kunci] = data; cacheBulanPenuh[kunci] = true;
+      info.textContent = infoCakupan;
+      loading.classList.add('hidden');
+      gambar();
+    } catch (e) {
+      if (token !== reqId) return;
+      loading.className = 'alert'; loading.textContent = pesanError(e) + ' ';
+      loading.appendChild(btn('Coba lagi', 'kecil', function () { muatBulanPenuh(kunci); }));
+    }
+  }
+  async function muat() {
+    var kunci = ym(bulan), dari = kunci + '-01', sampai = kunci + '-' + p2(new Date(bulan.getFullYear(), bulan.getMonth() + 1, 0).getDate());
+    var blnDari = dari, blnSampai = sampai;
+    var token = ++reqId;
+    dipilih = ''; akhirDipilih = '';
+    if (cacheBulanPenuh[kunci]) {
+      data = cache[kunci];
+      rentangData = { dari: blnDari, sampai: blnSampai };
+      info.textContent = infoCakupan;
+      loading.classList.add('hidden');
+      gambar();
+      return;
+    }
+    var awal = muatAwal && kunci === ym(new Date());
+    if (awal) {
+      var hariIni = new Date();
+      var tanggalAwal = new Date(hariIni.getFullYear(), hariIni.getMonth(), hariIni.getDate() - 13);
+      dari = isoHari(tanggalAwal); sampai = isoHari(hariIni);
+      rentangAwal = { dari: dari, sampai: sampai };
+    }
+
+    // 1) Auto-verifikasi (idempoten) — hanya menyentuh baris anomali milik sendiri / sesuai hak
+    try {
+      var av = await api('absensiAutoVerifikasiHadir', { dari: dari, sampai: sampai });
+      if (av && av.berhasil > 0) toast(av.berhasil + ' absensi otomatis menjadi Hadir.', 'success');
+    } catch (e) { /* opsional */ }
+    if (token !== reqId) return;
+
+    // 2) Ambil data
+    data = []; rentangData = null; loading.className = 'info loading'; loading.textContent = 'Memuat data absensi…';
+    gambar();
+    try {
+      var res = await api('karyawanAbsensi', { dari: dari, sampai: sampai });
+      if (token !== reqId) return;
+      data = Array.isArray(res.data) ? res.data : [];
+      rentangData = { dari: dari, sampai: sampai };
+      if (awal) {
+        muatAwal = false;
+        info.textContent = infoCakupan;
+      } else {
+        cache[kunci] = data; cacheBulanPenuh[kunci] = true;
+        info.textContent = infoCakupan;
+      }
+      lintas = !!(res.lihatSemua || res.lihatDivisi);
+      if (!lintas) cari.value = '';
+      loading.classList.add('hidden');
+      muatRoster();
+      gambar();
+    } catch (e) {
+      if (token !== reqId) return;
+      loading.className = 'alert'; loading.textContent = pesanError(e) + ' ';
+      loading.appendChild(btn('Coba lagi', 'kecil', muat));
+    }
+  }
+  cari.addEventListener('input', function () {
+    clearTimeout(cariTimer);
+    cariTimer = setTimeout(function () { tampilDetail(idxAktif); }, 120);
+  });
+  muat();
+}
 	function absDinasKaryawan(isi) {
 	var file = null, previewUrl = null;
 	var tanggalEl = el('strong', { text: 'Memuat tanggal…' });
