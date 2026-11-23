@@ -133,9 +133,8 @@ function resetOffState() {
   OFF_STATE.aturan = []; OFF_STATE.divisiByNo = Object.create(null); OFF_STATE.promise = null;
 }
 
-/* Apakah tanggal tsb hari OFF untuk karyawan k = { noAbsen, divisi }?
-   Urutan prioritas: Off produksi/maintenance -> libur nasional -> cuti bersama -> libur mingguan.
-   Aturan mingguan sama dengan backend (absensiTanggalLibur_): Aktiva Bangunan libur Jumat, lainnya Minggu. */
+/* Hari OFF = HANYA Off produksi / maintenance (sheet pengaturan_produksi_off).
+   Minggu / libur nasional / cuti bersama / Jumat Aktiva BUKAN OFF: harinya dikosongkan (lihat infoLiburRutin). */
 function infoHariOff(tgl, k) {
   tgl = String(tgl || '').trim().slice(0, 10);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(tgl)) return null;
@@ -154,9 +153,18 @@ function infoHariOff(tgl, k) {
     }
     if (kena) {
       var alasan = String(o.alasan || '').trim();
-      return { jenis: 'produksi', ket: (alasan && alasan.toLowerCase() !== 'off') ? 'Off produksi — ' + alasan : 'Off produksi' };
+      return { jenis: 'produksi', ket: (alasan && alasan.toLowerCase() !== 'off') ? 'Off produksi \u2014 ' + alasan : 'Off produksi' };
     }
   }
+  return null;
+}
+
+/* Libur rutin: libur nasional, cuti bersama, libur mingguan (Aktiva Bangunan: Jumat; divisi lain: Minggu).
+   Hanya dipakai untuk MENGOSONGKAN hari tsb (tanpa baris OFF dan tanpa Alpha). Sama dengan backend absensiTanggalLibur_. */
+function infoLiburRutin(tgl, k) {
+  tgl = String(tgl || '').trim().slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(tgl)) return null;
+  var div = String((k && k.divisi) || '').trim().toLowerCase();
   if (LIBUR_NASIONAL[tgl]) return { jenis: 'nasional', ket: 'Libur nasional: ' + LIBUR_NASIONAL[tgl] };
   if (CUTI_BERSAMA[tgl]) return { jenis: 'cuti', ket: CUTI_BERSAMA[tgl] };
   var d0 = new Date(tgl + 'T00:00:00');
@@ -2100,19 +2108,6 @@ function ringkasOffProduksi(tgl) {
 	}
 	// Libur nasional & cuti bersama 2026 (SKB 3 Menteri). Tambah/ubah tanggal di sini bila ada perubahan atau tahun baru.
 	var LIBUR_NASIONAL = {'2026-01-01':'Tahun Baru Masehi','2026-01-16':'Isra Mikraj','2026-02-17':'Tahun Baru Imlek','2026-03-19':'Hari Suci Nyepi','2026-03-21':'Idul Fitri 1447 H','2026-03-22':'Idul Fitri 1447 H','2026-04-03':'Wafat Yesus Kristus','2026-04-05':'Paskah','2026-05-01':'Hari Buruh','2026-05-14':'Kenaikan Yesus Kristus','2026-05-27':'Idul Adha','2026-05-31':'Hari Raya Waisak','2026-06-01':'Hari Lahir Pancasila','2026-06-16':'Tahun Baru Islam 1448 H','2026-08-17':'Hari Kemerdekaan RI','2026-08-25':'Maulid Nabi','2026-12-25':'Hari Raya Natal'};
-var LIBUR_PRODUKSI = Object.create(null);
-var liburProduksiSiap = false;
-async function muatLiburProduksi() {
-	if (liburProduksiSiap) return;
-	try {
-		var r = await api('karyawanLiburProduksi');
-		((r && (r.libur || r.data)) || []).forEach(function (it) {
-			var t = String(it.tanggal || '').trim().slice(0, 10);
-			if (/^\d{4}-\d{2}-\d{2}$/.test(t)) LIBUR_PRODUKSI[t] = String(it.keterangan || 'Libur Produksi');
-		});
-	} catch (e) {}
-	liburProduksiSiap = true;
-}
 	var CUTI_BERSAMA = {'2026-02-16':'Cuti Bersama Imlek','2026-03-18':'Cuti Bersama Nyepi','2026-03-20':'Cuti Bersama Idul Fitri','2026-03-23':'Cuti Bersama Idul Fitri','2026-03-24':'Cuti Bersama Idul Fitri','2026-05-15':'Cuti Bersama Kenaikan Yesus Kristus','2026-05-28':'Cuti Bersama Idul Adha','2026-12-24':'Cuti Bersama Natal'};
 	function absCekKaryawan(isi) {
   var hak = hakDari('absensi'), lintas = hak.cakupan === 'semua' || hak.cakupan === 'divisi';
@@ -2127,7 +2122,7 @@ async function muatLiburProduksi() {
   var JAM_ALPA_HARI_INI = 18;               // hari ini baru dihitung Alpha setelah jam ini
   var BUAT_BARIS_OFF = true;                // true: hari OFF tanpa catatan ditampilkan sebagai baris "OFF"
   var KATEGORI = ['hadir', 'izin', 'dinas', 'alpa', 'anomali', 'off'];
-  var LBL = { hadir: 'Hadir', izin: 'Sakit / Izin', dinas: 'Dinas luar', alpa: 'Alpha', anomali: 'Belum lengkap', off: 'OFF / Libur' };
+  var LBL = { hadir: 'Hadir', izin: 'Sakit / Izin', dinas: 'Dinas luar', alpa: 'Alpha', anomali: 'Belum lengkap', off: 'OFF Produksi' };
   var BLN = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
 
   var cari = el('input', { type: 'search', placeholder: 'Cari nama atau nomor absen pada tanggal ini…', 'aria-label': 'Cari nama atau nomor absen pada tanggal ini' });
@@ -2145,7 +2140,7 @@ async function muatLiburProduksi() {
   var head = el('div', { class: 'abs-kal-head' }, [prev, el('div', { class: 'abs-kal-title' }, [judul, kini]), next]);
   var minggu = el('div', { class: 'abs-kal-week' });
   ['Min','Sen','Sel','Rab','Kam','Jum','Sab'].forEach(function (h) { minggu.appendChild(el('span', { text: h })); });
-  var infoCakupan = 'Data absensi sesuai hak akses akun Anda. Hari Off produksi, maintenance, dan libur tidak dihitung Alpha.';
+  var infoCakupan = 'Data absensi sesuai hak akses akun Anda. Hari Off produksi dan maintenance ditandai OFF (bukan Alpha). Hari Minggu dan libur dikosongkan.';
   var info = el('p', { class: 'sub2 abs-kal-info', text: infoCakupan });
   var peringatan = el('div', { class: 'alert hidden', role: 'alert' });
   var legenda = el('div', { class: 'abs-kal-legend', 'aria-label': 'Keterangan warna status' }, KATEGORI.map(function (k) {
@@ -2183,14 +2178,18 @@ async function muatLiburProduksi() {
     if (x._kat) return x._kat;                                  // baris virtual (Alpha / OFF) sudah pasti
     var s = String(x.status || '').toLowerCase(), g = s + ' ' + String(x.keterangan || '').toLowerCase();
     var adaScan = !!(x.jamMasuk || x.jamPulang);
-    function liburAda() { return infoHariOff(tglISO(x.tanggal), karDari(x)); }
+    function polaLibur() {                                       // hanya untuk baris TANPA scan
+      if (adaScan) return null;
+      if (infoHariOff(tglISO(x.tanggal), karDari(x))) return 'off';             // Off produksi -> kategori OFF
+      return infoLiburRutin(tglISO(x.tanggal), karDari(x)) ? 'kosong' : null;   // Minggu / libur -> dikosongkan
+    }
     if (/dinas\s*luar|luar\s*dinas/.test(g)) return 'dinas';
     if (/izin|sakit|cuti/.test(g)) return 'izin';
-    if (/\b(off|libur|maintenance|maintenence|shutdown)\b/.test(s)) return 'off';
-    if (/alpa|alpha|tanpa keterangan|tidak hadir/.test(g)) return (!adaScan && liburAda()) ? 'off' : 'alpa';
-    if (/anomali|belum lengkap|tidak lengkap|scan kurang|belum scan/.test(g)) return (!adaScan && liburAda()) ? 'off' : 'anomali';
+    if (/\b(off|libur|maintenance|maintenence|shutdown)\b/.test(s)) return polaLibur() === 'kosong' ? 'kosong' : 'off';
+    if (/alpa|alpha|tanpa keterangan|tidak hadir/.test(g)) return polaLibur() || 'alpa';
+    if (/anomali|belum lengkap|tidak lengkap|scan kurang|belum scan/.test(g)) return polaLibur() || 'anomali';
     if (adaScan || /hadir|masuk|pulang/.test(s)) return 'hadir';
-    return liburAda() ? 'off' : 'anomali';
+    return polaLibur() || 'anomali';
   }
 
   /* ---------- karyawan + baris virtual (Alpha / OFF) ---------- */
@@ -2258,6 +2257,7 @@ async function muatLiburProduksi() {
         if (punya) return;                                                          // sudah ada catatan nyata
         var off = infoHariOff(t, k);
         if (off) { if (BUAT_BARIS_OFF) (out[t] = out[t] || []).push(barisVirtual(k, t, 'off', off.ket)); return; }
+        if (infoLiburRutin(t, k)) return;                                           // Minggu / libur: kosongkan (bukan OFF, bukan Alpha)
         if (bolehAlpa) (out[t] = out[t] || []).push(barisVirtual(k, t, 'alpa', ''));
       });
     }
@@ -2388,6 +2388,7 @@ async function muatLiburProduksi() {
     var virt = hitungVirtual(idxAsli);
     Object.keys(idxAsli).forEach(function (t) { idx[t] = idxAsli[t].slice(); });
     Object.keys(virt).forEach(function (t) { idx[t] = (idx[t] || []).concat(virt[t]); });
+    Object.keys(idx).forEach(function (t) { idx[t] = idx[t].filter(function (x) { return kategori(x) !== 'kosong'; }); if (!idx[t].length) delete idx[t]; });   // hari libur rutin tanpa scan: dikosongkan
     Object.keys(idx).forEach(function (t) {
       idx[t].forEach(function (x) {
         var k = kategori(x);
@@ -2398,7 +2399,7 @@ async function muatLiburProduksi() {
     var y = bulan.getFullYear(), m = bulan.getMonth(), n = new Date(y, m + 1, 0).getDate(), off = new Date(y, m, 1).getDay();
     judul.textContent = BLN[m] + ' ' + y;
     stat.innerHTML = '';
-    [['Hadir', 'hadir'], ['Sakit / Izin', 'izin'], ['Dinas luar', 'dinas'], ['Alpha', 'alpa'], ['Belum lengkap', 'anomali'], ['OFF / Libur', 'off']].forEach(function (a) {
+    [['Hadir', 'hadir'], ['Sakit / Izin', 'izin'], ['Dinas luar', 'dinas'], ['Alpha', 'alpa'], ['Belum lengkap', 'anomali'], ['OFF Produksi', 'off']].forEach(function (a) {
       var aktif = filterKat === a[1];
       var kotak = el('button', { type: 'button', class: 'abs-kal-stat ' + a[1] + (aktif ? ' aktif' : ''), 'aria-pressed': String(aktif), title: aktif ? 'Klik untuk menghapus filter' : 'Klik untuk menyaring: ' + a[0] }, [el('strong', { text: String(c[a[1]]) }), el('span', { text: a[0] })]);
       kotak.addEventListener('click', function () { filterKat = filterKat === a[1] ? '' : a[1]; gambar(); });
