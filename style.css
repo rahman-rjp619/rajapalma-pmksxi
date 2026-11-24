@@ -2349,19 +2349,19 @@ input,textarea,select,[contenteditable="true"],[contenteditable=""]{-webkit-user
   #isi .lembur-filter select {
     min-height: 44px;
     padding: 9px 11px;
-    font-size: 14px !important;
-    line-height: 1.35;
+    font-size: 16px;
+    line-height: 1.4;
   }
   #isi .toolbar input[type="date"],
   #isi .abs-filter input[type="date"],
   #isi .lembur-filter input[type="date"] {
-    font-size: 13px !important;
+    font-size: 16px;
   }
   #isi .toolbar .field > span,
   #isi .abs-filter .field > span,
   #isi .lembur-filter .field > span,
   #isi .lembur-filter-panel > .sec {
-    font-size: 11px;
+    font-size: 13px;
     line-height: 1.3;
   }
 }
@@ -2375,7 +2375,7 @@ input,textarea,select,[contenteditable="true"],[contenteditable=""]{-webkit-user
   #isi .lembur-filter select {
     min-height: 42px;
     padding: 8px 10px;
-    font-size: 13px !important;
+    font-size: 16px;
   }
 }
 
@@ -2409,7 +2409,7 @@ input,textarea,select,[contenteditable="true"],[contenteditable=""]{-webkit-user
   #isi .toolbar:not(.lembur-filter) .btn {
     min-height: 42px;
     padding: 8px 10px;
-    font-size: 12px;
+    font-size: 14px;
   }
   #isi .toolbar:not(.lembur-filter) .field,
   #isi .abs-filter .field,
@@ -2426,7 +2426,7 @@ input,textarea,select,[contenteditable="true"],[contenteditable=""]{-webkit-user
   #isi .abs-filter input[type="date"],
   #isi .lembur-filter input[type="date"] {
     padding-inline: 7px;
-    font-size: 12px !important;
+    font-size: 16px;
   }
 }
 
@@ -2607,3 +2607,43 @@ input,textarea,select,[contenteditable="true"],[contenteditable=""]{-webkit-user
 :root[data-theme="dark"] #isi .lembur-view-tabs .lembur-tab:nth-child(2):hover { background: #604c37 !important; }
 :root[data-theme="dark"] #isi .lembur-filter .lembur-reset:hover { background: #5a3e42 !important; }
 :root[data-theme="dark"] #isi .lembur-lihat-tanggal:hover { background: #354e5d !important; }
+
+/* Tipografi dan kontrol konsisten di seluruh halaman/modul. */
+body { font-size: 16px; line-height: 1.5; }
+#isi { font-size: 16px; line-height: 1.5; }
+#isi .sub { font-size: 15px; line-height: 1.55; }
+#isi .sub2,
+#isi .hitung { font-size: 14px; line-height: 1.45; }
+#isi .field > span,
+#isi .field-label,
+#isi .lembur-filter-panel > .sec { font-size: 13px; line-height: 1.4; }
+#isi input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not([type="file"]),
+#isi select,
+#isi textarea {
+  min-height: 46px;
+  font-size: 16px;
+  line-height: 1.4;
+}
+#isi textarea { min-height: 104px; }
+#isi .btn { min-height: 44px; font-size: 14px; line-height: 1.35; letter-spacing: .02em; }
+#isi .btn.kecil { min-height: 40px; padding: 8px 12px; font-size: 13px; }
+#isi .tbl th { font-size: 13px; line-height: 1.4; }
+#isi .tbl td { font-size: 14px; line-height: 1.5; }
+#isi .tbl td:before { font-size: 12px; line-height: 1.4; }
+.field > span,
+.field-label { font-size: 13px; line-height: 1.4; }
+.login-forgot { font-size: 14px; }
+.login-note { font-size: 12px; line-height: 1.45; }
+.btn { font-size: 14px; line-height: 1.35; }
+.btn.kecil { font-size: 13px; }
+@media (max-width: 640px) {
+  #isi .btn { min-height: 46px; }
+  #isi .btn.kecil { min-height: 42px; }
+  #isi .toolbar input[type="search"],
+  #isi .toolbar input[type="date"],
+  #isi .toolbar select,
+  #isi .abs-filter input,
+  #isi .abs-filter select,
+  #isi .lembur-filter input,
+  #isi .lembur-filter select { min-height: 46px; font-size: 16px; }
+}
