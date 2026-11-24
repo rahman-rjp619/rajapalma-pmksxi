@@ -2149,8 +2149,11 @@ function ringkasOffProduksi(tgl) {
   var now = new Date(), bulan = new Date(now.getFullYear(), now.getMonth(), 1);
   var data = [], dipilih = '', akhirDipilih = '', cache = {}, cacheBulanPenuh = {}, reqId = 0;
   var muatAwal = true, rentangAwal = null;
-  var idxAktif = {}, kalenderKunciRender = '', kalenderDataRender = null;
-  var lemburIdx = null, lemburMuat = false, bisaLihatLembur = !!hakDari('lembur').lihat;
+     var idxAktif = {}, kalenderKunciRender = '', kalenderDataRender = null;
+   var dataIndexSource = null, dataIndexCache = null;
+   var daftarCacheData = null, daftarCacheRosterVer = -1, daftarCacheOffVer = -1, daftarCacheLintas = null, daftarCache = null;
+   var virtualCacheKey = '', virtualCache = null;
+   var lemburIdx = null, lemburMuat = false, bisaLihatLembur = !!hakDari('lembur').lihat;
   var filterKat = '';                       // filter status dari kotak statistik
   var rentangData = null;                   // rentang tanggal yang benar-benar sudah dimuat
   var rosterData = [], rosterVer = 0, rosterMuat = false;
@@ -2243,12 +2246,13 @@ function ringkasOffProduksi(tgl) {
       rosterVer++; gambar();
     }).catch(function () { rosterVer++; gambar(); });
   }
-  function daftarKaryawan() {
-    if (!lintas) {
-      var s = S.karyawan || {}, no = s.noAbsen || s.no_absen;
-      return [buatKar(s.nama, no, tglISO(s.tglMasuk), '', divisiOrang(no) || s.divisi || '')];
-    }
-    var daftar = rosterData.slice(), ada = {}, awal = {};
+     function daftarKaryawan() {
+     if (daftarCacheData === data && daftarCacheRosterVer === rosterVer && daftarCacheOffVer === OFF_STATE.ver && daftarCacheLintas === lintas && daftarCache) return daftarCache;
+     if (!lintas) {
+       var s = S.karyawan || {}, no = s.noAbsen || s.no_absen;
+       daftarCache = [buatKar(s.nama, no, tglISO(s.tglMasuk), '', divisiOrang(no) || s.divisi || '')];
+     } else {
+     var daftar = rosterData.slice(), ada = {}, awal = {};
     rosterData.forEach(function (k) { if (k.a) ada['a:' + k.a] = 1; if (k.n) ada['n:' + k.n] = 1; });
     data.forEach(function (x) {
       var a = kunciNoAbsen(x.noAbsen), n = kunciLembur(x.nama), key = a ? 'a:' + a : (n ? 'n:' + n : '');
@@ -2261,18 +2265,26 @@ function ringkasOffProduksi(tgl) {
       if (!key || (a && ada['a:' + a]) || (n && ada['n:' + n])) return;
       if (a) ada['a:' + a] = 1; if (n) ada['n:' + n] = 1;
       daftar.push(buatKar(x.nama, x.noAbsen, awal[key], '', divisiOrang(x.noAbsen)));   // hanya terlihat di data: mulai dari catatan pertamanya
-    });
-    return daftar;
-  }
-  function barisVirtual(k, t, kat, ket) {
+         });
+     daftarCache = daftar;
+     }
+     daftarCacheData = data;
+     daftarCacheRosterVer = rosterVer;
+     daftarCacheOffVer = OFF_STATE.ver;
+     daftarCacheLintas = lintas;
+     return daftarCache;
+   }
+   function barisVirtual(k, t, kat, ket) {
     return { tanggal: t, nama: k.nama, noAbsen: k.noAbsen, divisi: k.divisi, status: ket || 'Tidak ada catatan absensi', keterangan: '', _virtual: true, _kat: kat, _ket: ket || '' };
   }
-  function hitungVirtual(idxAsli) {
-    var out = {};
-    if (!rentangData) return out;                                  // data belum selesai dimuat
-    var y = bulan.getFullYear(), m = bulan.getMonth(), n = new Date(y, m + 1, 0).getDate();
-    var sekarang = new Date(), hariIni = isoHari(sekarang), tunda = sekarang.getHours() < JAM_ALPA_HARI_INI;
-    var daftar = daftarKaryawan();
+     function hitungVirtual(idxAsli) {
+     var out = {};
+     if (!rentangData) return out;                                  // data belum selesai dimuat
+     var sekarang = new Date(), hariIni = isoHari(sekarang), tunda = sekarang.getHours() < JAM_ALPA_HARI_INI;
+     var cacheKunci = ym(bulan) + '|' + rosterVer + '|' + OFF_STATE.ver + '|' + rentangData.dari + '~' + rentangData.sampai + '|' + hariIni + '|' + tunda + '|' + data.length;
+     if (virtualCacheKey === cacheKunci && virtualCache) return virtualCache;
+     var y = bulan.getFullYear(), m = bulan.getMonth(), n = new Date(y, m + 1, 0).getDate();
+     var daftar = daftarKaryawan();
     for (var d = 1; d <= n; d++) {
       var t = y + '-' + p2(m + 1) + '-' + p2(d);
       if (t < rentangData.dari || t > rentangData.sampai) continue;
@@ -2292,11 +2304,13 @@ function ringkasOffProduksi(tgl) {
         if (infoLiburRutin(t, k)) return;                                           // Minggu / libur: kosongkan (bukan OFF, bukan Alpha)
         if (bolehAlpa) (out[t] = out[t] || []).push(barisVirtual(k, t, 'alpa', ''));
       });
-    }
-    return out;
-  }
-
-  /* ---------- lembur ---------- */
+         }
+     virtualCacheKey = cacheKunci;
+     virtualCache = out;
+     return out;
+   }
+ 
+   /* ---------- lembur ---------- */
   function muatLembur() {
     if (lemburMuat || !bisaLihatLembur) return;
     lemburMuat = true;
@@ -2414,10 +2428,16 @@ function ringkasOffProduksi(tgl) {
     });
     if (rs.length > BATAS_KARTU) detail.appendChild(el('p', { class: 'abs-kal-note', text: 'Menampilkan ' + BATAS_KARTU + ' catatan pertama. Persempit dengan pencarian atau pilih tanggal.' }));
   }
-  function gambar() {
-    var idxAsli = {}, idx = {}, c = { hadir: 0, izin: 0, dinas: 0, alpa: 0, anomali: 0, off: 0 }, batas = batasDipilih(), katTgl = {};
-    data.forEach(function (x) { var t = tglISO(x.tanggal); (idxAsli[t] = idxAsli[t] || []).push(x); });
-    var virt = hitungVirtual(idxAsli);
+     function gambar() {
+     var idx = {}, c = { hadir: 0, izin: 0, dinas: 0, alpa: 0, anomali: 0, off: 0 }, batas = batasDipilih(), katTgl = {};
+     if (dataIndexSource !== data || !dataIndexCache) {
+       dataIndexCache = {};
+       data.forEach(function (x) { var t = tglISO(x.tanggal); (dataIndexCache[t] = dataIndexCache[t] || []).push(x); });
+       dataIndexSource = data;
+       virtualCacheKey = '';
+     }
+     var idxAsli = dataIndexCache;
+     var virt = hitungVirtual(idxAsli);
     Object.keys(idxAsli).forEach(function (t) { idx[t] = idxAsli[t].slice(); });
     Object.keys(virt).forEach(function (t) { idx[t] = (idx[t] || []).concat(virt[t]); });
     Object.keys(idx).forEach(function (t) { idx[t] = idx[t].filter(function (x) { return kategori(x) !== 'kosong'; }); if (!idx[t].length) delete idx[t]; });   // hari libur rutin tanpa scan: dikosongkan
@@ -2529,12 +2549,14 @@ function ringkasOffProduksi(tgl) {
       rentangAwal = { dari: dari, sampai: sampai };
     }
 
-    // 1) Auto-verifikasi (idempoten) — hanya menyentuh baris anomali milik sendiri / sesuai hak
-    try {
-      var av = await api('absensiAutoVerifikasiHadir', { dari: dari, sampai: sampai });
-      if (av && av.berhasil > 0) toast(av.berhasil + ' absensi otomatis menjadi Hadir.', 'success');
-    } catch (e) { /* opsional */ }
-    if (token !== reqId) return;
+         // Auto-verifikasi hanya pada pemuatan awal; saat pindah bulan hindari menunggu API tambahan.
+     if (awal) {
+       try {
+         var av = await api('absensiAutoVerifikasiHadir', { dari: dari, sampai: sampai });
+         if (av && av.berhasil > 0) toast(av.berhasil + ' absensi otomatis menjadi Hadir.', 'success');
+       } catch (e) { /* opsional */ }
+     }
+     if (token !== reqId) return;
 
     // 2) Ambil data
     data = []; rentangData = null; loading.className = 'info loading'; loading.textContent = 'Memuat data absensi…';
@@ -2966,30 +2988,3 @@ function ringkasOffProduksi(tgl) {
 	pulihkanSesi();
 	})();
 
-	/* RAJA PALMA SPLASH SCREEN */
-	(function () {
-	const splash = document.getElementById('rpSplashScreen');
-	if (!splash) return;
-
-	const key = 'rp_splash_visited';
-	let sudahDilihat = false;
-
-	try {
-		sudahDilihat = sessionStorage.getItem(key) === '1';
-		if (!sudahDilihat) sessionStorage.setItem(key, '1');
-	} catch (e) {
-		// Splash tetap harus ditutup meskipun penyimpanan sesi diblokir browser.
-	}
-
-	if (sudahDilihat) {
-		splash.remove();
-		return;
-	}
-
-	window.setTimeout(() => {
-		splash.classList.add('rp-hidden');
-		window.setTimeout(() => {
-		if (splash.isConnected) splash.remove();
-		}, 550);
-	}, 2500);
-	})();
