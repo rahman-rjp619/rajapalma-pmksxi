@@ -193,6 +193,7 @@ function ringkasOffProduksi(tgl) {
   });
 }
 	function dmy(iso) { return iso ? String(iso).split('-').reverse().join('/') : ''; }
+	function formatRupiah(n) { return 'Rp ' + Number(n || 0).toLocaleString('id-ID'); }
 	function karyawanNonaktifPabrik(r) {
 	r = r || {};
 	var v = r.aktif;
@@ -317,12 +318,12 @@ function ringkasOffProduksi(tgl) {
 	document.addEventListener('contextmenu', function (e) {
 		if (bisaDiedit(e.target)) return;
 		e.preventDefault();
-		beriPeringatan('Klik kanan dinonaktifkan demi menjaga keamanan halaman.');
+		beriPeringatan('Fitur ini tidak tersedia di halaman ini.');
 	});
 	document.addEventListener('selectstart', function (e) {
 		if (bisaDiedit(e.target)) return;
 		e.preventDefault();
-		beriPeringatan('Teks halaman ini tidak dapat diblok atau disalin.');
+		beriPeringatan('Teks pada halaman ini tidak dapat dipilih atau disalin.');
 	});
 	document.addEventListener('touchstart', function (e) {
 		if (e.touches.length !== 1 || bisaDiedit(e.target) || (e.target.closest && e.target.closest('button, a'))) {
@@ -333,7 +334,7 @@ function ringkasOffProduksi(tgl) {
 		titikTekan = { x: sentuhan.clientX, y: sentuhan.clientY };
 		clearTimeout(tekanTimer);
 		tekanTimer = setTimeout(function () {
-		beriPeringatan('Tekan lama dinonaktifkan pada halaman ini.');
+		beriPeringatan('Fitur tekan lama tidak tersedia di halaman ini.');
 		batalkanTekanLama();
 		}, 600);
 	}, { passive: true });
@@ -1079,7 +1080,6 @@ function ringkasOffProduksi(tgl) {
 	}
 
 	function buatKartuPayslip(p) {
-	function rp(n) { return 'Rp ' + Number(n || 0).toLocaleString('id-ID'); }
 	var periode = dmy(p.periodeDari) + ' – ' + dmy(p.periodeSampai);
 	var tanpaGaji = !!p.tanpaGajiHarian;
 	var statusKaryawan = p.status || '';
@@ -1102,10 +1102,10 @@ function ringkasOffProduksi(tgl) {
 	}
 	var dl = el('dl', { class: 'slip-list' }, [
 		tanpaGaji
-		? baris('Gaji Pokok', 'Status ' + (statusKaryawan || 'HT/KT') + ' — dibayar di luar sistem ini', rp(0))
-		: baris('Gaji Pokok', p.hariDibayar + ' hari × ' + rp(p.upahHarian), rp(p.nominalGaji)),
-		baris('Lembur', Number(p.jamLembur).toFixed(2) + ' jam × ' + rp(p.tarifLembur), rp(p.nominalLembur)),
-		baris('TOTAL DITERIMA', null, rp(p.totalNominal), true)
+		? baris('Gaji Pokok', 'Status ' + (statusKaryawan || 'HT/KT') + ' — dibayar di luar sistem ini', formatRupiah(0))
+		: baris('Gaji Pokok', p.hariDibayar + ' hari × ' + formatRupiah(p.upahHarian), formatRupiah(p.nominalGaji)),
+		baris('Lembur', Number(p.jamLembur).toFixed(2) + ' jam × ' + formatRupiah(p.tarifLembur), formatRupiah(p.nominalLembur)),
+		baris('TOTAL DITERIMA', null, formatRupiah(p.totalNominal), true)
 	]);
 	var footer = el('div', { class: 'aksi', style: 'padding:14px 18px;border-top:2px solid var(--ink)' }, [
 		btn('Cetak / PDF', 'primary', function () { cetakPayslipSatu(p); }),
@@ -1127,8 +1127,7 @@ function ringkasOffProduksi(tgl) {
 
 	/* Print helpers (duplikat, karena file ini terpisah dari admin) */
 	function renderPayslipHtml(x) {
-	function rp(n) { return 'Rp ' + Number(n || 0).toLocaleString('id-ID'); }
-	function tgl(v) { return v ? String(v).split('-').reverse().join('/') : '—'; }
+	function tgl(v) { return v ? dmy(v) : '—'; }
 	var periode = tgl(x.periodeDari || x.periode_dari) + ' s.d. ' + tgl(x.periodeSampai || x.periode_sampai);
 	var tanpaGaji = !!(x.tanpaGajiHarian || x.tanpa_gaji_harian);
 	var statusKaryawan = x.status || '';
@@ -1138,13 +1137,13 @@ function ringkasOffProduksi(tgl) {
 		gajiRow = '<tr>' +
 		'<td>Gaji Pokok</td>' +
 		'<td colspan="2"><em style="color:#666">Status ' + (statusKaryawan || 'HT/KT') + ' — dibayar di luar rekapan ini</em></td>' +
-		'<td>' + rp(0) + '</td></tr>';
+		'<td>' + formatRupiah(0) + '</td></tr>';
 	} else {
 		gajiRow = '<tr>' +
 		'<td>Gaji Pokok</td>' +
 		'<td>' + (x.hariDibayar || x.hari_dibayar || 0) + ' hari</td>' +
-		'<td>' + rp(x.upahHarian || x.upah_harian) + '</td>' +
-		'<td>' + rp(x.nominalGaji || x.nominal_gaji) + '</td></tr>';
+		'<td>' + formatRupiah(x.upahHarian || x.upah_harian) + '</td>' +
+		'<td>' + formatRupiah(x.nominalGaji || x.nominal_gaji) + '</td></tr>';
 	}
 	
 	return '' +
@@ -1164,10 +1163,10 @@ function ringkasOffProduksi(tgl) {
 			'<tbody>' +
 			gajiRow +
 			'<tr><td>Lembur</td><td>' + Number(x.jamLembur || x.jam_lembur || 0).toFixed(2) + ' jam</td>' +
-				'<td>' + rp(x.tarifLembur || x.tarif_lembur_per_jam) + '</td>' +
-				'<td>' + rp(x.nominalLembur || x.nominal_lembur) + '</td></tr>' +
+				'<td>' + formatRupiah(x.tarifLembur || x.tarif_lembur_per_jam) + '</td>' +
+				'<td>' + formatRupiah(x.nominalLembur || x.nominal_lembur) + '</td></tr>' +
 			'<tr class="total"><td colspan="3">TOTAL DITERIMA</td><td>' +
-				rp(x.totalNominal || x.total_nominal) + '</td></tr>' +
+				formatRupiah(x.totalNominal || x.total_nominal) + '</td></tr>' +
 			'</tbody>' +
 		'</table>' +
 		(tanpaGaji ? '<p style="font-size:11px;color:#666;margin-top:-10px;margin-bottom:10px;font-style:italic">Catatan: Gaji pokok karyawan berstatus ' + (statusKaryawan || 'HT/KT') + ' dibayarkan melalui jalur penggajian bulanan. Slip ini hanya mencakup lembur.</p>' : '') +
@@ -2149,13 +2148,10 @@ function ringkasOffProduksi(tgl) {
   var head = el('div', { class: 'abs-kal-head' }, [prev, el('div', { class: 'abs-kal-title' }, [judul, kini]), next]);
   var minggu = el('div', { class: 'abs-kal-week' });
   ['Min','Sen','Sel','Rab','Kam','Jum','Sab'].forEach(function (h) { minggu.appendChild(el('span', { text: h })); });
-  var infoCakupan = 'Data absensi sesuai hak akses akun Anda. Hari Off produksi dan maintenance ditandai OFF (bukan Alpha). Hari Minggu dan libur dikosongkan.';
+  var infoCakupan = 'Data absensi sesuai hak akses akun Anda. Hari Off produksi dan maintenance ditandai OFF (bukan Alpha).';
   var info = el('p', { class: 'sub2 abs-kal-info', text: infoCakupan });
   var peringatan = el('div', { class: 'alert hidden', role: 'alert' });
-  var legenda = el('div', { class: 'abs-kal-legend', 'aria-label': 'Keterangan warna status' }, KATEGORI.map(function (k) {
-    return el('span', { class: 'abs-kal-legend-item' }, [el('i', { class: k }), LBL[k]]);
-  }));
-  var wadah = el('div', { class: 'abs-kal-wrap' }, [head, stat, minggu, grid, legenda, info, peringatan, bar, detail]);
+     var wadah = el('div', { class: 'abs-kal-wrap' }, [head, stat, minggu, grid, info, peringatan, bar, detail]);
   isi.appendChild(wadah); isi.appendChild(loading);
 
   /* ---------- util ---------- */
