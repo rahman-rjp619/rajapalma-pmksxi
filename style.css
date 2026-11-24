@@ -1914,6 +1914,9 @@ input,textarea,select,[contenteditable="true"],[contenteditable=""]{-webkit-user
   background: var(--ac);
   color: var(--ink);
 }
+.toast-warning .toast-ico {
+  color: #a65f5f;
+}
 .toast-bar {
   height: 5px;
   background: var(--ac2);
@@ -1933,6 +1936,9 @@ input,textarea,select,[contenteditable="true"],[contenteditable=""]{-webkit-user
 :root[data-theme="dark"] .toast-ico {
   background: #4f7a93;
   color: #fff;
+}
+:root[data-theme="dark"] .toast-warning .toast-ico {
+  color: #d99292;
 }
 :root[data-theme="dark"] .toast-bar {
   background: #344955;
