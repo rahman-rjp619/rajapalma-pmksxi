@@ -2647,3 +2647,18 @@ body { font-size: 16px; line-height: 1.5; }
   #isi .lembur-filter input,
   #isi .lembur-filter select { min-height: 46px; font-size: 16px; }
 }
+
+/* Header aplikasi tetap berada di atas saat halaman digulir. */
+#app .bar {
+  position: fixed !important;
+  inset: 0 0 auto !important;
+  z-index: 1300 !important;
+}
+@media (max-width: 800px) {
+  #app .shell,
+  #app.rail .shell { padding-top: 66px !important; }
+}
+#login .login-header {
+  position: fixed;
+  top: 0;
+}
