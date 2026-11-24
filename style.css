@@ -1833,6 +1833,7 @@ input,textarea,select,[contenteditable="true"],[contenteditable=""]{-webkit-user
   justify-content: center;
   background: #dff2ff;
   transition: opacity .5s ease, visibility .5s ease;
+  animation: rpSplashFailsafe .01s linear 5s forwards;
 }
 
 #rpSplashScreen.rp-hidden {
@@ -1893,10 +1894,17 @@ input,textarea,select,[contenteditable="true"],[contenteditable=""]{-webkit-user
   to { transform: translateX(100%); }
 }
 
+@keyframes rpSplashFailsafe {
+  to { opacity: 0; visibility: hidden; }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  #rpSplashScreen, .rp-css-logo, .rp-loader::after {
-    animation: none;
+  #rpSplashScreen {
+    animation: rpSplashFailsafe .01s linear 5s forwards;
     transition: none;
+  }
+  .rp-css-logo, .rp-loader::after {
+    animation: none;
   }
 }
 
