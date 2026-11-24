@@ -735,6 +735,7 @@ function ringkasOffProduksi(tgl) {
 		// Pemisahan tampilan berdasarkan nama worksheet sumber saat impor.
 		// PENGAPALAN menjadi rekap khusus; sumber lain tetap masuk rekap reguler.
 		var tabLemburAktif = 'reguler';
+		var tampilanLembur = 'matriks';
 		function barisPengapalan(item) {
 			return String(item && (item.bagian_excel || item.bagian) || '').trim().toUpperCase() === 'PENGAPALAN';
 		}
@@ -790,8 +791,24 @@ function ringkasOffProduksi(tgl) {
 		el('h3', { class: 'sec', text: 'Filter lembur' }),
 		el('div', { class: 'toolbar lembur-filter' }, kontrol)
 		]);
+		var tombolMatriks = btn('Matriks harian', 'lembur-tab aktif', function () {
+			setTampilanLembur('matriks'); tampilkanHasil();
+		});
+		var tombolRingkasan = btn('Ringkasan per karyawan', 'lembur-tab', function () {
+			setTampilanLembur('ringkasan'); tampilkanHasil();
+		});
+		tombolMatriks.setAttribute('role', 'tab'); tombolRingkasan.setAttribute('role', 'tab');
+		tombolMatriks.setAttribute('aria-selected', 'true'); tombolRingkasan.setAttribute('aria-selected', 'false');
+		var pilihanTampilan = el('div', { class: 'tabs lembur-tabs lembur-view-tabs', role: 'tablist', 'aria-label': 'Tampilan rekap lembur' }, [tombolMatriks, tombolRingkasan]);
+		function setTampilanLembur(mode) {
+			tampilanLembur = mode;
+			var matriks = mode === 'matriks';
+			tombolMatriks.classList.toggle('aktif', matriks); tombolRingkasan.classList.toggle('aktif', !matriks);
+			tombolMatriks.setAttribute('aria-selected', String(matriks)); tombolRingkasan.setAttribute('aria-selected', String(!matriks));
+		}
 		var tampilan = el('section', { class: 'lembur-view', 'aria-label': 'Ringkasan lembur' }, [
 		panelFilter,
+		pilihanTampilan,
 		hitung,
 		el('h3', { class: 'sec', text: 'Ringkasan lembur' }),
 		hasil
@@ -824,7 +841,7 @@ function ringkasOffProduksi(tgl) {
 			var salinan = Object.assign({}, siap.item);
 			salinan.rincian_harian = siap.rincian.filter(function (r) {
 			return (!dari || r.tanggal >= dari) && (!sampai || r.tanggal <= sampai);
-			}).map(function (r) { return r.data; });
+			}).map(function (r) { return { tanggal: r.tanggal, jam: r.jam }; });
 			return salinan;
 		});
 		hitung.textContent = 'Menampilkan ' + tersaring.length + ' dari ' + jumlahTab + ' karyawan';
@@ -832,7 +849,8 @@ function ringkasOffProduksi(tgl) {
 			hasil.appendChild(el('div', { class: 'info', text: jumlahTab ? 'Tidak ada data lembur yang cocok dengan filter.' : (tabLemburAktif === 'khusus' ? 'Belum ada data lembur khusus Pengapalan.' : 'Belum ada data lembur reguler.') }));
 			return;
 		}
-		hasil.appendChild(bangunMatriksLembur(tersaring, dari, sampai));
+		if (tampilanLembur === 'matriks') hasil.appendChild(bangunMatriksLembur(tersaring, dari, sampai));
+		else hasil.appendChild(bangunRingkasanLembur(tersaring));
 		}
 		var filterTimer = null;
 		if (cariNama) cariNama.addEventListener('input', function () {
@@ -849,6 +867,38 @@ function ringkasOffProduksi(tgl) {
 		kotak.textContent = pesanError(e);
 		}
 	});
+	}
+
+	function bangunRingkasanLembur(data) {
+	if (!Array.isArray(data) || !data.length) return el('div', { class: 'info', text: 'Belum ada data lembur.' });
+	var perKaryawan = Object.create(null);
+	data.forEach(function (row) {
+		var kunci = String(row.no_absen || row.nama || '').trim().toLowerCase();
+		if (!kunci) return;
+		if (!perKaryawan[kunci]) perKaryawan[kunci] = { nama: row.nama || '', divisi: row.divisi || '', total: 0, tanggal: Object.create(null) };
+		(row.rincian_harian || []).forEach(function (r) {
+			var jam = Number(r.jam) || 0, tanggal = String(r.tanggal || '').slice(0, 10);
+			perKaryawan[kunci].total += jam;
+			if (tanggal) perKaryawan[kunci].tanggal[tanggal] = (perKaryawan[kunci].tanggal[tanggal] || 0) + jam;
+		});
+	});
+	var daftar = Object.keys(perKaryawan).map(function (k) { return perKaryawan[k]; });
+	daftar.sort(function (a, b) { return String(a.nama).localeCompare(String(b.nama), 'id', { sensitivity: 'base' }); });
+	var ringkasan = tabel(['Nama karyawan', 'Divisi', 'Total lembur', 'Rincian'], daftar.map(function (k) {
+		var lihat = btn('Lihat tanggal', 'kecil lembur-lihat-tanggal', function () {
+			var tanggal = Object.keys(k.tanggal).sort();
+			var isiRincian = tanggal.length
+				? tabel(['Tanggal', 'Jam lembur'], tanggal.map(function (tgl) { return [dmy(tgl), Number(k.tanggal[tgl].toFixed(2)) + ' jam']; }))
+				: el('div', { class: 'info', text: 'Tidak ada rincian tanggal lembur.' });
+			bukaModal('Rincian Lembur — ' + (k.nama || 'Karyawan'), [
+				el('p', { class: 'sub2', text: (k.divisi || 'Tanpa divisi') + ' · Total ' + Number(k.total.toFixed(2)) + ' jam' }),
+				isiRincian
+			], [{ teks: 'Tutup', kelas: 'primary', klik: function (t) { t(); } }]).box.classList.add('lebar');
+		});
+		return [el('strong', { text: k.nama || '—' }), k.divisi || '—', Number(k.total.toFixed(2)) + ' jam', lihat];
+	}));
+	ringkasan.classList.add('lembur-summary-wrap');
+	return ringkasan;
 	}
 
 	function bangunMatriksLembur(data, dari, sampai) {
@@ -2986,4 +3036,3 @@ function ringkasOffProduksi(tgl) {
 	});
 	pulihkanSesi();
 	})();
-
