@@ -102,7 +102,7 @@
 	function p2(n) { return ('0' + n).slice(-2); }
 	function isoHari(d) { d = d || new Date(); return d.getFullYear() + '-' + p2(d.getMonth() + 1) + '-' + p2(d.getDate()); }
 /* ===== OFF PRODUKSI / MAINTENANCE / LIBUR (satu sumber kebenaran) ===== */
-var OFF_STATE = { siap: false, gagal: false, ver: 0, aturan: [], divisiByNo: Object.create(null), promise: null };
+var OFF_STATE = { siap: false, gagal: false, ver: 0, aturan: [], divisiByNo: Object.create(null), hlByNo: null, promise: null };
 
 function kunciNoAbsen(v) {
   return String(v == null ? '' : v).trim().toLowerCase().replace(/^0+(?=\d)/, '');
@@ -114,6 +114,7 @@ function muatLiburProduksi(paksa) {
   var p = api('karyawanLiburProduksi').then(function (r) {
     OFF_STATE.aturan = Array.isArray(r && r.aturan) ? r.aturan : [];
     OFF_STATE.divisiByNo = (r && r.divisiByNo) || Object.create(null);
+    OFF_STATE.hlByNo = (r && r.hlByNo) || null;   // peta karyawan HL; Off produksi hanya berlaku untuk HL
     OFF_STATE.siap = true; OFF_STATE.gagal = false; OFF_STATE.ver++;
     return OFF_STATE;
   }).catch(function (e) {
@@ -130,7 +131,7 @@ function muatLiburProduksi(paksa) {
 
 function resetOffState() {
   OFF_STATE.siap = false; OFF_STATE.gagal = false; OFF_STATE.ver++;
-  OFF_STATE.aturan = []; OFF_STATE.divisiByNo = Object.create(null); OFF_STATE.promise = null;
+  OFF_STATE.aturan = []; OFF_STATE.divisiByNo = Object.create(null); OFF_STATE.hlByNo = null; OFF_STATE.promise = null;
 }
 
 /* Hari OFF = HANYA Off produksi / maintenance (sheet pengaturan_produksi_off).
@@ -155,6 +156,7 @@ function infoHariOff(tgl, k) {
   for (var i = 0; i < daftar.length; i++) {
     var o = daftar[i];
     if (!o || o.tanggal !== tgl || o.jenis === 'libur') continue;   // jenis 'libur' dikosongkan, bukan OFF
+    if (OFF_STATE.hlByNo && !OFF_STATE.hlByNo[no]) continue;        // Off produksi hanya untuk karyawan HL
     if (aturanOffKena(o, div, no)) {
       var alasan = String(o.alasan || '').trim();
       return { jenis: 'produksi', ket: (alasan && alasan.toLowerCase() !== 'off') ? 'Off produksi \u2014 ' + alasan : 'Off produksi' };
