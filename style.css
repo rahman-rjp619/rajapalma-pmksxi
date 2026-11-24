@@ -2293,3 +2293,95 @@ input,textarea,select,[contenteditable="true"],[contenteditable=""]{-webkit-user
 @media (prefers-reduced-motion: reduce) {
   .btn { transition: none; }
 }
+
+/* Kontrol filter ponsel: ringkas, tetapi tetap nyaman disentuh. */
+@media (max-width: 640px) {
+  #isi .toolbar input[type="search"],
+  #isi .toolbar input[type="date"],
+  #isi .toolbar select,
+  #isi .abs-filter input,
+  #isi .abs-filter select,
+  #isi .lembur-filter input,
+  #isi .lembur-filter select {
+    min-height: 44px;
+    padding: 9px 11px;
+    font-size: 14px !important;
+    line-height: 1.35;
+  }
+  #isi .toolbar input[type="date"],
+  #isi .abs-filter input[type="date"],
+  #isi .lembur-filter input[type="date"] {
+    font-size: 13px !important;
+  }
+  #isi .toolbar .field > span,
+  #isi .abs-filter .field > span,
+  #isi .lembur-filter .field > span,
+  #isi .lembur-filter-panel > .sec {
+    font-size: 11px;
+    line-height: 1.3;
+  }
+}
+@media (max-width: 380px) {
+  #isi .toolbar input[type="search"],
+  #isi .toolbar input[type="date"],
+  #isi .toolbar select,
+  #isi .abs-filter input,
+  #isi .abs-filter select,
+  #isi .lembur-filter input,
+  #isi .lembur-filter select {
+    min-height: 42px;
+    padding: 8px 10px;
+    font-size: 13px !important;
+  }
+}
+
+/* Filter ponsel dibuat ringkas: kontrol sejajar dalam dua kolom. */
+@media (max-width: 640px) {
+  #isi .toolbar:not(.lembur-filter),
+  #isi .abs-filter,
+  #isi .lembur-filter {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    align-items: end;
+    gap: 8px;
+    width: 100%;
+  }
+  #isi .toolbar:not(.lembur-filter) > *,
+  #isi .abs-filter > *,
+  #isi .lembur-filter > * {
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+  }
+  #isi .toolbar:not(.lembur-filter) input[type="search"],
+  #isi .abs-filter input[type="search"] {
+    grid-column: 1 / -1;
+  }
+  #isi .lembur-filter .lembur-reset {
+    grid-column: 1 / -1;
+  }
+  #isi .abs-filter .btn,
+  #isi .lembur-filter .btn,
+  #isi .toolbar:not(.lembur-filter) .btn {
+    min-height: 42px;
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+  #isi .toolbar:not(.lembur-filter) .field,
+  #isi .abs-filter .field,
+  #isi .lembur-filter .field {
+    min-width: 0;
+    gap: 4px;
+  }
+}
+@media (max-width: 360px) {
+  #isi .toolbar:not(.lembur-filter),
+  #isi .abs-filter,
+  #isi .lembur-filter { gap: 7px; }
+  #isi .toolbar:not(.lembur-filter) input[type="date"],
+  #isi .abs-filter input[type="date"],
+  #isi .lembur-filter input[type="date"] {
+    padding-inline: 7px;
+    font-size: 12px !important;
+  }
+}
