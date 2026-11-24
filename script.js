@@ -2802,7 +2802,6 @@ function ringkasOffProduksi(tgl) {
 		el('div', { class: 'aksi', style: 'padding-left:0' }, [b])
 	])]));
 	}
-
 	var skalaTeks = 1;
 	var ukuranAsliTeks = new WeakMap();
 	function perbaruiUkuranTeks(root) {
