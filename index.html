@@ -25,9 +25,43 @@
       <div class="rp-right"></div>
     </div>
   </div>
-  <div class="rp-loader"></div>
+    <div class="rp-loader"></div>
 </div>
+<script>
+  (function () {
+    var splash = document.getElementById('rpSplashScreen');
+    if (!splash) return;
 
+    var key = 'rp_splash_visited';
+    var sudahDilihat = false;
+    var ditutup = false;
+    try {
+      sudahDilihat = sessionStorage.getItem(key) === '1';
+      if (!sudahDilihat) sessionStorage.setItem(key, '1');
+    } catch (e) {
+      // Splash tetap ditutup meskipun penyimpanan sesi diblokir browser.
+    }
+
+    function tutupSplash() {
+      if (ditutup || !splash.isConnected) return;
+      ditutup = true;
+      splash.classList.add('rp-hidden');
+      window.setTimeout(function () {
+        if (splash.isConnected) splash.remove();
+      }, 550);
+    }
+
+    if (sudahDilihat) {
+      splash.remove();
+      return;
+    }
+
+    // Tutup lebih cepat setelah halaman siap, dengan timer mandiri sebagai pengaman.
+    window.addEventListener('load', tutupSplash, { once: true });
+    window.setTimeout(tutupSplash, 1600);
+  })();
+</script>
+ 
 <div id="login" class="login">
   <header class="login-header">
     <div class="login-header-brand" aria-label="PT Raja Palma — Human Resources">
