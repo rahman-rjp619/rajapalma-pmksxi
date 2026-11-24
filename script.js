@@ -732,6 +732,29 @@ function ringkasOffProduksi(tgl) {
 			}).filter(function (rincian) { return !!rincian.tanggal; })
 		};
 		});
+		// Pemisahan tampilan berdasarkan nama worksheet sumber saat impor.
+		// PENGAPALAN menjadi rekap khusus; sumber lain tetap masuk rekap reguler.
+		var tabLemburAktif = 'reguler';
+		function barisPengapalan(item) {
+			return String(item && (item.bagian_excel || item.bagian) || '').trim().toUpperCase() === 'PENGAPALAN';
+		}
+		var tabLembur = el('div', { class: 'tabs lembur-tabs', role: 'tablist', 'aria-label': 'Jenis rekap lembur' });
+		var tombolReguler = btn('Lembur Reguler', 'lembur-tab aktif', function () {
+			tabLemburAktif = 'reguler'; perbaruiTabLembur(); tampilkanHasil();
+		});
+		var tombolKhusus = btn('Lembur Khusus · Pengapalan', 'lembur-tab', function () {
+			tabLemburAktif = 'khusus'; perbaruiTabLembur(); tampilkanHasil();
+		});
+		tombolReguler.setAttribute('role', 'tab'); tombolKhusus.setAttribute('role', 'tab');
+		tombolReguler.setAttribute('aria-selected', 'true'); tombolKhusus.setAttribute('aria-selected', 'false');
+		tabLembur.appendChild(tombolReguler); tabLembur.appendChild(tombolKhusus);
+		function perbaruiTabLembur() {
+			var reguler = tabLemburAktif === 'reguler';
+			tombolReguler.classList.toggle('aktif', reguler); tombolKhusus.classList.toggle('aktif', !reguler);
+			tombolReguler.setAttribute('aria-selected', String(reguler)); tombolKhusus.setAttribute('aria-selected', String(!reguler));
+		}
+		isi.appendChild(tabLembur);
+
 		var cariNama = semuaAkses ? el('input', { type: 'search', placeholder: 'Cari nama karyawan…', 'aria-label': 'Filter nama karyawan' }) : null;
 		var pilihDivisi = semuaAkses ? el('select', { 'aria-label': 'Filter divisi' }) : null;
 		var tanggalDari = el('input', { type: 'date', 'aria-label': 'Filter dari tanggal' });
@@ -788,7 +811,11 @@ function ringkasOffProduksi(tgl) {
 			hasil.appendChild(el('div', { class: 'alert', role: 'alert', text: 'Tanggal “Dari” harus sama dengan atau lebih awal daripada tanggal “Sampai”.' }));
 			return;
 		}
-		var tersaring = dataSiap.filter(function (siap) {
+		var sumberTab = dataSiap.filter(function (siap) {
+			return tabLemburAktif === 'khusus' ? barisPengapalan(siap.item) : !barisPengapalan(siap.item);
+		});
+		var jumlahTab = sumberTab.length;
+		var tersaring = sumberTab.filter(function (siap) {
 			var item = siap.item;
 			var namaCocok = !q || String(item.nama || '').toLocaleLowerCase('id').indexOf(q) >= 0;
 			return namaCocok && (!divisiDipilih || String(item.divisi || '').trim() === divisiDipilih)
@@ -800,9 +827,9 @@ function ringkasOffProduksi(tgl) {
 			}).map(function (r) { return r.data; });
 			return salinan;
 		});
-		hitung.textContent = 'Menampilkan ' + tersaring.length + ' dari ' + data.length + ' karyawan';
+		hitung.textContent = 'Menampilkan ' + tersaring.length + ' dari ' + jumlahTab + ' karyawan';
 		if (!tersaring.length) {
-			hasil.appendChild(el('div', { class: 'info', text: data.length ? 'Tidak ada data lembur yang cocok dengan filter.' : 'Belum ada data lembur.' }));
+			hasil.appendChild(el('div', { class: 'info', text: jumlahTab ? 'Tidak ada data lembur yang cocok dengan filter.' : (tabLemburAktif === 'khusus' ? 'Belum ada data lembur khusus Pengapalan.' : 'Belum ada data lembur reguler.') }));
 			return;
 		}
 		hasil.appendChild(bangunMatriksLembur(tersaring, dari, sampai));

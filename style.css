@@ -2211,3 +2211,11 @@ input,textarea,select,[contenteditable="true"],[contenteditable=""]{-webkit-user
 /* Tanggal yang punya jadwal Off produksi / maintenance */
 #isi .abs-kal-cell.off-prod { border-style: dashed; }
 #isi .abs-kal-cell.off-prod:not(.selected):not(.range) { background: var(--abs-off); }
+/* Tab rekap lembur reguler dan khusus Pengapalan */
+.lembur-tabs{display:flex;flex-wrap:wrap;gap:9px;margin:0 0 16px}
+.lembur-tabs .lembur-tab{min-height:42px;padding:9px 14px;border:2px solid var(--ink);border-radius:999px;background:var(--paper);font-size:12px;font-weight:800;letter-spacing:.02em;text-transform:none;box-shadow:none}
+.lembur-tabs .lembur-tab.aktif{background:var(--ac);box-shadow:2px 2px 0 var(--ink)}
+.lembur-tabs .lembur-tab:focus-visible{outline-offset:3px}
+@media(max-width:480px){.lembur-tabs{display:grid;grid-template-columns:1fr 1fr;gap:7px}.lembur-tabs .lembur-tab{padding:8px 7px;font-size:10px;line-height:1.25}}
+:root[data-theme="dark"] .lembur-tabs .lembur-tab{background:#191919;color:#f2f2f2;border-color:#777}
+:root[data-theme="dark"] .lembur-tabs .lembur-tab.aktif{background:#77515e;color:#fff;border-color:#d8a8b8}
