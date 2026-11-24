@@ -135,6 +135,16 @@ function resetOffState() {
 
 /* Hari OFF = HANYA Off produksi / maintenance (sheet pengaturan_produksi_off).
    Minggu / libur nasional / cuti bersama / Jumat Aktiva BUKAN OFF: harinya dikosongkan (lihat infoLiburRutin). */
+/* Apakah aturan sheet (pengaturan_produksi_off) berlaku untuk karyawan ini. '*' = semua divisi. */
+function aturanOffKena(o, div, no) {
+  if (o.cakupan === 'pegawai') {
+    return !!no && (o.noAbsen || []).some(function (n) { return kunciNoAbsen(n) === no; });
+  }
+  return (o.divisi || []).some(function (d) {
+    d = String(d || '').trim().toLowerCase();
+    return d === '*' || (!!div && d === div);
+  });
+}
 function infoHariOff(tgl, k) {
   tgl = String(tgl || '').trim().slice(0, 10);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(tgl)) return null;
@@ -144,14 +154,8 @@ function infoHariOff(tgl, k) {
   var daftar = OFF_STATE.aturan || [];
   for (var i = 0; i < daftar.length; i++) {
     var o = daftar[i];
-    if (!o || o.tanggal !== tgl) continue;
-    var kena = false;
-    if (o.cakupan === 'pegawai') {
-      kena = !!no && (o.noAbsen || []).some(function (n) { return kunciNoAbsen(n) === no; });
-    } else {
-      kena = !!div && (o.divisi || []).some(function (d) { return String(d || '').trim().toLowerCase() === div; });
-    }
-    if (kena) {
+    if (!o || o.tanggal !== tgl || o.jenis === 'libur') continue;   // jenis 'libur' dikosongkan, bukan OFF
+    if (aturanOffKena(o, div, no)) {
       var alasan = String(o.alasan || '').trim();
       return { jenis: 'produksi', ket: (alasan && alasan.toLowerCase() !== 'off') ? 'Off produksi \u2014 ' + alasan : 'Off produksi' };
     }
@@ -165,6 +169,9 @@ function infoLiburRutin(tgl, k) {
   tgl = String(tgl || '').trim().slice(0, 10);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(tgl)) return null;
   var div = String((k && k.divisi) || '').trim().toLowerCase();
+  var no = kunciNoAbsen(k && k.noAbsen);
+  var tambahan = (OFF_STATE.aturan || []).filter(function (o) { return o && o.tanggal === tgl && o.jenis === 'libur' && aturanOffKena(o, div, no); })[0];
+  if (tambahan) return { jenis: 'libur', ket: 'Libur: ' + (String(tambahan.alasan || '').trim() || 'libur perusahaan') };
   if (LIBUR_NASIONAL[tgl]) return { jenis: 'nasional', ket: 'Libur nasional: ' + LIBUR_NASIONAL[tgl] };
   if (CUTI_BERSAMA[tgl]) return { jenis: 'cuti', ket: CUTI_BERSAMA[tgl] };
   var d0 = new Date(tgl + 'T00:00:00');
@@ -179,7 +186,7 @@ function infoLiburRutin(tgl, k) {
 /* Ringkasan aturan Off produksi pada satu tanggal (sudah difilter server sesuai hak akses). */
 function ringkasOffProduksi(tgl) {
   return (OFF_STATE.aturan || []).filter(function (o) { return o && o.tanggal === tgl; }).map(function (o) {
-    var cakup = o.cakupan === 'pegawai' ? ((o.noAbsen || []).length + ' karyawan') : ((o.divisi || []).join(', ') || 'divisi');
+    var cakup = o.cakupan === 'pegawai' ? ((o.noAbsen || []).length + ' karyawan') : ((o.divisi || []).map(function (d) { return d === '*' ? 'Semua divisi' : d; }).join(', ') || 'divisi');
     return (o.alasan || 'Off') + ' — ' + cakup;
   });
 }
@@ -2161,7 +2168,7 @@ function ringkasOffProduksi(tgl) {
   }
   function tglTeks(iso) { var a = iso.split('-'); return Number(a[2]) + ' ' + (BLN[Number(a[1]) - 1] || a[1]) + ' ' + a[0]; }
   function ketLibur(t) { return LIBUR_NASIONAL[t] || CUTI_BERSAMA[t] || ''; }
-  function adaAturanOff(t) { return (OFF_STATE.aturan || []).some(function (o) { return o && o.tanggal === t; }); }
+  function adaAturanOff(t) { return (OFF_STATE.aturan || []).some(function (o) { return o && o.tanggal === t && o.jenis !== 'libur'; }); }
   function ketHari(t) { return [ketLibur(t)].concat(ringkasOffProduksi(t)).filter(Boolean).join(' · '); }
   function batasDipilih() { return !dipilih ? null : (dipilih <= akhirDipilih ? [dipilih, akhirDipilih] : [akhirDipilih, dipilih]); }
   function dalamRentang(t, batas) { return !!batas && t >= batas[0] && t <= batas[1]; }
