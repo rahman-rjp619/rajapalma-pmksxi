@@ -2662,3 +2662,71 @@ body { font-size: 16px; line-height: 1.5; }
   position: fixed;
   top: 0;
 }
+
+/* Tombol memakai warna palet aplikasi yang aktif. */
+.btn:not(.primary):not(.bahaya):not(.whatsapp) {
+  background: var(--ac2) !important;
+  color: var(--ink);
+}
+.btn.primary,
+#masuk {
+  background: var(--ac) !important;
+  color: var(--ink);
+}
+.btn.bahaya {
+  background: var(--bad) !important;
+  color: var(--ink);
+}
+.btn.whatsapp {
+  background: #25D366 !important;
+  color: #062b16;
+}
+.btn:not(:disabled):hover {
+  filter: brightness(.94);
+}
+.btn:not(:disabled):active {
+  filter: brightness(.88);
+}
+.tema-toggle {
+  background: var(--ac2) !important;
+}
+#isi .lembur-tabs .lembur-tab,
+#isi .lembur-filter .lembur-reset,
+#isi .lembur-lihat-tanggal {
+  background: var(--ac2) !important;
+  color: var(--ink) !important;
+}
+#isi .lembur-tabs .lembur-tab.aktif {
+  background: var(--ac) !important;
+}
+#isi .lembur-tabs .lembur-tab:hover,
+#isi .lembur-filter .lembur-reset:hover,
+#isi .lembur-lihat-tanggal:hover {
+  background: var(--hd) !important;
+}
+:root[data-theme="dark"] .btn:not(.primary):not(.bahaya):not(.whatsapp),
+:root[data-theme="dark"] .tema-toggle {
+  background: #263640 !important;
+  color: #e5edf3;
+}
+:root[data-theme="dark"] .btn.primary,
+:root[data-theme="dark"] #masuk,
+:root[data-theme="dark"] #isi .lembur-tabs .lembur-tab.aktif {
+  background: #4f7a93 !important;
+  color: #fff;
+}
+:root[data-theme="dark"] .btn.bahaya {
+  background: #5b383b !important;
+  color: #fff;
+}
+:root[data-theme="dark"] #isi .lembur-tabs .lembur-tab,
+:root[data-theme="dark"] #isi .lembur-filter .lembur-reset,
+:root[data-theme="dark"] #isi .lembur-lihat-tanggal {
+  background: #263640 !important;
+  color: #e5edf3 !important;
+}
+:root[data-theme="dark"] #isi .lembur-tabs .lembur-tab:hover,
+:root[data-theme="dark"] #isi .lembur-filter .lembur-reset:hover,
+:root[data-theme="dark"] #isi .lembur-lihat-tanggal:hover {
+  background: #344955 !important;
+}
