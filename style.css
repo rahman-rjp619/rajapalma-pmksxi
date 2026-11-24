@@ -2385,3 +2385,16 @@ input,textarea,select,[contenteditable="true"],[contenteditable=""]{-webkit-user
     font-size: 12px !important;
   }
 }
+
+/* Lembur ponsel: cegah min-width bawaan search (200px) menimpa kolom Divisi. */
+@media (max-width: 640px) {
+  #isi .lembur-filter .field {
+    min-width: 0;
+    width: 100%;
+  }
+  #isi .lembur-filter input[type="search"] {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+}
