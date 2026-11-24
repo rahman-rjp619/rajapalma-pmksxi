@@ -1827,19 +1827,50 @@ input,textarea,select,[contenteditable="true"],[contenteditable=""]{-webkit-user
   position: fixed;
   inset: 0;
   z-index: 999999;
-  pointer-events: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: grid;
+  place-items: center;
+  padding: 24px;
   background: #dff2ff;
-  transition: opacity .5s ease, visibility .5s ease;
-  animation: rpSplashFailsafe .01s linear 5s forwards;
+  opacity: 1;
+  visibility: visible;
+  transition: opacity .45s ease, visibility .45s ease;
+  animation: rpSplashFailsafe .01s linear 8s forwards;
 }
 
 #rpSplashScreen.rp-hidden {
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
+}
+
+.rp-splash-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: min(100%, 340px);
+  padding: 34px 28px 26px;
+  border: 2px solid #17212b;
+  border-radius: 22px;
+  background: #fff;
+  box-shadow: 8px 8px 0 #17212b;
+  animation: rpEnter .65s cubic-bezier(.2,.8,.2,1) both;
+}
+
+.rp-splash-title {
+  margin-top: 18px;
+  color: #17212b;
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: .02em;
+}
+
+.rp-splash-subtitle {
+  margin-top: 3px;
+  color: #52616a;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .12em;
+  text-transform: uppercase;
 }
 
 /* LOGO — hasil trace dari Logo_Monogram_Merah_Geometris.png (vektor SVG, tajam di ukuran berapa pun).
@@ -1868,21 +1899,22 @@ input,textarea,select,[contenteditable="true"],[contenteditable=""]{-webkit-user
 }
 
 .rp-loader {
-  position: absolute;
-  bottom: 12%;
-  width: 34px;
-  height: 3px;
-  background: #b5d5e9;
+  width: 48px;
+  height: 5px;
+  margin-top: 24px;
   overflow: hidden;
+  border-radius: 999px;
+  background: #d8e4ec;
 }
 
 .rp-loader::after {
   content: "";
   display: block;
-  width: 50%;
+  width: 45%;
   height: 100%;
-  background: #1876b9;
-  animation: rpLoad .8s infinite alternate;
+  border-radius: inherit;
+  background: #d30101;
+  animation: rpLoad .75s ease-in-out infinite alternate;
 }
 
 @keyframes rpEnter {
@@ -1898,14 +1930,15 @@ input,textarea,select,[contenteditable="true"],[contenteditable=""]{-webkit-user
   to { opacity: 0; visibility: hidden; }
 }
 
+@media (max-width: 480px) {
+  #rpSplashScreen { padding: 18px; }
+  .rp-splash-card { width: min(100%, 300px); padding: 28px 22px 22px; }
+  .rp-css-logo { width: 138px; }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  #rpSplashScreen {
-    animation: rpSplashFailsafe .01s linear 5s forwards;
-    transition: none;
-  }
-  .rp-css-logo, .rp-loader::after {
-    animation: none;
-  }
+  #rpSplashScreen { animation-duration: .01s; }
+  .rp-splash-card, .rp-css-logo, .rp-loader::after { animation: none; }
 }
 
 /* Toast memakai warna palet yang sedang aktif, termasuk progress bar. */
