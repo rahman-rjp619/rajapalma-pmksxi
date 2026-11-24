@@ -1477,6 +1477,7 @@ p{line-height:1.55}
 :root[data-theme="dark"] .lembur-matrix-wrap .lembur-value{background:#141414!important;border-color:#e5edf3!important;color:#e5edf3!important}
 /* Penyempurnaan tampilan modul Absensi: kalender, ringkasan, dan detail responsif. */
 #isi .abs-kal-wrap{gap:18px;margin-top:18px}
+#isi .abs-kal-grid{contain:layout style}
 #isi .abs-kal-toolbar{width:100%;padding:14px;border:2px solid var(--ink);border-radius:14px;background:var(--paper)}
 #isi .abs-kal-toolbar input{width:100%;max-width:520px;min-height:46px}
 #isi .abs-kal-head{grid-template-columns:44px minmax(0,1fr) 44px;gap:12px;padding:14px 16px;border-width:2px;background:var(--side);box-shadow:3px 3px 0 var(--ink)}
@@ -1509,7 +1510,7 @@ p{line-height:1.55}
 #isi .abs-kal-meta span{font-size:10px;text-transform:uppercase;letter-spacing:.04em}
 #isi .abs-kal-meta strong{font-size:14px}
 #isi .abs-kal-empty{padding:12px;border-radius:9px;background:var(--bg)}
-:root[data-theme="dark"] #isi .abs-kal-head{background:#161616}
+:root[data-theme="dark"] #isi .abs-kal-head{background:var(--side)}
 :root[data-theme="dark"] #isi .abs-kal-toolbar,:root[data-theme="dark"] #isi .abs-kal-info,:root[data-theme="dark"] #isi .abs-kal-detail,:root[data-theme="dark"] #isi .abs-kal-meta>div{background:#111820}
 :root[data-theme="dark"] #isi .abs-kal-cell:not(.kosong):hover{background:#26343b}
 :root[data-theme="dark"] #isi .abs-kal-count{background:#263640}
@@ -2397,4 +2398,98 @@ input,textarea,select,[contenteditable="true"],[contenteditable=""]{-webkit-user
     min-width: 0;
     max-width: 100%;
   }
+}
+
+/* Absensi: navigasi kalender ringkas, sejajar, dan kontras di kedua tema. */
+#isi .abs-kal-head {
+  grid-template-columns: 36px minmax(0, 1fr) 36px;
+  gap: 10px;
+  background: var(--side);
+}
+#isi .abs-kal-title {
+  justify-content: center;
+  gap: 10px;
+}
+#isi .abs-kal-head .abs-kal-nav {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  min-width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 2px solid var(--ink);
+  border-radius: 9px;
+  background: var(--side);
+  color: var(--ink);
+  font-size: 21px;
+  line-height: 1;
+  box-shadow: none !important;
+  transition: background-color .18s ease, color .18s ease, border-color .18s ease;
+}
+#isi .abs-kal-title .btn {
+  min-height: 30px;
+  padding: 3px 9px;
+  border: 1px solid var(--ink);
+  background: transparent;
+  color: var(--ink);
+  box-shadow: none !important;
+  transition: background-color .18s ease, color .18s ease, border-color .18s ease;
+}
+#isi .abs-kal-head .abs-kal-nav:hover {
+  background: var(--hd);
+  box-shadow: none !important;
+  transform: none;
+}
+#isi .abs-kal-title .btn:hover {
+  background: transparent;
+  color: var(--ink);
+  box-shadow: none !important;
+  transform: none;
+}
+#isi .abs-kal-head .abs-kal-nav:focus-visible,
+#isi .abs-kal-title .btn:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+@media (max-width: 620px) {
+  #isi .abs-kal-head {
+    grid-template-columns: 32px minmax(0, 1fr) 32px;
+    gap: 6px;
+  }
+  #isi .abs-kal-head .abs-kal-nav {
+    width: 30px;
+    min-width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    font-size: 19px;
+  }
+  #isi .abs-kal-title {
+    gap: 6px;
+  }
+  #isi .abs-kal-title .btn {
+    min-height: 28px;
+    padding: 3px 7px;
+    font-size: 10px;
+  }
+}
+
+/* Titik status kalender dibuat tegas dan tetap kontras pada kedua tema. */
+#isi .abs-kal-dots i.hadir { background: #16803c !important; }
+#isi .abs-kal-dots i.izin { background: #087ea4 !important; }
+#isi .abs-kal-dots i.dinas { background: #a86b00 !important; }
+#isi .abs-kal-dots i.alpa { background: #c62828 !important; }
+#isi .abs-kal-dots i.anomali { background: #7040a0 !important; }
+#isi .abs-kal-dots i.off { background: #596579 !important; }
+#isi .abs-kal-dots i {
+  outline: 1px solid #fff;
+  outline-offset: 1px;
+}
+:root[data-theme="dark"] #isi .abs-kal-dots i.hadir { background: #65d98a !important; }
+:root[data-theme="dark"] #isi .abs-kal-dots i.izin { background: #62c8ef !important; }
+:root[data-theme="dark"] #isi .abs-kal-dots i.dinas { background: #ffd05a !important; }
+:root[data-theme="dark"] #isi .abs-kal-dots i.alpa { background: #ff7777 !important; }
+:root[data-theme="dark"] #isi .abs-kal-dots i.anomali { background: #c29aff !important; }
+:root[data-theme="dark"] #isi .abs-kal-dots i.off { background: #c2ccd6 !important; }
+:root[data-theme="dark"] #isi .abs-kal-dots i {
+  outline-color: #090d10;
 }
