@@ -234,12 +234,12 @@ function ringkasOffProduksi(tgl) {
 	});
 	if (!gelap) {
 		// Terapkan variabel palet langsung; tidak perlu memindai/update seluruh panel UI.
-		var palet = 'cream', latar = '';
+		var palet = 'codex', latar = '';
 		try {
-		palet = localStorage.getItem('hrd_palett') || 'cream';
+		palet = localStorage.getItem('hrd_palett') || 'codex';
 		latar = localStorage.getItem('hrd_latar_custom') || '';
 		} catch (e) {}
-		var warna = (typeof PALET_TEMA !== 'undefined' && PALET_TEMA[palet]) || (typeof PALET_TEMA !== 'undefined' && PALET_TEMA.cream) || null;
+		var warna = (typeof PALET_TEMA !== 'undefined' && PALET_TEMA[palet]) || (typeof PALET_TEMA !== 'undefined' && PALET_TEMA.codex) || null;
 		if (warna) {
 		['bg', 'paper', 'side', 'hd', 'ac', 'ac2', 'mut'].forEach(function(k){ rootStyle.setProperty('--' + k, warna[k]); });
 		if (latar) rootStyle.setProperty('--bg', latar);
@@ -2880,16 +2880,25 @@ function ringkasOffProduksi(tgl) {
 	perbaruiUkuranTeks(document.body);
 	}
 	var PALET_TEMA = {
-	cream: { bg:'#FFF4D6', paper:'#FFFBEE', side:'#FFD93D', hd:'#FFD93D', ac:'#FF8FB1', ac2:'#7BD3EA', mut:'#3d3d3d' },
-	sage: { bg:'#EEF3E5', paper:'#FAFCF5', side:'#C9D9B8', hd:'#C9D9B8', ac:'#9DBB91', ac2:'#D8E8D0', mut:'#465044' },
-	lavender: { bg:'#F0EAFE', paper:'#FCFAFF', side:'#D7C9F3', hd:'#D7C9F3', ac:'#B6A4E8', ac2:'#E3DAFA', mut:'#514967' },
-	ocean: { bg:'#E4F4FA', paper:'#F8FDFF', side:'#9BD8E8', hd:'#9BD8E8', ac:'#77C8DF', ac2:'#BCEAF4', mut:'#36525D' },
-	peach: { bg:'#FFF0E5', paper:'#FFFAF5', side:'#F6C7A9', hd:'#F6C7A9', ac:'#F2B38F', ac2:'#F9D9C4', mut:'#5B463B' },
-	mono: { bg:'#F0F0F0', paper:'#FFFFFF', side:'#D0D0D0', hd:'#D0D0D0', ac:'#BDBDBD', ac2:'#E2E2E2', mut:'#454545' }
+	codex: { bg:'#EFF5F0', paper:'#FBFDFC', side:'#BDD5C3', hd:'#BDD5C3', ac:'#85B697', ac2:'#D0E3D5', mut:'#34463A' },
+	mint: { bg:'#EDF7F0', paper:'#FCFEFC', side:'#B9DEC5', hd:'#B9DEC5', ac:'#78B98D', ac2:'#D3EBDD', mut:'#304A38' },
+	slate: { bg:'#EFF4FA', paper:'#FCFDFE', side:'#B7CBE3', hd:'#B7CBE3', ac:'#7FA9D4', ac2:'#D4E2F1', mut:'#35475B' },
+	violet: { bg:'#F4F0FA', paper:'#FDFCFE', side:'#CCB8E8', hd:'#CCB8E8', ac:'#A184CE', ac2:'#E5D9F3', mut:'#493B5D' },
+	sand: { bg:'#FAF5EA', paper:'#FEFCF7', side:'#EAD1A8', hd:'#EAD1A8', ac:'#D1A45F', ac2:'#F3E5C9', mut:'#55452E' },
+	rose: { bg:'#FAF0F2', paper:'#FEFCFC', side:'#EBC2CC', hd:'#EBC2CC', ac:'#D9899B', ac2:'#F3DDE2', mut:'#594047' },
+	ocean: { bg:'#EDF5F7', paper:'#FBFDFE', side:'#AFCFDA', hd:'#AFCFDA', ac:'#64A9BC', ac2:'#D2E8ED', mut:'#304B53' },
+	sky: { bg:'#F0F6FC', paper:'#FCFDFE', side:'#B7D4F0', hd:'#B7D4F0', ac:'#78AFE2', ac2:'#D9EAF8', mut:'#354A60' },
+	sage: { bg:'#F2F6EF', paper:'#FCFDFB', side:'#BED3AE', hd:'#BED3AE', ac:'#86AC71', ac2:'#DFEBD6', mut:'#3F4E37' },
+	olive: { bg:'#F6F5E9', paper:'#FDFDF8', side:'#D1D19E', hd:'#D1D19E', ac:'#A9A94D', ac2:'#E9E8C8', mut:'#4D4B2F' },
+	peach: { bg:'#FCF2EC', paper:'#FEFCFA', side:'#F2C5A9', hd:'#F2C5A9', ac:'#E69B70', ac2:'#F8E0D1', mut:'#5A4033' },
+	terracotta: { bg:'#FAF0EB', paper:'#FDFBFA', side:'#E3B59C', hd:'#E3B59C', ac:'#C77D58', ac2:'#F1D8C9', mut:'#573D31' },
+	lilac: { bg:'#F5F1FA', paper:'#FDFCFE', side:'#D0BEE8', hd:'#D0BEE8', ac:'#A286CE', ac2:'#E8DFF4', mut:'#493F5A' },
+	graphite: { bg:'#F1F4F5', paper:'#FCFDFD', side:'#C7D0D5', hd:'#C7D0D5', ac:'#8FA1AB', ac2:'#E0E6E9', mut:'#3D4A50' }
 	};
 	var ROOT_STYLE = document.documentElement.style;
 	function terapkanPalet(nama, latarCustom) {
-	var p = PALET_TEMA[nama] || PALET_TEMA.cream;
+	if (!PALET_TEMA[nama]) nama = 'codex';
+	var p = PALET_TEMA[nama];
 	if (document.documentElement.getAttribute('data-theme') !== 'dark') {
 		['bg','paper','side','hd','ac','ac2','mut'].forEach(function(k){ ROOT_STYLE.setProperty('--'+k, p[k]); });
 		if (latarCustom) ROOT_STYLE.setProperty('--bg', latarCustom);
@@ -2925,27 +2934,27 @@ function ringkasOffProduksi(tgl) {
 	$('appearanceClose').addEventListener('click', tutupAppearance);
 	document.querySelectorAll('.appearance-swatches [data-palette]').forEach(function(b){ b.setAttribute('aria-pressed','false'); b.addEventListener('click',function(){ terapkanPalet(this.getAttribute('data-palette'), ''); }); });
 	$('customBackground').addEventListener('input',function(){
-	var nama = 'cream'; try { nama = localStorage.getItem('hrd_palett') || 'cream'; } catch(e) {}
+	var nama = 'codex'; try { nama = localStorage.getItem('hrd_palett') || 'codex'; } catch(e) {}
 	terapkanPalet(nama, this.value);
 	});
-	$('resetAppearance').addEventListener('click',function(){ terapkanPalet('cream',''); if ($('appearanceStatus')) $('appearanceStatus').textContent='Tampilan direset'; });
+	$('resetAppearance').addEventListener('click',function(){ terapkanPalet('codex',''); if ($('appearanceStatus')) $('appearanceStatus').textContent='Tampilan direset'; });
 	document.addEventListener('click',function(e){
 	if ($('appearancePanel').classList.contains('hidden')) return;
 	if ($('appearancePanel').contains(e.target) || $('fontSizeControls').contains(e.target)) return;
 	tutupAppearance();
 	});
 	try {
-	var paletTersimpan = localStorage.getItem('hrd_palett') || 'cream';
+	var paletTersimpan = localStorage.getItem('hrd_palett') || 'codex';
 	var latarTersimpan = localStorage.getItem('hrd_latar_custom') || '';
 	if (document.documentElement.getAttribute('data-theme') !== 'dark') terapkanPalet(paletTersimpan, latarTersimpan);
 	if ($('appearanceStatus')) $('appearanceStatus').textContent='';
-	} catch(e) { if (document.documentElement.getAttribute('data-theme') !== 'dark') terapkanPalet('cream',''); }
+	} catch(e) { if (document.documentElement.getAttribute('data-theme') !== 'dark') terapkanPalet('codex',''); }
 
 	var tombolTema = $('themeToggle');
 	if (tombolTema) tombolTema.addEventListener('click', function(){
 	setTimeout(function(){
 		if (document.documentElement.getAttribute('data-theme') !== 'dark') {
-		var n='cream', bg=''; try { n=localStorage.getItem('hrd_palett')||'cream'; bg=localStorage.getItem('hrd_latar_custom')||''; } catch(e) {}
+		var n='codex', bg=''; try { n=localStorage.getItem('hrd_palett')||'codex'; bg=localStorage.getItem('hrd_latar_custom')||''; } catch(e) {}
 		terapkanPalet(n,bg);
 		}
 	},0);
