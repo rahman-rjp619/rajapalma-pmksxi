@@ -12,53 +12,31 @@
 </head>
 <body>
   
-<!-- RAJA PALMA SPLASH SCREEN -->
-<div id="rpSplashScreen">
-  <div class="rp-css-logo" role="img" aria-label="Logo Raja Palma">
-    <div class="rp-symbol">
-      <div class="rp-left"></div>
-      <div class="rp-circle-top"></div>
-      <div class="rp-circle-bottom"></div>
-      <div class="rp-cut-top"></div>
-      <div class="rp-cut-bottom"></div>
-      <div class="rp-arch"></div>
-      <div class="rp-right"></div>
-    </div>
+<!-- Raja Palma splash screen -->
+<div id="rpSplashScreen" role="status" aria-label="Memuat Portal Karyawan">
+  <div class="rp-splash-card">
+    <div class="rp-css-logo" role="img" aria-label="Logo Raja Palma"></div>
+    <strong class="rp-splash-title">PT Raja Palma</strong>
+    <span class="rp-splash-subtitle">Portal Karyawan</span>
+    <div class="rp-loader" aria-hidden="true"></div>
   </div>
-    <div class="rp-loader"></div>
 </div>
 <script>
   (function () {
     var splash = document.getElementById('rpSplashScreen');
     if (!splash) return;
 
-    var key = 'rp_splash_visited';
-    var sudahDilihat = false;
-    var ditutup = false;
-    try {
-      sudahDilihat = sessionStorage.getItem(key) === '1';
-      if (!sudahDilihat) sessionStorage.setItem(key, '1');
-    } catch (e) {
-      // Splash tetap ditutup meskipun penyimpanan sesi diblokir browser.
-    }
-
     function tutupSplash() {
-      if (ditutup || !splash.isConnected) return;
-      ditutup = true;
+      if (!splash.isConnected || splash.classList.contains('rp-hidden')) return;
       splash.classList.add('rp-hidden');
       window.setTimeout(function () {
         if (splash.isConnected) splash.remove();
-      }, 550);
+      }, 500);
     }
 
-    if (sudahDilihat) {
-      splash.remove();
-      return;
-    }
-
-    // Tutup lebih cepat setelah halaman siap, dengan timer mandiri sebagai pengaman.
-    window.addEventListener('load', tutupSplash, { once: true });
-    window.setTimeout(tutupSplash, 1600);
+    // Tampil setiap pemuatan, tanpa bergantung pada sessionStorage atau event load.
+    window.setTimeout(tutupSplash, 2000);
+    window.setTimeout(tutupSplash, 7000);
   })();
 </script>
  
