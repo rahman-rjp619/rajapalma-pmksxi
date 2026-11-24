@@ -2255,6 +2255,8 @@ input,textarea,select,[contenteditable="true"],[contenteditable=""]{-webkit-user
 #isi .abs-kal-cell.off-prod:not(.selected):not(.range) { background: var(--abs-off); }
 /* Tab rekap lembur reguler dan khusus Pengapalan */
 .lembur-tabs{display:flex;flex-wrap:wrap;gap:9px;margin:0 0 16px}
+.lembur-view-tabs{margin:12px 0 4px}
+.lembur-summary-wrap{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
 .lembur-tabs .lembur-tab{min-height:42px;padding:9px 14px;border:2px solid var(--ink);border-radius:999px;background:var(--paper);font-size:12px;font-weight:800;letter-spacing:.02em;text-transform:none;box-shadow:none}
 .lembur-tabs .lembur-tab.aktif{background:var(--ac);box-shadow:2px 2px 0 var(--ink)}
 .lembur-tabs .lembur-tab:focus-visible{outline-offset:3px}
@@ -2534,3 +2536,74 @@ input,textarea,select,[contenteditable="true"],[contenteditable=""]{-webkit-user
 :root[data-theme="dark"] #isi .abs-kal-dots i {
   outline-color: #090d10;
 }
+
+/* Satu gaya warna lembut untuk seluruh tombol di modul lembur. */
+#isi .lembur-tabs .lembur-tab,
+#isi .lembur-filter .lembur-reset,
+#isi .lembur-lihat-tanggal {
+  border: 2px solid var(--ink);
+  background: var(--paper);
+  color: var(--ink);
+  font-weight: 800;
+  transition: transform .16s ease, box-shadow .16s ease, background-color .16s ease;
+}
+#isi .lembur-tabs .lembur-tab.aktif {
+  background: var(--ac2);
+  box-shadow: 2px 2px 0 var(--ink);
+}
+#isi .lembur-tabs .lembur-tab:hover,
+#isi .lembur-lihat-tanggal:hover,
+#isi .lembur-reset:hover { transform: translateY(-1px); }
+@media (prefers-reduced-motion: reduce) {
+  #isi .lembur-tabs .lembur-tab,
+  #isi .lembur-lihat-tanggal,
+  #isi .lembur-reset { transition: none; }
+}
+
+/* Warna lembut untuk tombol lembur, dengan prioritas di atas gaya tombol umum. */
+:root { --lembur-button-bg: #e8f1ee; --lembur-button-hover: #dcebe6; --lembur-button-active: #cfe3dc; }
+:root[data-theme="dark"] { --lembur-button-bg: #1c292e; --lembur-button-hover: #25363c; --lembur-button-active: #30464d; }
+#isi .lembur-tabs .lembur-tab,
+#isi .lembur-filter .lembur-reset,
+#isi .lembur-lihat-tanggal {
+  background: var(--lembur-button-bg) !important;
+  color: var(--ink) !important;
+}
+#isi .lembur-tabs .lembur-tab.aktif { background: var(--lembur-button-active) !important; }
+#isi .lembur-tabs .lembur-tab:hover,
+#isi .lembur-filter .lembur-reset:hover,
+#isi .lembur-lihat-tanggal:hover { background: var(--lembur-button-hover) !important; }
+
+/* Warna pastel berbeda untuk tiap aksi lembur. */
+#isi .lembur-tabs:not(.lembur-view-tabs) .lembur-tab:nth-child(1) { background: #e4f1f2 !important; }
+#isi .lembur-tabs:not(.lembur-view-tabs) .lembur-tab:nth-child(2) { background: #eee9f4 !important; }
+#isi .lembur-tabs:not(.lembur-view-tabs) .lembur-tab:nth-child(1).aktif { background: #cfe5e7 !important; }
+#isi .lembur-tabs:not(.lembur-view-tabs) .lembur-tab:nth-child(2).aktif { background: #ddd3eb !important; }
+#isi .lembur-view-tabs .lembur-tab:nth-child(1) { background: #e7f1e4 !important; }
+#isi .lembur-view-tabs .lembur-tab:nth-child(2) { background: #f5ebdd !important; }
+#isi .lembur-view-tabs .lembur-tab:nth-child(1).aktif { background: #d2e5cb !important; }
+#isi .lembur-view-tabs .lembur-tab:nth-child(2).aktif { background: #ecd9bd !important; }
+#isi .lembur-filter .lembur-reset { background: #f5e7e5 !important; }
+#isi .lembur-lihat-tanggal { background: #e2edf4 !important; }
+#isi .lembur-tabs:not(.lembur-view-tabs) .lembur-tab:nth-child(1):hover { background: #d5e9eb !important; }
+#isi .lembur-tabs:not(.lembur-view-tabs) .lembur-tab:nth-child(2):hover { background: #e2d9ed !important; }
+#isi .lembur-view-tabs .lembur-tab:nth-child(1):hover { background: #d8e9d3 !important; }
+#isi .lembur-view-tabs .lembur-tab:nth-child(2):hover { background: #efdfc8 !important; }
+#isi .lembur-filter .lembur-reset:hover { background: #eed7d3 !important; }
+#isi .lembur-lihat-tanggal:hover { background: #d0e2ed !important; }
+:root[data-theme="dark"] #isi .lembur-tabs:not(.lembur-view-tabs) .lembur-tab:nth-child(1) { background: #263d41 !important; }
+:root[data-theme="dark"] #isi .lembur-tabs:not(.lembur-view-tabs) .lembur-tab:nth-child(2) { background: #393247 !important; }
+:root[data-theme="dark"] #isi .lembur-tabs:not(.lembur-view-tabs) .lembur-tab:nth-child(1).aktif { background: #34545a !important; }
+:root[data-theme="dark"] #isi .lembur-tabs:not(.lembur-view-tabs) .lembur-tab:nth-child(2).aktif { background: #4b405e !important; }
+:root[data-theme="dark"] #isi .lembur-view-tabs .lembur-tab:nth-child(1) { background: #2d4030 !important; }
+:root[data-theme="dark"] #isi .lembur-view-tabs .lembur-tab:nth-child(2) { background: #483b2d !important; }
+:root[data-theme="dark"] #isi .lembur-view-tabs .lembur-tab:nth-child(1).aktif { background: #3c5940 !important; }
+:root[data-theme="dark"] #isi .lembur-view-tabs .lembur-tab:nth-child(2).aktif { background: #604c37 !important; }
+:root[data-theme="dark"] #isi .lembur-filter .lembur-reset { background: #493336 !important; }
+:root[data-theme="dark"] #isi .lembur-lihat-tanggal { background: #293c49 !important; }
+:root[data-theme="dark"] #isi .lembur-tabs:not(.lembur-view-tabs) .lembur-tab:nth-child(1):hover { background: #34545a !important; }
+:root[data-theme="dark"] #isi .lembur-tabs:not(.lembur-view-tabs) .lembur-tab:nth-child(2):hover { background: #4b405e !important; }
+:root[data-theme="dark"] #isi .lembur-view-tabs .lembur-tab:nth-child(1):hover { background: #3c5940 !important; }
+:root[data-theme="dark"] #isi .lembur-view-tabs .lembur-tab:nth-child(2):hover { background: #604c37 !important; }
+:root[data-theme="dark"] #isi .lembur-filter .lembur-reset:hover { background: #5a3e42 !important; }
+:root[data-theme="dark"] #isi .lembur-lihat-tanggal:hover { background: #354e5d !important; }
