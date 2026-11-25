@@ -5,6 +5,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
+<style>
+  /* Critical splash styles: paint the overlay and logo immediately, before app styles load. */
+  #rpSplashScreen{position:fixed;inset:0;z-index:999999;display:grid;place-items:center;padding:24px;background:#dff2ff;opacity:1;visibility:visible}
+  #rpSplashScreen .rp-splash-card{opacity:1;transform:none}
+  #rpSplashScreen .rp-css-logo{opacity:1;animation:none}
+</style>
 <title>PT Raja Palma - Portal Karyawan</title>
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&display=swap">
@@ -34,16 +40,15 @@
       }, 500);
     }
 
-    // Tampil setiap pemuatan, tanpa bergantung pada sessionStorage atau event load.
-    window.setTimeout(tutupSplash, 2000);
-    window.setTimeout(tutupSplash, 7000);
+    // Satu timer saja; splash dan logo sudah terlihat sejak render pertama.
+    window.setTimeout(tutupSplash, 1800);
   })();
 </script>
  
 <div id="login" class="login">
   <header class="login-header">
     <div class="login-header-brand" aria-label="PT Raja Palma — Human Resources">
-      <span class="login-header-mark" aria-hidden="true">RJP</span>
+      <span class="login-header-mark rp-css-logo" role="img" aria-label="Logo Raja Palma"></span>
       <span class="login-header-title">PT Raja Palma<small>Human Resources</small></span>
     </div>
     <button type="button" id="loginThemeToggle" class="btn tema-toggle" aria-label="Aktifkan mode gelap" title="Aktifkan mode gelap"></button>
@@ -86,7 +91,7 @@
   <header class="bar">
     <div class="header-left">
       <div class="header-brand" aria-label="PT Raja Palma — Human Resources">
-        <span class="header-brand-mark" id="headerBrandMark" aria-hidden="true">RJP</span>
+        <span class="header-brand-mark rp-css-logo" id="headerBrandMark" role="img" aria-label="Logo Raja Palma"></span>
         <span class="header-brand-title">PT Raja Palma<small>Human Resources</small></span>
       </div>
     </div>
