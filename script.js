@@ -107,21 +107,45 @@ var OFF_STATE = { siap: false, gagal: false, ver: 0, aturan: [], divisiByNo: Obj
 function kunciNoAbsen(v) {
   return String(v == null ? '' : v).trim().toLowerCase().replace(/^0+(?=\d)/, '');
 }
+/* Normalisasi nilai tanggal apa pun -> 'yyyy-mm-dd'. */
+function tanggalSaja(v) {
+  if (v == null || v === '') return '';
+  if (v instanceof Date && !isNaN(v.getTime())) {
+    return v.getFullYear() + '-' + p2(v.getMonth() + 1) + '-' + p2(v.getDate());
+  }
+  var s = String(v).trim();
+  var m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (m) return m[1] + '-' + p2(Number(m[2])) + '-' + p2(Number(m[3]));
+  return s.slice(0, 10);
+}
 
+/* Normalisasi kunci peta (hlByNo / divisiByNo) agar konsisten dengan kunciNoAbsen. */
+function normalisasiPetaNo(peta) {
+  if (!peta) return null;
+  var hasil = Object.create(null);
+  if (Array.isArray(peta)) {
+    peta.forEach(function (v) { hasil[kunciNoAbsen(v)] = true; });
+    return hasil;
+  }
+  Object.keys(peta).forEach(function (k) { hasil[kunciNoAbsen(k)] = peta[k]; });
+  return hasil;
+}
 /* Muat jadwal Off dari server. paksa=true -> ambil ulang (dipakai tiap membuka Cek Absensi). */
+var _reqOffId = 0;
 function muatLiburProduksi(paksa) {
   if (OFF_STATE.promise && !paksa) return OFF_STATE.promise;
+  var id = ++_reqOffId;
   var p = api('karyawanLiburProduksi').then(function (r) {
+    if (id !== _reqOffId) return OFF_STATE;            // abaikan respons usang
     OFF_STATE.aturan = Array.isArray(r && r.aturan) ? r.aturan : [];
-    OFF_STATE.divisiByNo = (r && r.divisiByNo) || Object.create(null);
-    OFF_STATE.hlByNo = (r && r.hlByNo) || null;   // peta karyawan HL; Off produksi hanya berlaku untuk HL
+    OFF_STATE.divisiByNo = normalisasiPetaNo(r && r.divisiByNo) || Object.create(null);
+    OFF_STATE.hlByNo = normalisasiPetaNo(r && r.hlByNo);   // null = tidak diketahui
     OFF_STATE.siap = true; OFF_STATE.gagal = false; OFF_STATE.ver++;
     return OFF_STATE;
   }).catch(function (e) {
     OFF_STATE.promise = null;
     var m = pesanError(e);
     if (m === 'SESI_HABIS' || m === 'PERMINTAAN_DIBATALKAN') throw e;
-    // Gagal memuat: tandai agar Alpha TIDAK dihitung (lebih aman daripada salah menuduh Alpha).
     OFF_STATE.siap = false; OFF_STATE.gagal = true; OFF_STATE.ver++;
     return OFF_STATE;
   });
@@ -150,13 +174,18 @@ function infoHariOff(tgl, k) {
   tgl = String(tgl || '').trim().slice(0, 10);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(tgl)) return null;
   k = k || {};
-  var div = String(k.divisi || '').trim().toLowerCase();
   var no = kunciNoAbsen(k.noAbsen);
+  // Divisi: prioritaskan peta kanonik server, fallback ke divisi dari baris absensi.
+  var divNo = OFF_STATE.divisiByNo && OFF_STATE.divisiByNo[no];
+  var div = String((divNo != null && String(divNo).trim() !== '') ? divNo : (k.divisi || '')).trim().toLowerCase();
   var daftar = OFF_STATE.aturan || [];
   for (var i = 0; i < daftar.length; i++) {
     var o = daftar[i];
-    if (!o || o.tanggal !== tgl || o.jenis === 'libur') continue;   // jenis 'libur' dikosongkan, bukan OFF
-    if (OFF_STATE.hlByNo && !OFF_STATE.hlByNo[no]) continue;        // Off produksi hanya untuk karyawan HL
+    if (!o) continue;
+    if (tanggalSaja(o.tanggal) !== tgl) continue;
+    if (String(o.jenis || '').toLowerCase() === 'libur') continue;   // libur bukan OFF
+    // hlByNo: null = tidak diketahui -> jangan blokir. {} = tidak ada HL -> blokir semua.
+    if (OFF_STATE.hlByNo && Object.keys(OFF_STATE.hlByNo).length && !OFF_STATE.hlByNo[no]) continue;
     if (aturanOffKena(o, div, no)) {
       var alasan = String(o.alasan || '').trim();
       return { jenis: 'produksi', ket: (alasan && alasan.toLowerCase() !== 'off') ? 'Off produksi \u2014 ' + alasan : 'Off produksi' };
@@ -164,7 +193,6 @@ function infoHariOff(tgl, k) {
   }
   return null;
 }
-
 /* Libur rutin: libur nasional, cuti bersama, libur mingguan (Aktiva Bangunan: Jumat; divisi lain: Minggu).
    Hanya dipakai untuk MENGOSONGKAN hari tsb (tanpa baris OFF dan tanpa Alpha). Sama dengan backend absensiTanggalLibur_. */
 function infoLiburRutin(tgl, k) {
@@ -172,7 +200,11 @@ function infoLiburRutin(tgl, k) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(tgl)) return null;
   var div = String((k && k.divisi) || '').trim().toLowerCase();
   var no = kunciNoAbsen(k && k.noAbsen);
-  var tambahan = (OFF_STATE.aturan || []).filter(function (o) { return o && o.tanggal === tgl && o.jenis === 'libur' && aturanOffKena(o, div, no); })[0];
+  var tambahan = (OFF_STATE.aturan || []).filter(function (o) {
+    return o && tanggalSaja(o.tanggal) === tgl
+        && String(o.jenis || '').toLowerCase() === 'libur'
+        && aturanOffKena(o, div, no);
+  })[0];
   if (tambahan) return { jenis: 'libur', ket: 'Libur: ' + (String(tambahan.alasan || '').trim() || 'libur perusahaan') };
   if (LIBUR_NASIONAL[tgl]) return { jenis: 'nasional', ket: 'Libur nasional: ' + LIBUR_NASIONAL[tgl] };
   if (CUTI_BERSAMA[tgl]) return { jenis: 'cuti', ket: CUTI_BERSAMA[tgl] };
@@ -184,7 +216,11 @@ function infoLiburRutin(tgl, k) {
   }
   return null;
 }
-
+/* Satu pintu untuk modul absensi: OFF produksi, lalu libur rutin. */
+function statusOffTanggal(tgl, k) {
+  if (OFF_STATE.gagal) return { jenis: 'unknown', ket: 'Status OFF belum dapat dimuat' };
+  return infoHariOff(tgl, k) || infoLiburRutin(tgl, k);
+}
 /* Ringkasan aturan Off produksi pada satu tanggal (sudah difilter server sesuai hak akses). */
 function ringkasOffProduksi(tgl) {
   return (OFF_STATE.aturan || []).filter(function (o) { return o && o.tanggal === tgl; }).map(function (o) {
