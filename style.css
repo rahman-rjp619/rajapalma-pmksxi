@@ -1,6 +1,6 @@
 /* PT Raja Palma - stylesheet */
 /* Portal PT Raja Palma: stylesheet gabungan, satu aturan per baris */
-:root{--ink:#000;--bg:#FFF4D6;--paper:#FFFBEE;--side:#FFD93D;--hd:#FFD93D;--ac:#FF8FB1;--ac2:#7BD3EA;--bad:#FF9B9B;--ok:#B8F2A8;--warn:#FFE680;--mut:#3d3d3d;--line:#000;--rd:12px;--sh:6px 6px 0 var(--ink)}
+:root{--ink:#000;--bg:#F0F6FC;--paper:#FCFDFE;--side:#B7D4F0;--hd:#B7D4F0;--ac:#78AFE2;--ac2:#D9EAF8;--bad:#FF9B9B;--ok:#B8F2A8;--warn:#FFE680;--mut:#354A60;--line:#000;--rd:12px;--sh:6px 6px 0 var(--ink)}
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%;overflow-x:hidden;scroll-behavior:smooth}
 body{margin:0;min-width:320px;overflow-x:hidden;background:var(--bg);color:var(--ink);font:500 16px/1.45 system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
@@ -2759,4 +2759,206 @@ body { font-size: 16px; line-height: 1.5; }
   box-shadow: none !important;
   opacity: 1 !important;
   visibility: visible !important;
+}
+
+/* =========================================================
+   ZYRO APPEARANCE CONTROLS — SKY DEFAULT
+   UI-only refinement for theme and text-size controls.
+   ========================================================= */
+.appearance-panel {
+  width: min(344px, calc(100vw - 24px));
+  max-height: min(76dvh, 620px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 18px;
+  border: 1px solid color-mix(in srgb, var(--ac) 70%, var(--ink));
+  border-radius: 20px;
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow: 0 18px 48px rgba(24, 48, 72, .20), 0 4px 0 color-mix(in srgb, var(--ac) 65%, var(--ink));
+  scrollbar-width: thin;
+  scrollbar-color: var(--ac) transparent;
+  animation: zyroAppearanceIn .18s ease-out;
+}
+@keyframes zyroAppearanceIn {
+  from { opacity: 0; transform: translateY(8px) scale(.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.appearance-head {
+  position: sticky;
+  top: -18px;
+  z-index: 2;
+  margin: -18px -18px 16px;
+  padding: 16px 18px 13px;
+  background: var(--paper);
+  border-bottom: 1px solid color-mix(in srgb, var(--ac) 35%, transparent);
+}
+.appearance-head strong {
+  font-size: 15px;
+  font-weight: 850;
+  letter-spacing: -.02em;
+}
+.appearance-head button {
+  width: 34px;
+  height: 34px;
+  border: 1px solid color-mix(in srgb, var(--ac) 65%, var(--ink));
+  border-radius: 11px;
+  background: var(--ac2);
+  color: var(--ink);
+  transition: transform .16s ease, background .16s ease;
+}
+.appearance-head button:hover { background: var(--ac); transform: rotate(4deg); }
+.appearance-label {
+  margin: 15px 0 9px;
+  color: var(--mut);
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+}
+.appearance-swatches {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 9px;
+}
+.appearance-swatches button {
+  position: relative;
+  height: 48px;
+  padding: 4px;
+  border: 1px solid transparent;
+  border-radius: 13px;
+  transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease;
+}
+.appearance-swatches button:hover { transform: translateY(-2px); }
+.appearance-swatches button:focus-visible {
+  outline: 3px solid var(--ac);
+  outline-offset: 2px;
+}
+.appearance-swatches button[aria-pressed="true"] {
+  border: 2px solid var(--ac);
+  box-shadow: 0 0 0 2px var(--paper), 0 0 0 4px var(--ac);
+}
+.appearance-swatches span {
+  border: 1px solid rgba(30, 55, 80, .18);
+  border-radius: 9px;
+}
+.appearance-color-row {
+  gap: 12px;
+  padding: 10px 11px;
+  border: 1px solid color-mix(in srgb, var(--ac) 35%, transparent);
+  border-radius: 13px;
+  background: color-mix(in srgb, var(--ac2) 38%, var(--paper));
+}
+.appearance-color-row input[type="color"] {
+  width: 48px;
+  min-width: 48px;
+  height: 44px;
+  min-height: 44px;
+  padding: 3px;
+  border: 1px solid color-mix(in srgb, var(--ac) 70%, var(--ink));
+  border-radius: 11px;
+  cursor: pointer;
+}
+.appearance-color-row span { color: var(--mut); line-height: 1.4; }
+.appearance-actions {
+  position: sticky;
+  bottom: -18px;
+  margin: 16px -18px -18px;
+  padding: 12px 18px 16px;
+  background: var(--paper);
+  border-top: 1px solid color-mix(in srgb, var(--ac) 35%, transparent);
+}
+.appearance-actions button {
+  min-height: 38px;
+  padding: 8px 13px;
+  border: 1px solid color-mix(in srgb, var(--ac) 70%, var(--ink));
+  border-radius: 11px;
+  background: var(--ac2);
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 850;
+  transition: transform .16s ease, background .16s ease;
+}
+.appearance-actions button:hover { background: var(--ac); transform: translateY(-1px); }
+#appearanceStatus {
+  min-height: 14px;
+  color: var(--mut);
+  font-size: 10px;
+  font-weight: 650;
+}
+.font-size-controls {
+  border: 1px solid color-mix(in srgb, var(--ac) 75%, var(--ink)) !important;
+  border-radius: 999px !important;
+  background: var(--paper) !important;
+  box-shadow: 0 5px 18px rgba(24, 48, 72, .16) !important;
+}
+.font-size-controls.is-open {
+  width: 164px !important;
+  background: var(--paper) !important;
+  box-shadow: 0 8px 24px rgba(24, 48, 72, .20) !important;
+}
+.font-size-controls button {
+  border: 1px solid color-mix(in srgb, var(--ac) 65%, var(--ink)) !important;
+  background: var(--ac2) !important;
+  color: var(--ink) !important;
+  box-shadow: none !important;
+  transition: transform .18s ease, background .18s ease !important;
+}
+.font-size-controls button:hover {
+  background: var(--ac) !important;
+  transform: translateY(-1px) !important;
+}
+.font-size-controls #fontPanelToggle {
+  background: var(--ac) !important;
+}
+.font-size-controls button:focus-visible {
+  outline: 3px solid var(--ac) !important;
+  outline-offset: 2px !important;
+}
+:root[data-theme="dark"] .appearance-panel {
+  background: #17232d;
+  color: #edf5fb;
+  border-color: #557c99;
+  box-shadow: 0 18px 48px rgba(0,0,0,.42), 0 4px 0 #29475c;
+}
+:root[data-theme="dark"] .appearance-head,
+:root[data-theme="dark"] .appearance-actions { background: #17232d; }
+:root[data-theme="dark"] .appearance-color-row {
+  background: #223542;
+  border-color: #496b82;
+}
+:root[data-theme="dark"] .appearance-head button,
+:root[data-theme="dark"] .appearance-actions button,
+:root[data-theme="dark"] .font-size-controls button {
+  background: #29475c !important;
+  color: #edf5fb !important;
+  border-color: #648ba5 !important;
+}
+:root[data-theme="dark"] .font-size-controls,
+:root[data-theme="dark"] .font-size-controls.is-open {
+  background: #17232d !important;
+  border-color: #648ba5 !important;
+}
+:root[data-theme="dark"] .font-size-controls #fontPanelToggle {
+  background: #416b87 !important;
+}
+@media (max-width: 520px) {
+  .appearance-panel {
+    right: 12px;
+    bottom: max(66px, calc(env(safe-area-inset-bottom) + 66px));
+    width: min(344px, calc(100vw - 24px));
+    max-height: min(72dvh, 560px);
+    padding: 15px;
+    border-radius: 18px;
+  }
+  .appearance-head { top: -15px; margin: -15px -15px 14px; padding: 14px 15px 12px; }
+  .appearance-swatches { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 7px; }
+  .appearance-swatches button { height: 44px; }
+  .appearance-actions { bottom: -15px; margin: 14px -15px -15px; padding: 10px 15px 14px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .appearance-panel, .appearance-head button, .appearance-swatches button,
+  .appearance-actions button, .font-size-controls, .font-size-controls button {
+    animation: none !important;
+    transition: none !important;
+  }
 }
