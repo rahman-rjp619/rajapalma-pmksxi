@@ -1205,6 +1205,8 @@ function ringkasOffProduksi(tgl) {
 	/* Print helpers (duplikat, karena file ini terpisah dari admin) */
 	function renderPayslipHtml(x) {
 	function tgl(v) { return v ? dmy(v) : '—'; }
+	var favicon = document.querySelector('link[rel~="icon"]');
+	var logoUrl = favicon ? favicon.href : new URL('favicon.svg', document.baseURI).href;
 	var periode = tgl(x.periodeDari || x.periode_dari) + ' s.d. ' + tgl(x.periodeSampai || x.periode_sampai);
 	var tanpaGaji = !!(x.tanpaGajiHarian || x.tanpa_gaji_harian);
 	var statusKaryawan = x.status || '';
@@ -1226,7 +1228,7 @@ function ringkasOffProduksi(tgl) {
 	return '' +
 		'<div class="payslip">' +
 		'<div class="slip-head"><div class="slip-brand">' +
-			'<div class="slip-logo">RJP</div>' +
+			'<img class="slip-logo" src="' + esc(logoUrl) + '" alt="Logo PT Raja Palma">' +
 			'<div><strong>PT RAJA PALMA</strong><small>Human Resources</small></div>' +
 		'</div><div class="slip-title">SLIP GAJI<br><small>' + periode + '</small></div></div>' +
 		'<div class="slip-info">' +
@@ -1262,7 +1264,7 @@ function ringkasOffProduksi(tgl) {
 		'.payslip{padding:0;margin:0 0 10px}' +
 		'.slip-head{display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #000;padding-bottom:12px;margin-bottom:16px}' +
 		'.slip-brand{display:flex;align-items:center;gap:10px}' +
-		'.slip-logo{width:56px;height:56px;border:2px solid #000;border-radius:8px;display:grid;place-items:center;font-size:18px;font-weight:800}' +
+		'.slip-logo{display:block;width:56px;height:auto;aspect-ratio:1349/1097;object-fit:contain;border:0;border-radius:0}' +
 		'.slip-brand strong{font-size:18px;display:block}.slip-brand small{font-size:10px;letter-spacing:2px;display:block;margin-top:2px}' +
 		'.slip-title{text-align:right;font-size:16px;font-weight:800;line-height:1.3}.slip-title small{font-size:11px;font-weight:600}' +
 		'.slip-info{display:grid;grid-template-columns:1fr 1fr;gap:8px 24px;padding:14px;background:#f4f4f4;border-radius:6px;margin-bottom:16px}' +
