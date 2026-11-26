@@ -444,32 +444,83 @@ function ringkasOffProduksi(tgl) {
 	var mime = !file.type || /^image\/(jpeg|png|webp|gif)$/i.test(file.type);
 	return !!ekstensi && mime;
 	}
-	function kompresFoto(file, cap, maks) {
+function fileGambarValid(file) {
+	if (!file) return false;
+	var ext = String(file.name || '').match(/\.([^.]+)$/);
+	var extOk = !!ext && /^(jpe?g|png|webp|gif|heic|heif|bmp|avif)$/i.test(ext[1]);
+	var mimeOk = /^image\//i.test(file.type || '');
+	return mimeOk || extOk;
+}
+
+// Membaca gambar dengan orientasi EXIF yang benar (foto HP tidak miring).
+function bacaGambarUntukKompres(file) {
 	return new Promise(function (ok, gagal) {
-		if (!file) { ok(null); return; }
-		var url = URL.createObjectURL(file), img = new Image();
-		img.onerror = function () { URL.revokeObjectURL(url); gagal(new Error('File tidak dapat dibaca sebagai gambar.')); };
-		img.onload = function () {
-		var sk = Math.min(1, (maks || 1400) / Math.max(img.naturalWidth, img.naturalHeight));
-		var cv = document.createElement('canvas');
-		cv.width = Math.max(1, Math.round(img.naturalWidth * sk));
-		cv.height = Math.max(1, Math.round(img.naturalHeight * sk));
-		var cx = cv.getContext('2d');
-		cx.drawImage(img, 0, 0, cv.width, cv.height);
-		if (cap) {
-			var fs = Math.max(14, Math.round(cv.width * .022)), pad = 12;
-			cx.font = 'bold ' + fs + 'px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-			cx.fillStyle = 'rgba(0,0,0,.68)';
-			cx.fillRect(0, cv.height - fs - pad * 1.5, cv.width, fs + pad * 1.5);
-			cx.fillStyle = '#fff';
-			cx.fillText('PT RAJA PALMA | ' + cap, pad, cv.height - pad);
+		function viaImg() {
+			var url = URL.createObjectURL(file), img = new Image();
+			img.onload = function () {
+				ok({ sumber: img, w: img.naturalWidth, h: img.naturalHeight, bersih: function () { URL.revokeObjectURL(url); } });
+			};
+			img.onerror = function () {
+				URL.revokeObjectURL(url);
+				gagal(new Error('Foto tidak dapat diproses. Coba ambil ulang foto atau pilih format JPG/PNG.'));
+			};
+			img.src = url;
 		}
-		URL.revokeObjectURL(url);
-		ok({ nama: file.name.replace(/\.[^.]+$/, '') + '.jpg', mimeType: 'image/jpeg', data: cv.toDataURL('image/jpeg', .78) });
-		};
-		img.src = url;
+		try {
+			if (window.createImageBitmap) {
+				createImageBitmap(file, { imageOrientation: 'from-image' }).then(function (bmp) {
+					ok({ sumber: bmp, w: bmp.width, h: bmp.height, bersih: function () { try { bmp.close(); } catch (e) {} } });
+				}).catch(viaImg);
+			} else viaImg();
+		} catch (e) { viaImg(); }
 	});
-	}
+}
+
+/* Kompres otomatis: perkecil dimensi + turunkan kualitas JPEG bertahap sampai <= targetByte.
+   cap  : teks cap waktu di pojok bawah (null = tanpa cap)
+   maks : sisi terpanjang maksimum (px)
+   opsi : { targetByte } */
+function kompresFoto(file, cap, maks, opsi) {
+	opsi = opsi || {};
+	var targetByte = opsi.targetByte || 350 * 1024;
+	var sisiMaks = maks || 1280;
+	var sisiMin = 640;
+	var daftarKualitas = [0.82, 0.72, 0.62, 0.52];
+	return bacaGambarUntukKompres(file).then(function (g) {
+		var cv = document.createElement('canvas');
+		var cx = cv.getContext('2d');
+		var skala = Math.min(1, sisiMaks / (Math.max(g.w, g.h) || 1));
+		var data = '', byte = 0;
+		try {
+			while (true) {
+				var w = Math.max(1, Math.round(g.w * skala)), h = Math.max(1, Math.round(g.h * skala));
+				cv.width = w; cv.height = h;
+				cx.fillStyle = '#fff'; cx.fillRect(0, 0, w, h);
+				cx.drawImage(g.sumber, 0, 0, w, h);
+				if (cap) {
+					var fs = Math.max(14, Math.round(w * .022)), pad = 12;
+					cx.font = 'bold ' + fs + 'px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+					cx.fillStyle = 'rgba(0,0,0,.68)';
+					cx.fillRect(0, h - fs - pad * 1.5, w, fs + pad * 1.5);
+					cx.fillStyle = '#fff';
+					cx.fillText('PT RAJA PALMA | ' + cap, pad, h - pad);
+				}
+				for (var i = 0; i < daftarKualitas.length; i++) {
+					data = cv.toDataURL('image/jpeg', daftarKualitas[i]);
+					byte = Math.round((data.length - data.indexOf(',') - 1) * 0.75);
+					if (byte <= targetByte) break;
+				}
+				if (byte <= targetByte || Math.max(w, h) * 0.85 < sisiMin) break;
+				skala *= 0.85;
+			}
+		} finally {
+			g.bersih();
+			cv.width = 1; cv.height = 1;
+		}
+		if (!data || data.length < 100) throw new Error('Foto terlalu besar untuk diproses perangkat ini. Coba ambil ulang dengan resolusi lebih rendah.');
+		return { nama: file.name.replace(/\.[^.]+$/, '') + '.jpg', mimeType: 'image/jpeg', data: data };
+	});
+}
 	function kartuPilihanAbsensi(judul, deskripsi, jenis, ikonIsi, aksi) {
 	var kartu = el('button', { type: 'button', class: 'abs-home-card ' + jenis, 'aria-label': judul });
 	kartu.appendChild(el('span', { class: 'abs-home-icon' }, [ikon(ikonIsi)]));
@@ -1691,13 +1742,12 @@ function ringkasOffProduksi(tgl) {
 		tampilkanFotoProfil(FOTO_PROFIL_SERVER);
 	});
 	}
-	function namaFileFotoProfil(file) {
+	function namaFileFotoProfil(file, ekstensiPaksa) {
 		var karyawan = S.karyawan || {};
 		function aman(teks, fallback) {
 			return String(teks || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9]+/g, '-').replace(/^-+|-+$/g, '').toLowerCase() || fallback;
 		}
-		var ekstensi = String(file.name || '').match(/\.([^.]+)$/);
-		ekstensi = ekstensi ? ekstensi[1].toLowerCase() : ({ 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif' }[file.type] || 'jpg');
+		var ekstensi = ekstensiPaksa || 'jpg';
 		return aman(karyawan.noAbsen || karyawan.no_absen || karyawan.nip, 'noabsen') + '-' + aman(karyawan.nama, 'karyawan') + '.' + ekstensi;
 	}
 	function editorPangkasFoto(file) {
@@ -1758,6 +1808,7 @@ function ringkasOffProduksi(tgl) {
 	var kontrol = el('div', { class: 'profile-photo-control' });
 	var tombol = el('button', { type: 'button', class: 'avatar profile-photo-button', 'aria-label': 'Pilih foto profil', title: 'Pilih foto profil' });
 	var input = el('input', { type: 'file', accept: 'image/jpeg,image/png,image/webp,image/gif', class: 'hidden', 'aria-label': 'Pilih foto profil' });
+  
 	function gambar(src) {
 		tombol.innerHTML = '';
 		tombol.classList.toggle('has-photo', !!src);
@@ -2758,9 +2809,11 @@ function ringkasOffProduksi(tgl) {
 		var jenis = (jenisWrap.querySelector('input[name="jenisAbsenDL"]:checked') || {}).value || 'Masuk';
 		if (!lokasi.value.trim()) { setStatus('Isi lokasi atau tujuan dinas.', true); lokasi.focus(); return; }
 		kirim.disabled = true; kirim.setAttribute('aria-busy', 'true'); kirim.textContent = 'Mengirim…';
+			
+    try {
+		setStatus('Mengompres foto…', false);
+		var foto = await kompresFoto(file, new Date().toLocaleString('id-ID'), 1280, { targetByte: 350 * 1024 });
 		setStatus('Mengirim absensi…', false);
-		try {
-		var foto = await kompresFoto(file, new Date().toLocaleString('id-ID'));
 		var r = await api('karyawanDinasLuarSimpan', { data: { jenisAbsen: jenis, keterangan: lokasi.value.trim(), fotoBukti: foto } });
 		setStatus(r.pesan || 'Absensi dinas luar terkirim.', false);
 		toast(r.pesan || 'Absensi dinas luar terkirim.');
