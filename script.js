@@ -270,12 +270,12 @@ function ringkasOffProduksi(tgl) {
 	});
 	if (!gelap) {
 		// Terapkan variabel palet langsung; tidak perlu memindai/update seluruh panel UI.
-		var palet = 'codex', latar = '';
+		var palet = 'sky', latar = '';
 		try {
-		palet = localStorage.getItem('hrd_palett') || 'codex';
+		palet = localStorage.getItem('hrd_palett') || 'sky';
 		latar = localStorage.getItem('hrd_latar_custom') || '';
 		} catch (e) {}
-		var warna = (typeof PALET_TEMA !== 'undefined' && PALET_TEMA[palet]) || (typeof PALET_TEMA !== 'undefined' && PALET_TEMA.codex) || null;
+		var warna = (typeof PALET_TEMA !== 'undefined' && PALET_TEMA[palet]) || (typeof PALET_TEMA !== 'undefined' && PALET_TEMA.sky) || null;
 		if (warna) {
 		['bg', 'paper', 'side', 'hd', 'ac', 'ac2', 'mut'].forEach(function(k){ rootStyle.setProperty('--' + k, warna[k]); });
 		if (latar) rootStyle.setProperty('--bg', latar);
@@ -2988,7 +2988,7 @@ function kompresFoto(file, cap, maks, opsi) {
 	};
 	var ROOT_STYLE = document.documentElement.style;
 	function terapkanPalet(nama, latarCustom) {
-	if (!PALET_TEMA[nama]) nama = 'codex';
+	if (!PALET_TEMA[nama]) nama = 'sky';
 	var p = PALET_TEMA[nama];
 	if (document.documentElement.getAttribute('data-theme') !== 'dark') {
 		['bg','paper','side','hd','ac','ac2','mut'].forEach(function(k){ ROOT_STYLE.setProperty('--'+k, p[k]); });
@@ -3025,27 +3025,27 @@ function kompresFoto(file, cap, maks, opsi) {
 	$('appearanceClose').addEventListener('click', tutupAppearance);
 	document.querySelectorAll('.appearance-swatches [data-palette]').forEach(function(b){ b.setAttribute('aria-pressed','false'); b.addEventListener('click',function(){ terapkanPalet(this.getAttribute('data-palette'), ''); }); });
 	$('customBackground').addEventListener('input',function(){
-	var nama = 'codex'; try { nama = localStorage.getItem('hrd_palett') || 'codex'; } catch(e) {}
+	var nama = 'sky'; try { nama = localStorage.getItem('hrd_palett') || 'sky'; } catch(e) {}
 	terapkanPalet(nama, this.value);
 	});
-	$('resetAppearance').addEventListener('click',function(){ terapkanPalet('codex',''); if ($('appearanceStatus')) $('appearanceStatus').textContent='Tampilan direset'; });
+	$('resetAppearance').addEventListener('click',function(){ terapkanPalet('sky',''); if ($('appearanceStatus')) $('appearanceStatus').textContent='Tampilan direset'; });
 	document.addEventListener('click',function(e){
 	if ($('appearancePanel').classList.contains('hidden')) return;
 	if ($('appearancePanel').contains(e.target) || $('fontSizeControls').contains(e.target)) return;
 	tutupAppearance();
 	});
 	try {
-	var paletTersimpan = localStorage.getItem('hrd_palett') || 'codex';
+	var paletTersimpan = localStorage.getItem('hrd_palett') || 'sky';
 	var latarTersimpan = localStorage.getItem('hrd_latar_custom') || '';
 	if (document.documentElement.getAttribute('data-theme') !== 'dark') terapkanPalet(paletTersimpan, latarTersimpan);
 	if ($('appearanceStatus')) $('appearanceStatus').textContent='';
-	} catch(e) { if (document.documentElement.getAttribute('data-theme') !== 'dark') terapkanPalet('codex',''); }
+	} catch(e) { if (document.documentElement.getAttribute('data-theme') !== 'dark') terapkanPalet('sky',''); }
 
 	var tombolTema = $('themeToggle');
 	if (tombolTema) tombolTema.addEventListener('click', function(){
 	setTimeout(function(){
 		if (document.documentElement.getAttribute('data-theme') !== 'dark') {
-		var n='codex', bg=''; try { n=localStorage.getItem('hrd_palett')||'codex'; bg=localStorage.getItem('hrd_latar_custom')||''; } catch(e) {}
+		var n='sky', bg=''; try { n=localStorage.getItem('hrd_palett')||'sky'; bg=localStorage.getItem('hrd_latar_custom')||''; } catch(e) {}
 		terapkanPalet(n,bg);
 		}
 	},0);

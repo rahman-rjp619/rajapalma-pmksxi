@@ -5,10 +5,21 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
+<script>
+  // Terapkan tema tersimpan sebelum splash pertama kali dirender.
+  (function () {
+    try {
+      var tema = localStorage.getItem('hrd_tema') || 'light';
+      document.documentElement.setAttribute('data-theme', tema === 'dark' ? 'dark' : 'light');
+    } catch (e) {}
+  })();
+</script>
 <style>
   /* Critical splash styles: paint the overlay and logo immediately, before app styles load. */
-  #rpSplashScreen{position:fixed;inset:0;z-index:999999;display:grid;place-items:center;padding:24px;background:#dff2ff;opacity:1;visibility:visible}
-  #rpSplashScreen .rp-splash-card{opacity:1;transform:none}
+  #rpSplashScreen{position:fixed;inset:0;z-index:999999;display:grid;place-items:center;padding:24px;background:var(--bg,#dff2ff);color:var(--ink,#17212b);opacity:1;visibility:visible}
+  #rpSplashScreen .rp-splash-card{opacity:1;transform:none;background:var(--paper,#fff);color:var(--ink,#17212b)}
+  :root[data-theme="dark"] #rpSplashScreen{background:#090d10;color:#e5edf3}
+  :root[data-theme="dark"] #rpSplashScreen .rp-splash-card{background:#111820;color:#e5edf3}
   #rpSplashScreen .rp-css-logo{opacity:1;animation:none}
 </style>
 <title>PT Raja Palma - Portal Karyawan</title>
