@@ -438,12 +438,6 @@ function ringkasOffProduksi(tgl) {
 	menu.style.top = atas + 'px';
 	}
 
-	function fileGambarValid(file) {
-	if (!file) return false;
-	var ext = String(file.name || '').match(/\.([^.]+)$/), ekstensi = ext && /^(jpe?g|png|webp|gif)$/i.test(ext[1]);
-	var mime = !file.type || /^image\/(jpeg|png|webp|gif)$/i.test(file.type);
-	return !!ekstensi && mime;
-	}
 function fileGambarValid(file) {
 	if (!file) return false;
 	var ext = String(file.name || '').match(/\.([^.]+)$/);
@@ -476,45 +470,86 @@ function bacaGambarUntukKompres(file) {
 	});
 }
 
-/* Kompres JPEG hanya dengan menurunkan kualitas; dimensi foto tetap dipertahankan. */
+/* Ukuran perkiraan (byte) dari data URL base64. */
+function ukuranDataUrl(data) {
+	return Math.round((data.length - data.indexOf(',') - 1) * 0.75);
+}
+
+/* Kompres JPEG dari kanvas: turunkan kualitas dulu (dimensi asli dipertahankan).
+   Cadangan: bila masih di atas target, dimensi dikecilkan bertahap sampai sisi terpanjang 800 px. */
 function kompresCanvasJpeg(canvas, targetByte) {
 	targetByte = targetByte || 220 * 1024;
 	var kualitas = [0.88, 0.78, 0.68, 0.58, 0.48, 0.38, 0.28, 0.2, 0.14, 0.1];
-	var data = '';
-	for (var i = 0; i < kualitas.length; i++) {
-		data = canvas.toDataURL('image/jpeg', kualitas[i]);
-		if (Math.round((data.length - data.indexOf(',') - 1) * 0.75) <= targetByte) return data;
+	var sisiMin = 800, skala = 1, kerja = null, terbaik = '';
+	try {
+		while (true) {
+			var sumber = canvas;
+			if (skala < 1) {
+				kerja = kerja || document.createElement('canvas');
+				kerja.width = Math.max(1, Math.round(canvas.width * skala));
+				kerja.height = Math.max(1, Math.round(canvas.height * skala));
+				kerja.getContext('2d').drawImage(canvas, 0, 0, kerja.width, kerja.height);
+				sumber = kerja;
+			}
+			for (var i = 0; i < kualitas.length; i++) {
+				var d = '';
+				try { d = sumber.toDataURL('image/jpeg', kualitas[i]); } catch (e) { d = ''; }
+				if (d.length > 100) {
+					terbaik = d;
+					if (ukuranDataUrl(d) <= targetByte) return d;
+				}
+			}
+			if (Math.max(sumber.width, sumber.height) * 0.8 < sisiMin) break;
+			skala *= 0.8;
+		}
+	} finally {
+		if (kerja) { kerja.width = 1; kerja.height = 1; }
 	}
-	return data;
+	return terbaik;
 }
 
-/* Kompres JPEG dengan menurunkan kualitas tanpa mengubah dimensi foto.
+/* Kompres JPEG: turunkan kualitas dulu (dimensi asli dipertahankan, maksimal 12 juta piksel).
+   Cadangan: bila masih di atas target atau perangkat gagal memproses kanvas besar,
+   dimensi dikecilkan bertahap (x0,8) sampai sisi terpanjang 800 px.
    cap  : teks cap waktu di pojok bawah (null = tanpa cap)
    opsi : { targetByte } */
 function kompresFoto(file, cap, maks, opsi) {
 	opsi = opsi || {};
 	var targetByte = opsi.targetByte || 350 * 1024;
 	var daftarKualitas = [0.88, 0.78, 0.68, 0.58, 0.48, 0.38, 0.28, 0.2, 0.14, 0.1];
+	var sisiMin = 800, maksPiksel = 12000000;
 	return bacaGambarUntukKompres(file).then(function (g) {
 		var cv = document.createElement('canvas');
 		var cx = cv.getContext('2d');
 		var data = '';
+		var skala = Math.min(1, Math.sqrt(maksPiksel / ((g.w * g.h) || 1)));
 		try {
-			cv.width = g.w; cv.height = g.h;
-			cx.fillStyle = '#fff'; cx.fillRect(0, 0, g.w, g.h);
-			cx.drawImage(g.sumber, 0, 0, g.w, g.h);
-			if (cap) {
-				var fs = Math.max(14, Math.round(g.w * .022)), pad = 12;
-				cx.font = 'bold ' + fs + 'px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-				cx.fillStyle = 'rgba(0,0,0,.68)';
-				cx.fillRect(0, g.h - fs - pad * 1.5, g.w, fs + pad * 1.5);
-				cx.fillStyle = '#fff';
-				cx.fillText('PT RAJA PALMA | ' + cap, pad, g.h - pad);
-			}
-			for (var i = 0; i < daftarKualitas.length; i++) {
-				data = cv.toDataURL('image/jpeg', daftarKualitas[i]);
-				var byte = Math.round((data.length - data.indexOf(',') - 1) * 0.75);
-				if (byte <= targetByte) break;
+			while (true) {
+				var w = Math.max(1, Math.round(g.w * skala)), h = Math.max(1, Math.round(g.h * skala));
+				data = '';
+				try {
+					cv.width = w; cv.height = h;
+					cx.fillStyle = '#fff'; cx.fillRect(0, 0, w, h);
+					cx.drawImage(g.sumber, 0, 0, w, h);
+					if (cap) {
+						var fs = Math.max(14, Math.round(w * .022)), pad = 12;
+						cx.font = 'bold ' + fs + 'px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+						cx.fillStyle = 'rgba(0,0,0,.68)';
+						cx.fillRect(0, h - fs - pad * 1.5, w, fs + pad * 1.5);
+						cx.fillStyle = '#fff';
+						cx.fillText('PT RAJA PALMA | ' + cap, pad, h - pad);
+					}
+					for (var i = 0; i < daftarKualitas.length; i++) {
+						var d = cv.toDataURL('image/jpeg', daftarKualitas[i]);
+						if (d.length > 100) {
+							data = d;
+							if (ukuranDataUrl(d) <= targetByte) break;
+						}
+					}
+				} catch (err) { /* kanvas besar gagal di perangkat ini: lanjut perkecil */ }
+				if (data && ukuranDataUrl(data) <= targetByte) break;
+				if (Math.max(w, h) * 0.8 < sisiMin) break;
+				skala *= 0.8;
 			}
 		} finally {
 			g.bersih();
@@ -1835,7 +1870,7 @@ function kompresFoto(file, cap, maks, opsi) {
 	function kontrolFotoProfil(inisial) {
 	var kontrol = el('div', { class: 'profile-photo-control' });
 	var tombol = el('button', { type: 'button', class: 'avatar profile-photo-button', 'aria-label': 'Pilih foto profil', title: 'Pilih foto profil' });
-	var input = el('input', { type: 'file', accept: 'image/jpeg,image/png,image/webp,image/gif', class: 'hidden', 'aria-label': 'Pilih foto profil' });
+	var input = el('input', { type: 'file', accept: 'image/*', class: 'hidden', 'aria-label': 'Pilih foto profil' });
   
 	function gambar(src) {
 		tombol.innerHTML = '';
