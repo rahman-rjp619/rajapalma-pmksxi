@@ -1,4 +1,6 @@
 /* PT Raja Palma - stylesheet */
+.beranda-welcome .beranda-greeting{font-size:12px;line-height:1.4}
+@media(max-width:640px){.beranda-welcome .beranda-greeting{font-size:11px}}
 /* Portal PT Raja Palma: stylesheet gabungan, satu aturan per baris */
 :root{--ink:#000;--bg:#F0F6FC;--paper:#FCFDFE;--side:#B7D4F0;--hd:#B7D4F0;--ac:#78AFE2;--ac2:#D9EAF8;--bad:#FF9B9B;--ok:#B8F2A8;--warn:#FFE680;--mut:#354A60;--line:#000;--rd:12px;--sh:6px 6px 0 var(--ink)}
 *{box-sizing:border-box}
@@ -3153,6 +3155,17 @@ main h2 { font-size: clamp(21px, 2.7vw, 29px); }
   .appearance-swatches button { height: 28px; }
 }
 
+/* Judul sapaan pada kartu Beranda dibuat seimbang dengan teks sambutan. */
+#app.home-active .beranda-welcome h2 {
+  font-size: clamp(20px, 2.8vw, 28px) !important;
+  line-height: 1.2;
+}
+@media (max-width: 640px) {
+  #app.home-active .beranda-welcome h2 {
+    font-size: clamp(19px, 5vw, 23px) !important;
+  }
+}
+
 /* Konsistensi bentuk lingkaran: cegah elemen menyusut atau tertarik oleh flex/grid. */
 .tema-toggle,
 .login-header .tema-toggle,
@@ -3261,3 +3274,75 @@ input[type="checkbox"] {
   background: transparent !important;
 }
 
+/* Skala teks dan kontrol yang lebih seimbang di seluruh portal. */
+body { font-size: 14px; line-height: 1.5; }
+main h2 { font-size: clamp(20px, 2.4vw, 26px); line-height: 1.2; }
+.card .top h2 { font-size: clamp(25px, 4.5vw, 32px); }
+.card .top p { font-size: 14px; }
+
+.btn, #isi .btn { min-height: 40px; padding: 8px 12px; font-size: 12px; line-height: 1.3; letter-spacing: .02em; }
+.btn.kecil, #isi .btn.kecil { min-height: 34px; padding: 6px 9px; font-size: 11px; }
+
+input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not([type="file"]),
+select, textarea,
+#login input:not([type="checkbox"]):not([type="radio"]),
+#login select, #login textarea,
+#isi input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not([type="file"]),
+#isi select, #isi textarea {
+  min-height: 42px;
+  padding: 9px 11px;
+  font-size: 14px !important;
+  line-height: 1.4;
+}
+#isi .field > span, #isi .field-label, #isi label { font-size: 11px; line-height: 1.35; }
+#isi .sub { font-size: 13px; line-height: 1.5; }
+#isi .panel .head h3, #isi .sec { font-size: 14px; }
+#isi .toolbar, #isi .abs-filter, #isi .lembur-filter { gap: 9px; }
+#isi .toolbar .btn, #isi .abs-filter .btn, #isi .lembur-filter .btn { min-height: 42px; }
+@media (max-width: 640px) {
+  body { font-size: 14px; }
+  main h2 { font-size: clamp(20px, 5.5vw, 25px); }
+  .btn, #isi .btn { min-height: 42px; padding: 8px 11px; font-size: 12px; }
+  #isi input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not([type="file"]),
+  #isi select, #isi textarea,
+  #login input:not([type="checkbox"]):not([type="radio"]), #login select, #login textarea {
+    min-height: 42px;
+    padding: 9px 11px;
+    font-size: 14px !important;
+  }
+}
+
+/* Palet Neo-brutalism: warna blok cerah, garis tegas, dan bayangan lembut. */
+.appearance-swatches { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+:root[data-palette="neo"]:not([data-theme="dark"]) {
+  --ink: #252922;
+  --line: #45483f;
+  --shc: #96917f;
+}
+:root[data-palette="neo"]:not([data-theme="dark"]) .bar,
+:root[data-palette="neo"]:not([data-theme="dark"]) nav,
+:root[data-palette="neo"]:not([data-theme="dark"]) .login { background: var(--side) !important; }
+:root[data-palette="neo"]:not([data-theme="dark"]) .panel .head,
+:root[data-palette="neo"]:not([data-theme="dark"]) .modal .mh,
+:root[data-palette="neo"]:not([data-theme="dark"]) .pf-top,
+:root[data-palette="neo"]:not([data-theme="dark"]) .card .top { background: var(--side) !important; color: var(--ink); }
+:root[data-palette="neo"]:not([data-theme="dark"]) .card { background: var(--paper) !important; }
+:root[data-palette="neo"]:not([data-theme="dark"]) .btn.primary,
+:root[data-palette="neo"]:not([data-theme="dark"]) #masuk,
+:root[data-palette="neo"]:not([data-theme="dark"]) .nav[aria-current="page"] { background: var(--ac) !important; color: var(--ink) !important; }
+:root[data-palette="neo"]:not([data-theme="dark"]) .nav,
+:root[data-palette="neo"]:not([data-theme="dark"]) .navtoggle { background: var(--paper); color: var(--ink); border-color: var(--ink); }
+:root[data-palette="neo"]:not([data-theme="dark"]) .nav:hover,
+:root[data-palette="neo"]:not([data-theme="dark"]) .navtoggle:hover { background: var(--ac2); }
+:root[data-palette="neo"]:not([data-theme="dark"]) .tbl th { background: var(--side) !important; color: var(--ink) !important; }
+:root[data-palette="neo"]:not([data-theme="dark"]) .tbl tbody tr:nth-child(even) { background: #EFF0E9; }
+:root[data-palette="neo"]:not([data-theme="dark"]) .tbl tbody tr:hover { background: var(--ac2); }
+:root[data-palette="neo"]:not([data-theme="dark"]) .stats .stat { background: var(--ac2); }
+:root[data-palette="neo"]:not([data-theme="dark"]) .panel,
+:root[data-palette="neo"]:not([data-theme="dark"]) .card,
+:root[data-palette="neo"]:not([data-theme="dark"]) .stat,
+:root[data-palette="neo"]:not([data-theme="dark"]) .abs-home-card,
+:root[data-palette="neo"]:not([data-theme="dark"]) .modal { box-shadow: 4px 4px 0 var(--shc); }
+:root[data-palette="neo"]:not([data-theme="dark"]) input,
+:root[data-palette="neo"]:not([data-theme="dark"]) select,
+:root[data-palette="neo"]:not([data-theme="dark"]) textarea { border-color: var(--ink); background: var(--paper); }

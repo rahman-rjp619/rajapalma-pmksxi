@@ -1143,7 +1143,8 @@ function kompresFoto(file, cap, maks, opsi) {
 	var kotak = el('div', { class: 'info loading', text: 'Memuat data gaji…' });
 	isi.appendChild(kotak);
 
-	api('karyawanRekapan').then(function (r) {
+	Promise.all([api('karyawanRekapan'), muatDivisiPortal()]).then(function (hasilMuat) {
+		var r = hasilMuat[0];
 		kotak.remove();
 		var payslips = (r && r.payslips) || [];
 		var cakupan = (r && r.cakupan) || 'sendiri';
@@ -1179,9 +1180,22 @@ function kompresFoto(file, cap, maks, opsi) {
 		var pilihPeriode = el('select', { 'aria-label': 'Pilih periode slip gaji' },
 		periode.map(function (o) { return el('option', { value: o.key, text: o.label }); }));
 
+		/* Samakan sumber daftar divisi dengan modul Lembur; data slip menjadi cadangan. */
+		var daftarDivisi = (divisiPortal.length ? divisiPortal : Array.from(new Set(payslips.map(function (p) {
+			return String(p.divisi || '').trim();
+		}).filter(Boolean))).sort(function (a, b) { return a.localeCompare(b, 'id', { sensitivity: 'base' }); }));
+		var pilihDivisi = el('select', { 'aria-label': 'Filter berdasarkan divisi' }, [
+			el('option', { value: '', text: 'Semua divisi' })
+		].concat(daftarDivisi.map(function (divisi) {
+			return el('option', { value: divisi, text: divisi });
+		})));
+		var wrapDivisi = fieldEl('Divisi', pilihDivisi);
+		if (cakupan === 'sendiri' || !daftarDivisi.length) wrapDivisi.classList.add('hidden');
+
 		var cariNama = el('input', { type: 'search', placeholder: 'Cari nama karyawan…', 'aria-label': 'Cari nama karyawan' });
 		var wrapCari = fieldEl('Cari nama', cariNama);
 		if (cakupan === 'sendiri') wrapCari.classList.add('hidden');
+
 
 		var kartuBox = el('div');
 		isi.appendChild(el('div', {
@@ -1189,6 +1203,7 @@ function kompresFoto(file, cap, maks, opsi) {
 		style: 'display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;align-items:end;margin-bottom:14px'
 		}, [
 		fieldEl('Periode', pilihPeriode),
+		wrapDivisi,
 		wrapCari
 		]));
 		isi.appendChild(kartuBox);
@@ -1196,6 +1211,7 @@ function kompresFoto(file, cap, maks, opsi) {
 		function tampilkan() {
 		kartuBox.innerHTML = '';
 		var key = pilihPeriode.value;
+		var divisiTerpilih = pilihDivisi.value;
 		var q = cariNama.value.trim().toLowerCase();
 
 		// Ambil snapshot terbaru per karyawan untuk periode ini
@@ -1213,7 +1229,9 @@ function kompresFoto(file, cap, maks, opsi) {
 
 		var list = Object.keys(byKaryawan).map(function (k) { return byKaryawan[k].data; });
 		var filtered = list.filter(function (p) {
-			return !q || (String(p.nama || '') + ' ' + String(p.noAbsen || '')).toLowerCase().indexOf(q) >= 0;
+			var cocokDivisi = !divisiTerpilih || String(p.divisi || '').trim() === divisiTerpilih;
+			var cocokNama = !q || (String(p.nama || '') + ' ' + String(p.noAbsen || '')).toLowerCase().indexOf(q) >= 0;
+			return cocokDivisi && cocokNama;
 		});
 
 		if (!filtered.length) {
@@ -1236,6 +1254,7 @@ function kompresFoto(file, cap, maks, opsi) {
 		}
 
 		pilihPeriode.addEventListener('change', tampilkan);
+		pilihDivisi.addEventListener('change', tampilkan);
 		cariNama.addEventListener('input', tampilkan);
 		tampilkan();
 	}).catch(function (e) {
@@ -1905,7 +1924,7 @@ function kompresFoto(file, cap, maks, opsi) {
 	kartuProfil.addEventListener('click', function () { pilih('profil'); });
 	var welcome = el('section', { class: 'beranda-welcome' }, [
 		el('div', null, [el('h2', { text: 'Halo, ' + namaAwal + ' 👋' }),
-		el('p', { text: 'Selamat datang kembali di portal karyawan.' }),
+		el('p', { class: 'beranda-greeting', text: 'Selamat datang kembali di portal karyawan.' }),
 		el('p', { style: 'margin-top:8px;font-size:12px;font-weight:800', text: tanggal })]),
 		kartuProfil
 	]);
@@ -3008,25 +3027,19 @@ function kompresFoto(file, cap, maks, opsi) {
 	perbaruiUkuranTeks(document.body);
 	}
 	var PALET_TEMA = {
-	codex: { bg:'#EFF5F0', paper:'#FBFDFC', side:'#BDD5C3', hd:'#BDD5C3', ac:'#85B697', ac2:'#D0E3D5', mut:'#34463A' },
-	mint: { bg:'#EDF7F0', paper:'#FCFEFC', side:'#B9DEC5', hd:'#B9DEC5', ac:'#78B98D', ac2:'#D3EBDD', mut:'#304A38' },
-	slate: { bg:'#EFF4FA', paper:'#FCFDFE', side:'#B7CBE3', hd:'#B7CBE3', ac:'#7FA9D4', ac2:'#D4E2F1', mut:'#35475B' },
-	violet: { bg:'#F4F0FA', paper:'#FDFCFE', side:'#CCB8E8', hd:'#CCB8E8', ac:'#A184CE', ac2:'#E5D9F3', mut:'#493B5D' },
-	sand: { bg:'#FAF5EA', paper:'#FEFCF7', side:'#EAD1A8', hd:'#EAD1A8', ac:'#D1A45F', ac2:'#F3E5C9', mut:'#55452E' },
-	rose: { bg:'#FAF0F2', paper:'#FEFCFC', side:'#EBC2CC', hd:'#EBC2CC', ac:'#D9899B', ac2:'#F3DDE2', mut:'#594047' },
-	ocean: { bg:'#EDF5F7', paper:'#FBFDFE', side:'#AFCFDA', hd:'#AFCFDA', ac:'#64A9BC', ac2:'#D2E8ED', mut:'#304B53' },
 	sky: { bg:'#F0F6FC', paper:'#FCFDFE', side:'#B7D4F0', hd:'#B7D4F0', ac:'#78AFE2', ac2:'#D9EAF8', mut:'#354A60' },
 	sage: { bg:'#F2F6EF', paper:'#FCFDFB', side:'#BED3AE', hd:'#BED3AE', ac:'#86AC71', ac2:'#DFEBD6', mut:'#3F4E37' },
-	olive: { bg:'#F6F5E9', paper:'#FDFDF8', side:'#D1D19E', hd:'#D1D19E', ac:'#A9A94D', ac2:'#E9E8C8', mut:'#4D4B2F' },
-	peach: { bg:'#FCF2EC', paper:'#FEFCFA', side:'#F2C5A9', hd:'#F2C5A9', ac:'#E69B70', ac2:'#F8E0D1', mut:'#5A4033' },
-	terracotta: { bg:'#FAF0EB', paper:'#FDFBFA', side:'#E3B59C', hd:'#E3B59C', ac:'#C77D58', ac2:'#F1D8C9', mut:'#573D31' },
-	lilac: { bg:'#F5F1FA', paper:'#FDFCFE', side:'#D0BEE8', hd:'#D0BEE8', ac:'#A286CE', ac2:'#E8DFF4', mut:'#493F5A' },
-	graphite: { bg:'#F1F4F5', paper:'#FCFDFD', side:'#C7D0D5', hd:'#C7D0D5', ac:'#8FA1AB', ac2:'#E0E6E9', mut:'#3D4A50' }
+	sand: { bg:'#FAF5EA', paper:'#FEFCF7', side:'#EAD1A8', hd:'#EAD1A8', ac:'#D1A45F', ac2:'#F3E5C9', mut:'#55452E' },
+	neo: { bg:'#F2EFE6', paper:'#FFFDF6', side:'#B8E4E4', hd:'#B8E4E4', ac:'#FF8C69', ac2:'#F4D56F', mut:'#45483F' },
+	lavender: { bg:'#F5F1FA', paper:'#FDFCFF', side:'#D8C9E8', hd:'#D8C9E8', ac:'#A58BC4', ac2:'#E9DFF3', mut:'#50445E' },
+	peach: { bg:'#FCF1E9', paper:'#FFFCF8', side:'#F2CEB9', hd:'#F2CEB9', ac:'#E99A72', ac2:'#F7E0D2', mut:'#60483D' },
+	mint: { bg:'#EDF6F1', paper:'#FBFEFC', side:'#B9DCD0', hd:'#B9DCD0', ac:'#69A991', ac2:'#D7ECE3', mut:'#3D554B' }
 	};
 	var ROOT_STYLE = document.documentElement.style;
 	function terapkanPalet(nama, latarCustom) {
 	if (!PALET_TEMA[nama]) nama = 'sky';
 	var p = PALET_TEMA[nama];
+	document.documentElement.setAttribute('data-palette', nama);
 	if (document.documentElement.getAttribute('data-theme') !== 'dark') {
 		['bg','paper','side','hd','ac','ac2','mut'].forEach(function(k){ ROOT_STYLE.setProperty('--'+k, p[k]); });
 		if (latarCustom) ROOT_STYLE.setProperty('--bg', latarCustom);
