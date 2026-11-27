@@ -438,6 +438,12 @@ function ringkasOffProduksi(tgl) {
 	menu.style.top = atas + 'px';
 	}
 
+	function fileGambarValid(file) {
+	if (!file) return false;
+	var ext = String(file.name || '').match(/\.([^.]+)$/), ekstensi = ext && /^(jpe?g|png|webp|gif)$/i.test(ext[1]);
+	var mime = !file.type || /^image\/(jpeg|png|webp|gif)$/i.test(file.type);
+	return !!ekstensi && mime;
+	}
 function fileGambarValid(file) {
 	if (!file) return false;
 	var ext = String(file.name || '').match(/\.([^.]+)$/);
@@ -470,86 +476,45 @@ function bacaGambarUntukKompres(file) {
 	});
 }
 
-/* Ukuran perkiraan (byte) dari data URL base64. */
-function ukuranDataUrl(data) {
-	return Math.round((data.length - data.indexOf(',') - 1) * 0.75);
-}
-
-/* Kompres JPEG dari kanvas: turunkan kualitas dulu (dimensi asli dipertahankan).
-   Cadangan: bila masih di atas target, dimensi dikecilkan bertahap sampai sisi terpanjang 800 px. */
+/* Kompres JPEG hanya dengan menurunkan kualitas; dimensi foto tetap dipertahankan. */
 function kompresCanvasJpeg(canvas, targetByte) {
 	targetByte = targetByte || 220 * 1024;
 	var kualitas = [0.88, 0.78, 0.68, 0.58, 0.48, 0.38, 0.28, 0.2, 0.14, 0.1];
-	var sisiMin = 800, skala = 1, kerja = null, terbaik = '';
-	try {
-		while (true) {
-			var sumber = canvas;
-			if (skala < 1) {
-				kerja = kerja || document.createElement('canvas');
-				kerja.width = Math.max(1, Math.round(canvas.width * skala));
-				kerja.height = Math.max(1, Math.round(canvas.height * skala));
-				kerja.getContext('2d').drawImage(canvas, 0, 0, kerja.width, kerja.height);
-				sumber = kerja;
-			}
-			for (var i = 0; i < kualitas.length; i++) {
-				var d = '';
-				try { d = sumber.toDataURL('image/jpeg', kualitas[i]); } catch (e) { d = ''; }
-				if (d.length > 100) {
-					terbaik = d;
-					if (ukuranDataUrl(d) <= targetByte) return d;
-				}
-			}
-			if (Math.max(sumber.width, sumber.height) * 0.8 < sisiMin) break;
-			skala *= 0.8;
-		}
-	} finally {
-		if (kerja) { kerja.width = 1; kerja.height = 1; }
+	var data = '';
+	for (var i = 0; i < kualitas.length; i++) {
+		data = canvas.toDataURL('image/jpeg', kualitas[i]);
+		if (Math.round((data.length - data.indexOf(',') - 1) * 0.75) <= targetByte) return data;
 	}
-	return terbaik;
+	return data;
 }
 
-/* Kompres JPEG: turunkan kualitas dulu (dimensi asli dipertahankan, maksimal 12 juta piksel).
-   Cadangan: bila masih di atas target atau perangkat gagal memproses kanvas besar,
-   dimensi dikecilkan bertahap (x0,8) sampai sisi terpanjang 800 px.
+/* Kompres JPEG dengan menurunkan kualitas tanpa mengubah dimensi foto.
    cap  : teks cap waktu di pojok bawah (null = tanpa cap)
    opsi : { targetByte } */
 function kompresFoto(file, cap, maks, opsi) {
 	opsi = opsi || {};
 	var targetByte = opsi.targetByte || 350 * 1024;
 	var daftarKualitas = [0.88, 0.78, 0.68, 0.58, 0.48, 0.38, 0.28, 0.2, 0.14, 0.1];
-	var sisiMin = 800, maksPiksel = 12000000;
 	return bacaGambarUntukKompres(file).then(function (g) {
 		var cv = document.createElement('canvas');
 		var cx = cv.getContext('2d');
 		var data = '';
-		var skala = Math.min(1, Math.sqrt(maksPiksel / ((g.w * g.h) || 1)));
 		try {
-			while (true) {
-				var w = Math.max(1, Math.round(g.w * skala)), h = Math.max(1, Math.round(g.h * skala));
-				data = '';
-				try {
-					cv.width = w; cv.height = h;
-					cx.fillStyle = '#fff'; cx.fillRect(0, 0, w, h);
-					cx.drawImage(g.sumber, 0, 0, w, h);
-					if (cap) {
-						var fs = Math.max(14, Math.round(w * .022)), pad = 12;
-						cx.font = 'bold ' + fs + 'px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-						cx.fillStyle = 'rgba(0,0,0,.68)';
-						cx.fillRect(0, h - fs - pad * 1.5, w, fs + pad * 1.5);
-						cx.fillStyle = '#fff';
-						cx.fillText('PT RAJA PALMA | ' + cap, pad, h - pad);
-					}
-					for (var i = 0; i < daftarKualitas.length; i++) {
-						var d = cv.toDataURL('image/jpeg', daftarKualitas[i]);
-						if (d.length > 100) {
-							data = d;
-							if (ukuranDataUrl(d) <= targetByte) break;
-						}
-					}
-				} catch (err) { /* kanvas besar gagal di perangkat ini: lanjut perkecil */ }
-				if (data && ukuranDataUrl(data) <= targetByte) break;
-				if (Math.max(w, h) * 0.8 < sisiMin) break;
-				skala *= 0.8;
+			cv.width = g.w; cv.height = g.h;
+			cx.fillStyle = '#fff'; cx.fillRect(0, 0, g.w, g.h);
+			cx.drawImage(g.sumber, 0, 0, g.w, g.h);
+			if (cap) {
+				var fs = Math.max(14, Math.round(g.w * .022)), pad = 12;
+				cx.font = 'bold ' + fs + 'px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+				cx.fillStyle = 'rgba(0,0,0,.68)';
+				cx.fillRect(0, g.h - fs - pad * 1.5, g.w, fs + pad * 1.5);
+				cx.fillStyle = '#fff';
+				cx.fillText('PT RAJA PALMA | ' + cap, pad, g.h - pad);
+			}
+			for (var i = 0; i < daftarKualitas.length; i++) {
+				data = cv.toDataURL('image/jpeg', daftarKualitas[i]);
+				var byte = Math.round((data.length - data.indexOf(',') - 1) * 0.75);
+				if (byte <= targetByte) break;
 			}
 		} finally {
 			g.bersih();
@@ -1172,16 +1137,28 @@ function kompresFoto(file, cap, maks, opsi) {
 	});
 	return keys;
 	}
+	function divisiPayslip(p) {
+	return String(p && (p.divisi || p.bagian_excel || p.bagian) || '').trim();
+	}
 	function renderRekapanKaryawan() {
 	var isi = halaman('Rekapan & Slip Gaji',
 		'Rincian gaji dan lembur per periode yang sudah dihitung HRD.');
 	var kotak = el('div', { class: 'info loading', text: 'Memuat data gaji…' });
 	isi.appendChild(kotak);
 
-	Promise.all([api('karyawanRekapan'), muatDivisiPortal()]).then(function (hasilMuat) {
+	Promise.all([api('karyawanRekapan'), api('karyawanLembur'), muatDivisiPortal()]).then(function (hasilMuat) {
 		var r = hasilMuat[0];
-		kotak.remove();
+		var dataLembur = (hasilMuat[1] && hasilMuat[1].data) || [];
 		var payslips = (r && r.payslips) || [];
+		var karyawanPengapalan = Object.create(null);
+		dataLembur.forEach(function (item) {
+			if (String(item && (item.bagian_excel || item.bagian) || '').trim().toUpperCase() !== 'PENGAPALAN') return;
+			var no = kunciNoAbsen(item.no_absen || item.noAbsen);
+			var nama = kunciLembur(item.nama);
+			if (no) karyawanPengapalan['no:' + no] = true;
+			if (nama) karyawanPengapalan['nama:' + nama] = true;
+		});
+		kotak.remove();
 		var cakupan = (r && r.cakupan) || 'sendiri';
 
 		if (!payslips.length) {
@@ -1215,15 +1192,22 @@ function kompresFoto(file, cap, maks, opsi) {
 		var pilihPeriode = el('select', { 'aria-label': 'Pilih periode slip gaji' },
 		periode.map(function (o) { return el('option', { value: o.key, text: o.label }); }));
 
-		/* Samakan sumber daftar divisi dengan modul Lembur; data slip menjadi cadangan. */
-		var daftarDivisi = (divisiPortal.length ? divisiPortal : Array.from(new Set(payslips.map(function (p) {
-			return String(p.divisi || '').trim();
-		}).filter(Boolean))).sort(function (a, b) { return a.localeCompare(b, 'id', { sensitivity: 'base' }); }));
-		var pilihDivisi = el('select', { 'aria-label': 'Filter berdasarkan divisi' }, [
-			el('option', { value: '', text: 'Semua divisi' })
-		].concat(daftarDivisi.map(function (divisi) {
-			return el('option', { value: divisi, text: divisi });
-		})));
+		/* Divisi reguler mengikuti daftar portal; Pengapalan diambil khusus dari rekap lembur. */
+		var daftarDivisiMap = Object.create(null);
+		divisiPortal.forEach(function (divisi) {
+			divisi = String(divisi || '').trim();
+			if (divisi && !daftarDivisiMap[divisi.toLocaleLowerCase('id-ID')]) {
+				daftarDivisiMap[divisi.toLocaleLowerCase('id-ID')] = divisi;
+			}
+		});
+		var daftarDivisi = Object.keys(daftarDivisiMap).map(function (k) { return daftarDivisiMap[k]; })
+			.sort(function (a, b) { return a.localeCompare(b, 'id', { sensitivity: 'base' }); });
+		var opsiDivisi = [el('option', { value: '', text: 'Semua divisi' })];
+		daftarDivisi.forEach(function (divisi) { opsiDivisi.push(el('option', { value: divisi, text: divisi })); });
+		if (Object.keys(karyawanPengapalan).length) {
+			opsiDivisi.push(el('option', { value: '__pengapalan__', text: 'Pengapalan · Lembur Khusus' }));
+		}
+		var pilihDivisi = el('select', { 'aria-label': 'Filter berdasarkan divisi' }, opsiDivisi);
 		var wrapDivisi = fieldEl('Divisi', pilihDivisi);
 		if (cakupan === 'sendiri' || !daftarDivisi.length) wrapDivisi.classList.add('hidden');
 
@@ -1264,7 +1248,12 @@ function kompresFoto(file, cap, maks, opsi) {
 
 		var list = Object.keys(byKaryawan).map(function (k) { return byKaryawan[k].data; });
 		var filtered = list.filter(function (p) {
-			var cocokDivisi = !divisiTerpilih || String(p.divisi || '').trim() === divisiTerpilih;
+			var no = kunciNoAbsen(p.noAbsen || p.no_absen);
+			var nama = kunciLembur(p.nama);
+			var cocokDivisi = !divisiTerpilih
+				|| (divisiTerpilih === '__pengapalan__'
+					? !!((no && karyawanPengapalan['no:' + no]) || (nama && karyawanPengapalan['nama:' + nama]))
+					: divisiPayslip(p).toLocaleLowerCase('id-ID') === divisiTerpilih.toLocaleLowerCase('id-ID'));
 			var cocokNama = !q || (String(p.nama || '') + ' ' + String(p.noAbsen || '')).toLowerCase().indexOf(q) >= 0;
 			return cocokDivisi && cocokNama;
 		});
@@ -1312,7 +1301,7 @@ function kompresFoto(file, cap, maks, opsi) {
 		el('h4', { text: p.nama || 'Karyawan', style: 'margin:2px 0 0;line-height:1.25' }),
 		el('span', { class: 'sub2', text: periode, style: 'margin-top:2px' })
 		]),
-		el('span', { class: 'chip', text: statusKaryawan ? statusKaryawan + ' · ' + (p.divisi || '—') : (p.divisi || '—') })
+		el('span', { class: 'chip', text: statusKaryawan ? statusKaryawan + ' · ' + (divisiPayslip(p) || '—') : (divisiPayslip(p) || '—') })
 	]);
 
 	function baris(label, sub, nominal, kuat) {
@@ -1338,7 +1327,7 @@ function kompresFoto(file, cap, maks, opsi) {
 
 	function cetakPayslipSatu(p) {
 	bukaJendelaCetak(bungkusHtmlCetak(renderPayslipHtml({
-		noAbsen: p.noAbsen, nama: p.nama, divisi: p.divisi, jabatan: p.jabatan,
+		noAbsen: p.noAbsen, nama: p.nama, divisi: divisiPayslip(p), jabatan: p.jabatan,
 		periodeDari: p.periodeDari, periodeSampai: p.periodeSampai,
 		hariDibayar: p.hariDibayar, upahHarian: p.upahHarian, nominalGaji: p.nominalGaji,
 		jamLembur: p.jamLembur, tarifLembur: p.tarifLembur, nominalLembur: p.nominalLembur,
@@ -1870,7 +1859,7 @@ function kompresFoto(file, cap, maks, opsi) {
 	function kontrolFotoProfil(inisial) {
 	var kontrol = el('div', { class: 'profile-photo-control' });
 	var tombol = el('button', { type: 'button', class: 'avatar profile-photo-button', 'aria-label': 'Pilih foto profil', title: 'Pilih foto profil' });
-	var input = el('input', { type: 'file', accept: 'image/*', class: 'hidden', 'aria-label': 'Pilih foto profil' });
+	var input = el('input', { type: 'file', accept: 'image/jpeg,image/png,image/webp,image/gif', class: 'hidden', 'aria-label': 'Pilih foto profil' });
   
 	function gambar(src) {
 		tombol.innerHTML = '';
