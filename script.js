@@ -104,6 +104,11 @@
 /* ===== OFF PRODUKSI / MAINTENANCE / LIBUR (satu sumber kebenaran) ===== */
 var OFF_STATE = { siap: false, gagal: false, ver: 0, aturan: [], divisiByNo: Object.create(null), hlByNo: null, promise: null };
 
+/* Normalisasi kunci lembur dipakai bersama oleh Rekapan dan Absensi. */
+function kunciLembur(v) {
+  return String(v == null ? '' : v).trim().toLowerCase();
+}
+
 function kunciNoAbsen(v) {
   return String(v == null ? '' : v).trim().toLowerCase().replace(/^0+(?=\d)/, '');
 }
