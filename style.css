@@ -3357,37 +3357,48 @@ input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]):
 .btn:not(.tema-toggle,.menu-toggle-global,.abs-kal-nav,.aksi-detail,.aksi-cetak,.aksi-edit,.kecil),.chk{min-height:var(--ctl-h)!important}
 .btn.kecil:not(.abs-kal-nav,.aksi-detail,.aksi-cetak,.aksi-edit){min-height:var(--ctl-h-sm)!important}
 /* UNIFIED-UI:END */
-
-
-/* Grafik ringkasan Rekapan & Slip Gaji — data mengikuti filter aktif. */
-.rekap-grafik-box{margin:0 0 18px;padding:16px;border:var(--bw) solid var(--line);border-radius:var(--rd);background:var(--paper);box-shadow:var(--ui-sh)}
-.rekap-grafik-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
-.rekap-grafik-heading h3{font-size:var(--fs);font-weight:900;text-transform:uppercase}
-.rekap-grafik-heading p{margin-top:4px;color:var(--mut);font-size:var(--fs-sm)}
-.rekap-grafik-count{flex:none;padding:5px 10px;border:var(--bw) solid var(--line);border-radius:999px;background:var(--ac2);font-size:var(--fs-sm);font-weight:800}
-.rekap-grafik-metrik{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px}
-.rekap-grafik-metrik-item{min-width:0;padding:11px 12px;border:1px solid var(--line);border-radius:var(--ui-r);background:var(--bg)}
-.rekap-grafik-metrik-item span{display:block;color:var(--mut);font-size:var(--fs-sm);font-weight:800}
-.rekap-grafik-metrik-item strong{display:block;margin-top:4px;font-size:clamp(14px,1.7vw,19px);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
-.rekap-grafik-bars{display:grid;gap:10px;margin-top:16px}
-.rekap-grafik-bars h4{font-size:var(--fs-sm);font-weight:900;text-transform:uppercase}
-.rekap-grafik-bar-row{display:grid;gap:5px}
-.rekap-grafik-bar-meta{display:flex;justify-content:space-between;align-items:baseline;gap:10px;font-size:var(--fs-sm)}
-.rekap-grafik-bar-meta span{font-weight:700}
-.rekap-grafik-bar-meta strong{text-align:right;font-variant-numeric:tabular-nums}
-.rekap-grafik-track{height:11px;overflow:hidden;border-radius:999px;background:var(--ac2)}
-.rekap-grafik-fill{display:block;height:100%;min-width:0;border-radius:999px;transition:width .2s ease}
-.rekap-grafik-fill.pokok{background:var(--ac)}
-.rekap-grafik-fill.lembur{background:#75a98b}
-.rekap-grafik-fill.diterima{background:#d1a45f}
-:root[data-theme="dark"] .rekap-grafik-metrik-item{background:#151d23}
-:root[data-theme="dark"] .rekap-grafik-fill.lembur{background:#75a98b}
-:root[data-theme="dark"] .rekap-grafik-fill.diterima{background:#d1a45f}
-@media(max-width:640px){
-  .rekap-grafik-box{padding:13px;margin-bottom:14px}
-  .rekap-grafik-metrik{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
-  .rekap-grafik-metrik-item{padding:9px}
-  .rekap-grafik-metrik-item strong{font-size:14px}
-  .rekap-grafik-heading{align-items:flex-start}
-  .rekap-grafik-bar-meta{font-size:12px}
+/* TYPOGRAPHY TUNING: ukuran teks lebih ringkas dan konsisten di seluruh portal. */
+:root{
+  --fs:13.5px;
+  --fs-sm:12px;
+  --fs-ctl:14px;
+  --ctl-h:40px;
+  --ctl-h-sm:34px;
+}
+html body{font-size:var(--fs);line-height:1.45}
+#isi{font-size:var(--fs)}
+#isi p,#isi li,#isi td,#isi dd,#isi dt,#isi .sub,#isi .sub2{font-size:inherit}
+#isi label,#isi .field>span,#isi .field-label{font-size:var(--fs-sm);line-height:1.35}
+#isi input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not([type="file"]),
+#isi select,#isi textarea,
+#login input:not([type="checkbox"]):not([type="radio"]),#login select,#login textarea,
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="hidden"]):not([type="color"]),select:not([multiple]),textarea{
+  font-size:var(--fs-ctl)!important;
+  line-height:1.35;
+}
+.btn,#isi .btn,#login .btn{
+  font-size:var(--fs-ctl)!important;
+  line-height:1.25;
+  letter-spacing:.01em;
+}
+.btn.kecil,#isi .btn.kecil{font-size:12.5px!important}
+#isi button:not(.btn):not(.urut),#isi [role="button"]{font-size:var(--fs-sm)}
+#isi .toolbar select,#isi .abs-filter select,#isi .lembur-filter select{font-size:var(--fs-ctl)!important}
+#isi .toolbar .btn,#isi .abs-filter .btn,#isi .lembur-filter .btn{font-size:var(--fs-ctl)!important}
+#isi .tbl th{font-size:11.5px;letter-spacing:.04em}
+#isi .tbl td{font-size:12.5px}
+#isi .panel .head h3,#isi .sec{font-size:13px}
+#isi main h2,#isi h2{line-height:1.2}
+select option{font-size:14px}
+@media(max-width:800px){
+  :root{--fs:13px;--fs-sm:11.75px;--fs-ctl:14px;--ctl-h:40px;--ctl-h-sm:34px}
+  html body{font-size:13px}
+  #isi .tbl th{font-size:11px}
+  #isi .tbl td{font-size:12px}
+  .btn,#isi .btn,#login .btn{font-size:14px!important;min-height:39px;padding:7px 10px}
+  .btn.kecil,#isi .btn.kecil{min-height:33px;padding:5px 8px;font-size:12px!important}
+}
+@media(max-width:480px){
+  :root{--fs:13px;--fs-sm:11.5px;--fs-ctl:14px;--ctl-h:39px;--ctl-h-sm:33px}
+  #isi .toolbar select,#isi .abs-filter select,#isi .lembur-filter select{min-width:0}
 }

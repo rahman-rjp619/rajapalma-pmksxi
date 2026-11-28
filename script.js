@@ -1145,67 +1145,6 @@ function kompresFoto(file, cap, maks, opsi) {
 	function divisiPayslip(p) {
 	return String(p && (p.divisi || p.bagian_excel || p.bagian) || '').trim();
 	}
-
-	function buatGrafikPayslip(data) {
-		function jumlah(field) {
-			return data.reduce(function (total, p) {
-				var nilai = Number(p && p[field]);
-				return total + (isFinite(nilai) ? nilai : 0);
-			}, 0);
-		}
-		var totalPokok = jumlah('nominalGaji');
-		var totalLembur = jumlah('nominalLembur');
-		var totalDiterima = data.reduce(function (total, p) {
-			var nilai = Number(p && p.totalNominal);
-			if (!isFinite(nilai)) nilai = (Number(p && p.nominalGaji) || 0) + (Number(p && p.nominalLembur) || 0);
-			return total + nilai;
-		}, 0);
-		var maksimum = Math.max(totalPokok, totalLembur, totalDiterima, 1);
-
-		var box = el('section', { class: 'rekap-grafik-box', 'aria-label': 'Grafik ringkasan slip gaji' });
-		box.appendChild(el('div', { class: 'rekap-grafik-heading' }, [
-			el('div', null, [
-				el('h3', { text: 'Ringkasan Gaji' }),
-				el('p', { text: 'Grafik mengikuti periode, divisi, dan pencarian yang aktif.' })
-			]),
-			el('span', { class: 'rekap-grafik-count', text: data.length + ' karyawan' })
-		]));
-
-		var metrik = el('div', { class: 'rekap-grafik-metrik' });
-		[
-			{ label: 'Karyawan', nilai: String(data.length), kelas: 'jumlah' },
-			{ label: 'Gaji Pokok', nilai: formatRupiah(totalPokok), kelas: 'pokok' },
-			{ label: 'Lembur', nilai: formatRupiah(totalLembur), kelas: 'lembur' },
-			{ label: 'Total Diterima', nilai: formatRupiah(totalDiterima), kelas: 'diterima' }
-		].forEach(function (item) {
-			metrik.appendChild(el('div', { class: 'rekap-grafik-metrik-item ' + item.kelas }, [
-				el('span', { text: item.label }),
-				el('strong', { text: item.nilai })
-			]));
-		});
-		box.appendChild(metrik);
-
-		var grafik = el('div', { class: 'rekap-grafik-bars' });
-		grafik.appendChild(el('h4', { text: 'Perbandingan nominal' }));
-		[
-			{ label: 'Gaji Pokok', nilai: totalPokok, kelas: 'pokok' },
-			{ label: 'Lembur', nilai: totalLembur, kelas: 'lembur' },
-			{ label: 'Total Diterima', nilai: totalDiterima, kelas: 'diterima' }
-		].forEach(function (item) {
-			var isiBar = el('span', { class: 'rekap-grafik-fill ' + item.kelas });
-			isiBar.style.width = Math.max(0, Math.min(100, item.nilai / maksimum * 100)) + '%';
-			grafik.appendChild(el('div', { class: 'rekap-grafik-bar-row' }, [
-				el('div', { class: 'rekap-grafik-bar-meta' }, [
-					el('span', { text: item.label }),
-					el('strong', { text: formatRupiah(item.nilai) })
-				]),
-				el('div', { class: 'rekap-grafik-track' }, [isiBar])
-			]));
-		});
-		box.appendChild(grafik);
-		return box;
-	}
-
 	function renderRekapanKaryawan() {
 	var isi = halaman('Rekapan & Slip Gaji',
 		'Rincian gaji dan lembur per periode yang sudah dihitung HRD.');
@@ -1330,8 +1269,6 @@ function kompresFoto(file, cap, maks, opsi) {
 			: 'Belum ada slip gaji untuk periode ini.' }));
 			return;
 		}
-
-		kartuBox.appendChild(buatGrafikPayslip(filtered));
 
 		if (filtered.length === 1) {
 			kartuBox.appendChild(buatKartuPayslip(filtered[0]));
