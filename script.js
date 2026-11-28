@@ -1300,7 +1300,7 @@ function kompresFoto(file, cap, maks, opsi) {
 	var statusKaryawan = p.status || '';
 
 	var head = el('div', { class: 'slip-head',
-		style: 'padding:16px 18px;border-bottom:3px solid var(--ink);background:var(--hd)' }, [
+		style: 'padding:16px 18px;border-bottom:var(--bw) solid var(--line);background:var(--hd)' }, [
 		el('div', { style: 'min-width:0;flex:1' }, [
 		el('span', { class: 'slip-eyebrow', text: 'SLIP GAJI' }),
 		el('h4', { text: p.nama || 'Karyawan', style: 'margin:2px 0 0;line-height:1.25' }),
@@ -1322,7 +1322,7 @@ function kompresFoto(file, cap, maks, opsi) {
 		baris('Lembur', Number(p.jamLembur).toFixed(2) + ' jam × ' + formatRupiah(p.tarifLembur), formatRupiah(p.nominalLembur)),
 		baris('TOTAL DITERIMA', null, formatRupiah(p.totalNominal), true)
 	]);
-	var footer = el('div', { class: 'aksi', style: 'padding:14px 18px;border-top:2px solid var(--ink)' }, [
+	var footer = el('div', { class: 'aksi', style: 'padding:14px 18px;border-top:var(--bw) solid var(--line)' }, [
 		btn('Cetak / PDF', 'primary', function () { cetakPayslipSatu(p); }),
 		el('span', { class: 'sub2', style: 'margin-left:auto',
 		text: 'Dihitung ' + (p.dihitungPada || '—') })
@@ -1815,7 +1815,7 @@ function kompresFoto(file, cap, maks, opsi) {
 			var zoom = el('input', { type: 'range', min: '1', max: '3', step: '0.01', value: '1', 'aria-label': 'Perbesar foto' });
 			var geserX = el('input', { type: 'range', min: '0', max: '100', value: '50', 'aria-label': 'Atur posisi horizontal foto' });
 			var geserY = el('input', { type: 'range', min: '0', max: '100', value: '50', 'aria-label': 'Atur posisi vertikal foto' });
-			var bingkai = el('div', { style: 'position:relative;width:min(280px, calc(100vw - 100px));aspect-ratio:1/1;margin:0 auto;overflow:hidden;border:3px solid #fff;border-radius:50%;background:#222;box-shadow:0 0 0 3px #111,0 8px 24px rgba(0,0,0,.45);touch-action:none' });
+			var bingkai = el('div', { style: 'position:relative;width:min(280px, calc(100vw - 100px));aspect-ratio:1/1;margin:0 auto;overflow:hidden;border:var(--bw) solid #fff;border-radius:50%;background:#222;box-shadow:0 0 0 3px #111,0 8px 24px rgba(0,0,0,.45);touch-action:none' });
 			var pratinjau = el('img', { src: url, alt: 'Atur potongan foto profil', draggable: 'false', style: 'position:absolute;max-width:none;user-select:none;pointer-events:none' });
 			bingkai.appendChild(pratinjau);
 			bingkai.appendChild(el('div', { class: 'foto-crop-guide', 'aria-hidden': 'true' }));
@@ -1879,7 +1879,7 @@ function kompresFoto(file, cap, maks, opsi) {
 		var src = fotoProfilTersimpan();
 		if (!src) { input.click(); return; }
 		var sumberAsli = FOTO_PROFIL_ASLI || src;
-		var pratinjau = el('img', { src: sumberAsli, alt: 'Foto profil asli yang diunggah', style: 'display:block;width:min(100%,420px);max-height:65vh;object-fit:contain;margin:0 auto;border-radius:12px' });
+		var pratinjau = el('img', { src: sumberAsli, alt: 'Foto profil asli yang diunggah', style: 'display:block;width:min(100%,420px);max-height:65vh;object-fit:contain;margin:0 auto;border-radius:var(--ui-r)' });
 		bukaModal('Foto Profil', [pratinjau], [
 		{ teks: 'Ubah Foto', kelas: 'primary', klik: function (t) { t(); input.click(); } },
 		{ teks: 'Hapus Foto', kelas: 'bahaya', klik: async function (t) {
@@ -1954,7 +1954,7 @@ function kompresFoto(file, cap, maks, opsi) {
 	var welcome = el('section', { class: 'beranda-welcome' }, [
 		el('div', null, [el('h2', { text: 'Halo, ' + namaAwal + ' 👋' }),
 		el('p', { class: 'beranda-greeting', text: 'Selamat datang kembali di portal karyawan.' }),
-		el('p', { style: 'margin-top:8px;font-size:12px;font-weight:800', text: tanggal })]),
+		el('p', { style: 'margin-top:8px;font-size:var(--fs-sm);font-weight:800', text: tanggal })]),
 		kartuProfil
 	]);
 	isi.appendChild(welcome);
