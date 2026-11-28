@@ -3475,18 +3475,3 @@ select:not([multiple]),textarea,
   #isi .tbl th{font-size:10px!important}
   #isi .tbl td{font-size:11.5px}
 }
-@media (max-width: 520px) {
-  .pf-top .profile-photo-button {
-    overflow: hidden;
-    border-radius: 50% !important;
-    background: var(--ac2);
-  }
-
-  .pf-top .profile-photo-button img {
-    width: 100%;
-    height: 100%;
-    object-fit: contain !important;
-    object-position: center;
-    border-radius: inherit;
-  }
-}
